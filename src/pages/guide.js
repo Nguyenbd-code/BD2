@@ -40,7 +40,7 @@ function charCard(name, bond) {
 </div>`;
 }
 
-function t1Section() {
+function t1Section(board) {
   const chars = ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
   const bonds = T1_DATA.bonds;
   const rot   = T1_DATA.rotation;
@@ -101,12 +101,41 @@ function t1Section() {
 </div>`;
   }).join('');
 
-  // Unit order pills
-  const orderPills = order.map(u => `
-<div class="order-row">
-  <div class="order-num">${u.pos}</div>
-  <div class="order-char">${esc(u.name)}</div>
-</div>`).join('');
+  // Unit order pills — compact inline
+  const orderPills = order.map(u =>
+    `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.2rem 0.5rem;background:var(--bg4);border-radius:4px">
+  <div style="width:16px;height:16px;border-radius:50%;background:var(--gold3);color:var(--bg);font-weight:700;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${u.pos}</div>
+  <div style="font-weight:700;font-size:0.75rem;color:var(--text)">${esc(u.name)}</div>
+</div>`
+  ).join('');
+
+  // Board tile helper
+  function boardTile(name, side) {
+    const isAtk = side === 'atk';
+    const bg  = isAtk ? 'rgba(192,57,43,0.1)' : 'rgba(41,128,185,0.1)';
+    const bdr = isAtk ? 'rgba(192,57,43,0.3)' : 'rgba(41,128,185,0.3)';
+    return `<div style="width:52px;height:52px;border-radius:5px;background:${bg};border:1px solid ${bdr};display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:0.68rem;font-weight:700;color:var(--text2);text-align:center;padding:2px">${name ? esc(name) : ''}</div>`;
+  }
+  const boardGrid = `
+<div style="display:flex;gap:1rem;align-items:center;margin-top:0.75rem">
+  <div>
+    <div style="text-align:center;font-size:0.65rem;color:#3498db;font-weight:700;letter-spacing:0.07em;margin-bottom:5px">DEF ←</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+      ${boardTile(board.d1,'def')}${boardTile(board.d2,'def')}
+      ${boardTile(board.d3,'def')}${boardTile(board.d4,'def')}
+      ${boardTile(board.d5,'def')}${boardTile(board.d6,'def')}
+    </div>
+  </div>
+  <div style="font-size:1.4rem;color:var(--gold)">⟶</div>
+  <div>
+    <div style="text-align:center;font-size:0.65rem;color:#e74c3c;font-weight:700;letter-spacing:0.07em;margin-bottom:5px">→ ATK</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+      ${boardTile(board.a1,'atk')}${boardTile(board.a2,'atk')}
+      ${boardTile(board.a3,'atk')}${boardTile(board.a4,'atk')}
+      ${boardTile(board.a5,'atk')}${boardTile(board.a6,'atk')}
+    </div>
+  </div>
+</div>`;
 
   return `
 <div class="comp-section" id="t1">
@@ -129,10 +158,10 @@ function t1Section() {
     ${charCards}
   </div>
 
-  <div class="comp-grid" style="margin-bottom:1.5rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;align-items:start">
     <div class="card">
       <div class="card-title">Build Notes</div>
-      <ul class="notes-list">
+      <ul class="notes-list" style="max-height:200px;overflow-y:auto">
         <li>Rou ≥21,000 HP · 50% Crit Rate · 1 HP/Res piece</li>
         <li>Lecliss ≥33,000 HP · 90% Defence</li>
         <li>Seir ≥29,000 HP · 105% Magic Resist</li>
@@ -142,15 +171,14 @@ function t1Section() {
     </div>
     <div class="card">
       <div class="card-title">Unit Order</div>
-      <div class="order-list">${orderPills}</div>
+      <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${orderPills}</div>
     </div>
-  </div>
-
-  <div class="card" style="margin-bottom:1.5rem">
-    <div class="card-title">Matchups</div>
-    <div>
-      <span style="font-size:0.78rem;color:var(--text3);margin-right:0.5rem">Countered By</span>
-      <span style="color:var(--text3);font-size:0.82rem">N/A</span>
+    <div class="card">
+      <div class="card-title">Matchups</div>
+      <div style="margin-top:0.25rem">
+        <div style="margin-bottom:0.3rem"><span style="font-size:0.75rem;color:var(--text3)">Counters: </span><span style="color:var(--text3);font-size:0.82rem">N/A</span></div>
+        <div><span style="font-size:0.75rem;color:var(--text3)">Countered By: </span><span style="color:var(--text3);font-size:0.82rem">N/A</span></div>
+      </div>
     </div>
   </div>
 
@@ -161,9 +189,7 @@ function t1Section() {
 
   <div class="card">
     <div class="card-title">Board Positioning</div>
-    <div style="margin-top:0.5rem">
-      <img src="/img/board_pos" alt="Board Positioning" style="max-width:340px;border-radius:6px;border:1px solid var(--border2)" onerror="this.outerHTML='<div style=\\'color:var(--text3);font-size:0.82rem\\'>N/A</div>'">
-    </div>
+    ${boardGrid}
   </div>
 </div>`;
 }
@@ -211,14 +237,21 @@ function compSection(comp) {
 </div>`;
 }
 
+const DEFAULT_BOARD = {
+  d1:'Seir', d2:'', d3:'Lecliss', d4:'', d5:'', d6:'',
+  a1:'Rou',  a2:'Schera', a3:'', a4:'Sylvia', a5:'', a6:'',
+};
+
 export async function handleGuide(request, env) {
-  // Load any DB-added compositions
-  let dbComps = [];
+  // Load board layout and compositions
+  let dbComps = [], board = DEFAULT_BOARD;
   try {
-    const { results } = await env.DB.prepare(
-      'SELECT tier, name, type, description, countered_by FROM compositions ORDER BY tier, id'
-    ).all();
-    dbComps = results;
+    const [compRes, boardRow] = await Promise.all([
+      env.DB.prepare('SELECT tier, name, type, description, countered_by FROM compositions ORDER BY tier, id').all(),
+      env.DB.prepare("SELECT data FROM images WHERE key='board_layout'").first(),
+    ]);
+    dbComps = compRes.results || [];
+    if (boardRow) board = { ...DEFAULT_BOARD, ...JSON.parse(boardRow.data) };
   } catch { /* ignore */ }
 
   const sidebarLinks = [
@@ -235,7 +268,7 @@ export async function handleGuide(request, env) {
   <span class="sidebar-name">${esc(name)}</span>
 </a>`).join('');
 
-  let compsHtml = t1Section();
+  let compsHtml = t1Section(board);
   for (const comp of STATIC_COMPS) {
     compsHtml += compSection(comp);
   }

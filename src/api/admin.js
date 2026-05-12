@@ -100,6 +100,22 @@ export async function handleAdminApi(request, env) {
       return json({ order });
     }
 
+    // ── Board Layout ──────────────────────────────────────────
+    if (path === '/api/admin/board/save' && method === 'POST') {
+      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('board_layout',?)")
+        .bind(JSON.stringify(body.board || {})).run();
+      return json({ success: true, message: 'Board saved!' });
+    }
+
+    if (path === '/api/admin/board/get' && method === 'GET') {
+      const row = await env.DB.prepare("SELECT data FROM images WHERE key='board_layout'").first();
+      const board = row ? JSON.parse(row.data) : {
+        d1:'Seir',d2:'',d3:'Lecliss',d4:'',d5:'',d6:'',
+        a1:'Rou',a2:'Schera',a3:'',a4:'Sylvia',a5:'',a6:'',
+      };
+      return json({ board });
+    }
+
     // ── Image list ────────────────────────────────────────────
     if (path === '/api/admin/images/list' && method === 'GET') {
       const r = await env.DB.prepare(
