@@ -54,7 +54,7 @@ function t1Section() {
     const col = colors[idx];
     return `
 <div class="t1-char tt-parent" style="flex:1;min-width:150px;max-width:220px">
-  <div style="width:100%;height:90px;border-radius:6px;background:var(--bg4);border:1px solid var(--border2);margin-bottom:0.6rem;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+  <div style="width:100%;height:70px;border-radius:6px;background:var(--bg4);border:1px solid var(--border2);margin-bottom:0.6rem;display:flex;align-items:center;justify-content:center;overflow:hidden;">
     <img src="/img/${esc(gearKey)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=\\'font-family:Cinzel,serif;font-size:2rem;color:${col};font-weight:700\\'>${esc(name.charAt(0))}</span>'">
   </div>
   <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--text)">${esc(name)}</div>
@@ -150,8 +150,7 @@ function t1Section() {
     <div class="card-title">Matchups</div>
     <div>
       <span style="font-size:0.78rem;color:var(--text3);margin-right:0.5rem">Countered By</span>
-      <span class="counter-tag">Granhildr Counter</span>
-      <span class="counter-tag">T6 Anti-Taunt</span>
+      <span style="color:var(--text3);font-size:0.82rem">N/A</span>
     </div>
   </div>
 

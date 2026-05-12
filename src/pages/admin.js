@@ -374,7 +374,7 @@ async function addEmote() {
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
     div.innerHTML = '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
+      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\\'none\\'">'
       + '<strong>' + escH(name) + '</strong></div>'
       + '<button class="btn-danger" onclick="deleteEmote(' + r.id + ')">Delete</button>';
     document.getElementById('emote-list').prepend(div);
@@ -430,7 +430,7 @@ async function uploadImage() {
       if (grid) grid.appendChild(slot);
     }
     slot.innerHTML = '<img src="' + escH(data) + '"><div class="img-slot-key">' + escH(key) + '</div>'
-      + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\'' + escH(key) + '\')">Delete</button>';
+      + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\\'' + escH(key) + '\\')">Delete</button>';
   }
 }
 async function deleteImage(key) {
