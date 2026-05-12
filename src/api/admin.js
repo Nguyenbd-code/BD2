@@ -28,7 +28,6 @@ export async function handleAdminApi(request, env) {
       ).bind(body.code.trim(), body.rewards||'', body.expiry||null).run();
       return json({ success:true, message:'Coupon added!', id: r.meta.last_row_id });
     }
-
     if (path === '/api/admin/coupon/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM coupons WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
@@ -42,7 +41,6 @@ export async function handleAdminApi(request, env) {
       ).bind(body.tier||'T2', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
       return json({ success:true, message:'Composition added!', id: r.meta.last_row_id });
     }
-
     if (path === '/api/admin/comp/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM compositions WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
@@ -56,7 +54,6 @@ export async function handleAdminApi(request, env) {
       ).bind(body.name.trim(), body.image_url.trim()).run();
       return json({ success:true, message:'Emote added!', id: r.meta.last_row_id });
     }
-
     if (path === '/api/admin/emote/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM emotes WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
@@ -68,10 +65,15 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(body.key, body.data).run();
       return json({ success:true, message:'Uploaded: ' + body.key });
     }
-
     if (path === '/api/admin/image/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM images WHERE key=?').bind(body.key).run();
       return json({ success:true, message:'Image deleted.' });
+    }
+    if (path === '/api/admin/images/list' && method === 'GET') {
+      const r = await env.DB.prepare(
+        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key"
+      ).all();
+      return json({ images: r.results || [] });
     }
 
     // ── T1 Notes ─────────────────────────────────────────────
@@ -80,9 +82,8 @@ export async function handleAdminApi(request, env) {
         .bind('notes_' + body.char, body.notes || '').run();
       return json({ success:true, message:'Notes saved for ' + body.char });
     }
-
     if (path === '/api/admin/t1/notes/get' && method === 'GET') {
-      const char = new URL(request.url).searchParams.get('char') || '';
+      const char = url.searchParams.get('char') || '';
       const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('notes_' + char).first();
       return json({ notes: row ? row.data : null });
     }
@@ -93,7 +94,6 @@ export async function handleAdminApi(request, env) {
         .bind('unit_order', JSON.stringify(body.order || [])).run();
       return json({ success:true, message:'Unit order saved!' });
     }
-
     if (path === '/api/admin/t1/order/get' && method === 'GET') {
       const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('unit_order').first();
       const order = row ? JSON.parse(row.data) : ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
@@ -104,9 +104,8 @@ export async function handleAdminApi(request, env) {
     if (path === '/api/admin/board/save' && method === 'POST') {
       await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('board_layout',?)")
         .bind(JSON.stringify(body.board || {})).run();
-      return json({ success: true, message: 'Board saved!' });
+      return json({ success:true, message:'Board saved!' });
     }
-
     if (path === '/api/admin/board/get' && method === 'GET') {
       const row = await env.DB.prepare("SELECT data FROM images WHERE key='board_layout'").first();
       const board = row ? JSON.parse(row.data) : {
@@ -116,12 +115,57 @@ export async function handleAdminApi(request, env) {
       return json({ board });
     }
 
-    // ── Image list ────────────────────────────────────────────
-    if (path === '/api/admin/images/list' && method === 'GET') {
+    // ── Characters ────────────────────────────────────────────
+    if (path === '/api/admin/chars/list' && method === 'GET') {
+      const r = await env.DB.prepare('SELECT * FROM char_registry ORDER BY name').all();
+      return json({ chars: r.results || [] });
+    }
+    if (path === '/api/admin/chars/add' && method === 'POST') {
+      if (!body.name || !body.slug) return json({ success:false, message:'Name and slug required' }, 400);
       const r = await env.DB.prepare(
-        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' ORDER BY key"
-      ).all();
-      return json({ images: r.results || [] });
+        'INSERT INTO char_registry (name, slug, status) VALUES (?,?,?)'
+      ).bind(body.name.trim(), body.slug.trim(), body.status||'active').run();
+      return json({ success:true, message:'Character added!', id: r.meta.last_row_id });
+    }
+    if (path === '/api/admin/chars/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM char_registry WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Costumes ─────────────────────────────────────────────
+    if (path === '/api/admin/costumes/list' && method === 'GET') {
+      const slug = url.searchParams.get('char_slug') || '';
+      const r = await env.DB.prepare('SELECT * FROM char_costumes WHERE char_slug=? ORDER BY id').bind(slug).all();
+      return json({ costumes: r.results || [] });
+    }
+    if (path === '/api/admin/costumes/add' && method === 'POST') {
+      if (!body.char_slug || !body.costume_name || !body.costume_slug) return json({ success:false, message:'char_slug, costume_name, costume_slug required' }, 400);
+      const r = await env.DB.prepare(
+        'INSERT INTO char_costumes (char_slug, costume_name, costume_slug, bond_stats) VALUES (?,?,?,?)'
+      ).bind(body.char_slug, body.costume_name.trim(), body.costume_slug.trim(), body.bond_stats||'').run();
+      return json({ success:true, message:'Costume added!', id: r.meta.last_row_id });
+    }
+    if (path === '/api/admin/costumes/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM char_costumes WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Skills ────────────────────────────────────────────────
+    if (path === '/api/admin/skills/list' && method === 'GET') {
+      const slug = url.searchParams.get('costume_slug') || '';
+      const r = await env.DB.prepare('SELECT * FROM char_skills WHERE costume_slug=? ORDER BY id').bind(slug).all();
+      return json({ skills: r.results || [] });
+    }
+    if (path === '/api/admin/skills/add' && method === 'POST') {
+      if (!body.skill_name || !body.costume_slug) return json({ success:false, message:'skill_name and costume_slug required' }, 400);
+      const r = await env.DB.prepare(
+        'INSERT INTO char_skills (char_slug, costume_slug, skill_name, sp_cost, cooldown, tile_type, description) VALUES (?,?,?,?,?,?,?)'
+      ).bind(body.char_slug||'', body.costume_slug, body.skill_name.trim(), body.sp_cost||1, body.cooldown||5, body.tile_type||'FRONT', body.description||'').run();
+      return json({ success:true, message:'Skill added!', id: r.meta.last_row_id });
+    }
+    if (path === '/api/admin/skills/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM char_skills WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
     }
 
   } catch(e) {
