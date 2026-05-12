@@ -1,5 +1,4 @@
 import { layout, esc } from '../layout/layout.js';
-import { T1_DATA, T1_IMAGE_KEYS } from '../data/t1.js';
 
 const ADMIN_PASSWORD = 'Anime0404!';
 
@@ -67,32 +66,32 @@ export async function handleAdmin(request, env) {
     { char:'Sylvia',       slots:['CBFS 1','Bikini Blaster 1','The Punisher','CBFS 2','Bikini Blaster 2'] },
   ];
 
-  const tileOptHtml = skillSlots.map(({char,slots}) =>
-    slots.map((_,i) => {
+  const tileOptHtml = skillSlots.map(({char, slots}) =>
+    slots.map((name, i) => {
       const k = `tile_${char.toLowerCase()}_${i+1}`;
-      return `<option value="${esc(k)}">${esc(char)} — ${esc(slots[i])}${existingKeys.has(k)?' ✓':''}</option>`;
+      return `<option value="${esc(k)}">${esc(char)} — ${esc(name)}${existingKeys.has(k) ? ' ✓' : ''}</option>`;
     }).join('')
   ).join('');
 
-  const tileStatusHtml = skillSlots.map(({char,slots}) => `
+  const tileStatusHtml = skillSlots.map(({char, slots}) => `
 <div style="margin-bottom:0.75rem">
   <div style="font-family:'Cinzel',serif;font-size:0.8rem;color:var(--gold);margin-bottom:0.4rem">${esc(char)}</div>
-  ${slots.map((_,i) => {
+  ${slots.map((name, i) => {
     const k = `tile_${char.toLowerCase()}_${i+1}`;
     const has = existingKeys.has(k);
-    return `<span style="display:inline-block;margin:2px 4px 2px 0;font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${has?'rgba(39,174,96,0.15)':'var(--bg4)'};border:1px solid ${has?'rgba(39,174,96,0.3)':'var(--border2)'};color:${has?'#2ecc71':'var(--text3)'}">Slot ${i+1}: ${esc(slots[i])} ${has?'✓':'✗'}</span>`;
+    return `<span style="display:inline-block;margin:2px 4px 2px 0;font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${has ? 'rgba(39,174,96,0.15)' : 'var(--bg4)'};border:1px solid ${has ? 'rgba(39,174,96,0.3)' : 'var(--border2)'};color:${has ? '#2ecc71' : 'var(--text3)'}">Slot ${i+1}: ${esc(name)} ${has ? '✓' : '✗'}</span>`;
   }).join('')}
 </div>`).join('');
 
-  const currentImagesHtml = images.length ? `
-<div class="img-grid">
+  const imgGridHtml = images.length ? `
+<div class="img-grid" id="img-grid">
   ${images.map(img => `
   <div class="img-slot" id="imgslot-${esc(img.key)}">
     <img src="/img/${esc(img.key)}" alt="${esc(img.key)}" onerror="this.style.display='none'">
     <div class="img-slot-key">${esc(img.key)}</div>
     <button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage('${esc(img.key)}')">Delete</button>
   </div>`).join('')}
-</div>` : '<p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p>';
+</div>` : '<div id="img-grid"><p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p></div>';
 
   return layout('Admin Panel', `
 <div class="admin-wrap">
@@ -102,14 +101,13 @@ export async function handleAdmin(request, env) {
   </div>
 
   <div class="admin-tabs">
-    <button class="tab-btn active"  onclick="showTab('coupons',this)">Coupons</button>
-    <button class="tab-btn"         onclick="showTab('comps',this)">Compositions</button>
-    <button class="tab-btn"         onclick="showTab('emotes',this)">Emotes</button>
-    <button class="tab-btn"         onclick="showTab('images',this)">📷 Images</button>
-    <button class="tab-btn"         onclick="showTab('t1',this)">⚙ T1 Content</button>
+    <button class="tab-btn active" data-tab="coupons" onclick="showTab('coupons')">Coupons</button>
+    <button class="tab-btn"        data-tab="comps"   onclick="showTab('comps')">Compositions</button>
+    <button class="tab-btn"        data-tab="emotes"  onclick="showTab('emotes')">Emotes</button>
+    <button class="tab-btn"        data-tab="images"  onclick="showTab('images')">Images</button>
+    <button class="tab-btn"        data-tab="t1"      onclick="showTab('t1')">T1 Content</button>
   </div>
 
-  <!-- COUPONS -->
   <div class="admin-section active" id="tab-coupons">
     <div class="admin-form">
       <h3>Add Coupon Code</h3>
@@ -125,7 +123,7 @@ export async function handleAdmin(request, env) {
       ${coupons.map(c => `
       <div class="admin-item" id="coupon-${c.id}">
         <div class="admin-item-info">
-          <strong>${esc(c.code)}</strong> — ${esc(c.rewards||'')}
+          <strong>${esc(c.code)}</strong> — ${esc(c.rewards || '')}
           ${c.expiry ? ` · Expires ${esc(c.expiry)}` : ''} · ${c.active ? 'Active' : 'Inactive'}
         </div>
         <button class="btn-danger" onclick="deleteCoupon(${c.id})">Delete</button>
@@ -133,7 +131,6 @@ export async function handleAdmin(request, env) {
     </div>
   </div>
 
-  <!-- COMPOSITIONS -->
   <div class="admin-section" id="tab-comps">
     <div class="admin-form">
       <h3>Add Composition</h3>
@@ -148,22 +145,20 @@ export async function handleAdmin(request, env) {
       </div>
       <div class="form-group"><label>Name</label><input type="text" id="comp-name" placeholder="Team Name"></div>
       <div class="form-group"><label>Description / Notes</label><textarea id="comp-desc" placeholder="Build notes and details..."></textarea></div>
-      <div class="form-group"><label>Countered By (comma separated)</label><input type="text" id="comp-cby" placeholder="T1, Schera teams"></div>
+      <div class="form-group"><label>Countered By</label><input type="text" id="comp-cby" placeholder="T1, Schera teams"></div>
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addComp()">Add Composition</button>
     </div>
     <div class="admin-list" id="comp-list">
       ${comps.map(c => `
       <div class="admin-item" id="comp-${c.id}">
         <div class="admin-item-info">
-          <strong>${esc(c.tier)} — ${esc(c.name)}</strong> · ${esc(c.type||'')}
-          ${c.last_updated ? ` · ${esc(c.last_updated)}` : ''}
+          <strong>${esc(c.tier)} — ${esc(c.name)}</strong> · ${esc(c.type || '')}
         </div>
         <button class="btn-danger" onclick="deleteComp(${c.id})">Delete</button>
       </div>`).join('') || '<p style="color:var(--text3);font-size:0.83rem">No custom compositions yet.</p>'}
     </div>
   </div>
 
-  <!-- EMOTES -->
   <div class="admin-section" id="tab-emotes">
     <div class="admin-form">
       <h3>Add Emote</h3>
@@ -186,18 +181,17 @@ export async function handleAdmin(request, env) {
     </div>
   </div>
 
-  <!-- IMAGES -->
   <div class="admin-section" id="tab-images">
     <div class="admin-form">
       <h3>Upload Image</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Select a slot, pick a file. Images are auto-compressed to ~340px JPEG. ✓ = already uploaded.</p>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Select a slot, pick a file. Auto-compressed to 340px JPEG. ✓ = already uploaded.</p>
       <div id="img-alert"></div>
       <div class="form-row">
         <div class="form-group">
           <label>Image Slot</label>
           <select id="img-key">
             <optgroup label="T1 Gear &amp; Icons">
-              ${imgKeys.map(k => `<option value="${esc(k)}">${esc(imgLabels[k]||k)}${existingKeys.has(k)?' ✓':''}</option>`).join('')}
+              ${imgKeys.map(k => `<option value="${esc(k)}">${esc(imgLabels[k] || k)}${existingKeys.has(k) ? ' ✓' : ''}</option>`).join('')}
             </optgroup>
             <optgroup label="Skill Tile Patterns">${tileOptHtml}</optgroup>
             <option value="__custom__">— Custom key...</option>
@@ -216,19 +210,18 @@ export async function handleAdmin(request, env) {
       <button class="btn" style="width:auto;padding:10px 24px" onclick="uploadImage()">Upload Image</button>
     </div>
     <div class="admin-form">
-      <h3>Current Images (${images.length})</h3>
-      ${currentImagesHtml}
+      <h3>Uploaded Images (${images.length})</h3>
+      ${imgGridHtml}
     </div>
   </div>
 
-  <!-- T1 CONTENT -->
   <div class="admin-section" id="tab-t1">
     <div class="admin-form">
-      <h3>T1 Character Build Notes</h3>
+      <h3>Character Build Notes</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the build notes shown on hover over each character portrait.</p>
       <div class="form-group">
         <label>Character</label>
-        <select id="notes-char">
+        <select id="notes-char" onchange="loadNotes()">
           <option value="Rou">Rou</option>
           <option value="Seir">Seir</option>
           <option value="Lecliss">Lecliss</option>
@@ -245,13 +238,13 @@ export async function handleAdmin(request, env) {
     </div>
 
     <div class="admin-form">
-      <h3>T1 Unit Order</h3>
+      <h3>Unit Order</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the numbered placement order (positions 1–5).</p>
       ${[1,2,3,4,5].map(i => `
       <div class="form-group">
         <label>Position ${i}</label>
         <select id="order-${i}">
-          ${['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+          ${['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
         </select>
       </div>`).join('')}
       <div id="order-alert"></div>
@@ -260,26 +253,32 @@ export async function handleAdmin(request, env) {
 
     <div class="admin-form">
       <h3>Skill Tile Patterns</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload tile screenshots via the 📷 Images tab.</p>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload tile screenshots via the Images tab.</p>
       ${tileStatusHtml}
     </div>
   </div>
 </div>
 
 <script>
-/* ── Tab switching ─────────────────────────────────────────── */
-function showTab(name, btn) {
+/* ── Tab switching ── */
+function showTab(name) {
+  console.log('showTab:', name);
   var sections = document.querySelectorAll('.admin-section');
   var buttons  = document.querySelectorAll('.tab-btn');
   for (var i = 0; i < sections.length; i++) sections[i].classList.remove('active');
-  for (var i = 0; i < buttons.length;  i++) buttons[i].classList.remove('active');
+  for (var i = 0; i < buttons.length;  i++)  buttons[i].classList.remove('active');
   var target = document.getElementById('tab-' + name);
-  if (target) target.classList.add('active');
-  if (btn) btn.classList.add('active');
+  if (target) {
+    target.classList.add('active');
+  } else {
+    console.warn('showTab: no element with id=tab-' + name);
+  }
+  var activeBtn = document.querySelector('[data-tab="' + name + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
   if (name === 't1') { loadNotes(); loadOrder(); }
 }
 
-/* ── Helpers ───────────────────────────────────────────────── */
+/* ── Helpers ── */
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -287,27 +286,28 @@ function showAlert(id, ok, msg) {
   var el = document.getElementById(id);
   if (!el) return;
   el.innerHTML = '<div class="alert ' + (ok ? 'alert-success' : 'alert-error') + '">' + escH(msg) + '</div>';
-  setTimeout(function() { if (el) el.innerHTML = ''; }, 3000);
+  setTimeout(function() { el.innerHTML = ''; }, 3000);
 }
 async function apiPost(path, body) {
-  var r = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return r.json();
+  try {
+    var r = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await r.json();
+  } catch(e) {
+    return { success: false, message: e.message };
+  }
 }
 
-/* ── img-key change handler (safe, runs after DOM ready) ───── */
-var imgKeyEl = document.getElementById('img-key');
-if (imgKeyEl) {
-  imgKeyEl.addEventListener('change', function() {
-    var ckg = document.getElementById('custom-key-group');
-    if (ckg) ckg.style.display = this.value === '__custom__' ? 'block' : 'none';
-  });
-}
+/* ── img-key select ── */
+document.getElementById('img-key').addEventListener('change', function() {
+  var g = document.getElementById('custom-key-group');
+  if (g) g.style.display = this.value === '__custom__' ? 'block' : 'none';
+});
 
-/* ── Coupons ───────────────────────────────────────────────── */
+/* ── Coupons ── */
 async function addCoupon() {
   var code    = document.getElementById('c-code').value.trim();
   var rewards = document.getElementById('c-rewards').value.trim();
@@ -319,49 +319,48 @@ async function addCoupon() {
     document.getElementById('c-code').value = '';
     document.getElementById('c-rewards').value = '';
     document.getElementById('c-expiry').value = '';
-    var list = document.getElementById('coupon-list');
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'coupon-' + r.id;
     div.innerHTML = '<div class="admin-item-info"><strong>' + escH(code) + '</strong> — ' + escH(rewards) + ' · Active</div>'
       + '<button class="btn-danger" onclick="deleteCoupon(' + r.id + ')">Delete</button>';
-    list.prepend(div);
+    document.getElementById('coupon-list').prepend(div);
   }
 }
 async function deleteCoupon(id) {
   var r = await apiPost('/api/admin/coupon/delete', { id });
   if (r.success) { var el = document.getElementById('coupon-' + id); if (el) el.remove(); }
+  else showAlert('coupon-alert', false, r.message);
 }
 
-/* ── Compositions ──────────────────────────────────────────── */
+/* ── Compositions ── */
 async function addComp() {
-  var tier        = document.getElementById('comp-tier').value;
-  var name        = document.getElementById('comp-name').value.trim();
-  var type        = document.getElementById('comp-type').value;
-  var description = document.getElementById('comp-desc').value.trim();
-  var cby         = document.getElementById('comp-cby').value.trim();
-  var updated     = new Date().toISOString().slice(0,10);
+  var tier  = document.getElementById('comp-tier').value;
+  var name  = document.getElementById('comp-name').value.trim();
+  var type  = document.getElementById('comp-type').value;
+  var desc  = document.getElementById('comp-desc').value.trim();
+  var cby   = document.getElementById('comp-cby').value.trim();
   if (!name) { showAlert('comp-alert', false, 'Name is required'); return; }
-  var r = await apiPost('/api/admin/comp/add', { tier, name, type, description, countered_by: cby, last_updated: updated });
+  var r = await apiPost('/api/admin/comp/add', { tier, name, type, description: desc, countered_by: cby, last_updated: new Date().toISOString().slice(0,10) });
   showAlert('comp-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('comp-name').value = '';
     document.getElementById('comp-desc').value = '';
-    var list = document.getElementById('comp-list');
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'comp-' + r.id;
     div.innerHTML = '<div class="admin-item-info"><strong>' + escH(tier) + ' — ' + escH(name) + '</strong> · ' + escH(type) + '</div>'
       + '<button class="btn-danger" onclick="deleteComp(' + r.id + ')">Delete</button>';
-    list.prepend(div);
+    document.getElementById('comp-list').prepend(div);
   }
 }
 async function deleteComp(id) {
   var r = await apiPost('/api/admin/comp/delete', { id });
   if (r.success) { var el = document.getElementById('comp-' + id); if (el) el.remove(); }
+  else showAlert('comp-alert', false, r.message);
 }
 
-/* ── Emotes ────────────────────────────────────────────────── */
+/* ── Emotes ── */
 async function addEmote() {
   var name      = document.getElementById('e-name').value.trim();
   var image_url = document.getElementById('e-url').value.trim();
@@ -371,7 +370,6 @@ async function addEmote() {
   if (r.success) {
     document.getElementById('e-name').value = '';
     document.getElementById('e-url').value = '';
-    var list = document.getElementById('emote-list');
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
@@ -379,51 +377,23 @@ async function addEmote() {
       + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
       + '<strong>' + escH(name) + '</strong></div>'
       + '<button class="btn-danger" onclick="deleteEmote(' + r.id + ')">Delete</button>';
-    list.prepend(div);
+    document.getElementById('emote-list').prepend(div);
   }
 }
 async function deleteEmote(id) {
   var r = await apiPost('/api/admin/emote/delete', { id });
   if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); }
+  else showAlert('emote-alert', false, r.message);
 }
 
-/* ── Images ────────────────────────────────────────────────── */
-async function uploadImage() {
-  var keyEl  = document.getElementById('img-key');
-  var fileEl = document.getElementById('img-file');
-  if (!keyEl || !fileEl) return;
-  var key = keyEl.value === '__custom__'
-    ? (document.getElementById('img-custom-key') || {}).value || ''
-    : keyEl.value;
-  var file = fileEl.files[0];
-  if (!key)  { showAlert('img-alert', false, 'Select or enter a key'); return; }
-  if (!file) { showAlert('img-alert', false, 'Select an image file'); return; }
-  showAlert('img-alert', true, 'Compressing…');
-  var data = await compressImage(file, 340, 0.85);
-  var r = await apiPost('/api/admin/image/upload', { key, data });
-  showAlert('img-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
-  if (r.success) {
-    fileEl.value = '';
-    var slot = document.getElementById('imgslot-' + key);
-    if (!slot) {
-      var grid = document.querySelector('.img-grid');
-      if (grid) { slot = document.createElement('div'); slot.className = 'img-slot'; slot.id = 'imgslot-' + key; grid.appendChild(slot); }
-    }
-    if (slot) slot.innerHTML = '<img src="' + escH(data) + '"><div class="img-slot-key">' + escH(key) + '</div>'
-      + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\'' + escH(key) + '\')">Delete</button>';
-  }
-}
-async function deleteImage(key) {
-  var r = await apiPost('/api/admin/image/delete', { key });
-  if (r.success) { var s = document.getElementById('imgslot-' + key); if (s) s.remove(); }
-}
-function compressImage(file, maxWidth, quality) {
+/* ── Images ── */
+function compressImage(file, maxW, quality) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var img = new Image();
       img.onload = function() {
-        var scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        var scale = img.width > maxW ? maxW / img.width : 1;
         var canvas = document.getElementById('compress-canvas');
         canvas.width  = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
@@ -437,14 +407,45 @@ function compressImage(file, maxWidth, quality) {
     reader.readAsDataURL(file);
   });
 }
+async function uploadImage() {
+  var keyEl   = document.getElementById('img-key');
+  var fileEl  = document.getElementById('img-file');
+  var customEl = document.getElementById('img-custom-key');
+  var key  = keyEl.value === '__custom__' ? (customEl ? customEl.value.trim() : '') : keyEl.value;
+  var file = fileEl.files[0];
+  if (!key)  { showAlert('img-alert', false, 'Select or enter a key'); return; }
+  if (!file) { showAlert('img-alert', false, 'Select an image file'); return; }
+  showAlert('img-alert', true, 'Compressing…');
+  var data = await compressImage(file, 340, 0.85);
+  var r = await apiPost('/api/admin/image/upload', { key, data });
+  showAlert('img-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
+  if (r.success) {
+    fileEl.value = '';
+    var grid = document.getElementById('img-grid');
+    var slot = document.getElementById('imgslot-' + key);
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.className = 'img-slot';
+      slot.id = 'imgslot-' + key;
+      if (grid) grid.appendChild(slot);
+    }
+    slot.innerHTML = '<img src="' + escH(data) + '"><div class="img-slot-key">' + escH(key) + '</div>'
+      + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\'' + escH(key) + '\')">Delete</button>';
+  }
+}
+async function deleteImage(key) {
+  var r = await apiPost('/api/admin/image/delete', { key });
+  if (r.success) { var s = document.getElementById('imgslot-' + key); if (s) s.remove(); }
+  else showAlert('img-alert', false, r.message);
+}
 
-/* ── T1 Notes ──────────────────────────────────────────────── */
+/* ── T1 Notes ── */
 async function loadNotes() {
   var charEl = document.getElementById('notes-char');
   if (!charEl) return;
   try {
-    var r = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
-    var data = await r.json();
+    var res  = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
+    var data = await res.json();
     var textEl = document.getElementById('notes-text');
     if (textEl) textEl.value = data.notes || '';
   } catch(e) {}
@@ -456,26 +457,25 @@ async function saveNotes() {
   var r = await apiPost('/api/admin/t1/notes/save', { char: charEl.value, notes: textEl.value });
   showAlert('notes-alert', r.success, r.message);
 }
-var notesCharEl = document.getElementById('notes-char');
-if (notesCharEl) notesCharEl.addEventListener('change', loadNotes);
 
-/* ── T1 Unit Order ─────────────────────────────────────────── */
+/* ── T1 Unit Order ── */
 async function loadOrder() {
   try {
-    var r = await fetch('/api/admin/t1/order/get');
-    var data = await r.json();
+    var res   = await fetch('/api/admin/t1/order/get');
+    var data  = await res.json();
     var order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-    order.forEach(function(name, i) {
+    for (var i = 0; i < order.length; i++) {
       var sel = document.getElementById('order-' + (i + 1));
-      if (sel) sel.value = name;
-    });
+      if (sel) sel.value = order[i];
+    }
   } catch(e) {}
 }
 async function saveOrder() {
-  var order = [1,2,3,4,5].map(function(i) {
-    var el = document.getElementById('order-' + i);
-    return el ? el.value : '';
-  }).filter(Boolean);
+  var order = [];
+  for (var i = 1; i <= 5; i++) {
+    var sel = document.getElementById('order-' + i);
+    if (sel) order.push(sel.value);
+  }
   var r = await apiPost('/api/admin/t1/order/save', { order });
   showAlert('order-alert', r.success, r.message);
 }

@@ -87,9 +87,10 @@ function t1Section() {
     <div class="tt-stats">
       <span class="tt-stat">${esc(sk.sp)}</span>
       <span class="tt-stat">${esc(sk.cd)}</span>
-      <span class="tt-stat tile-stat ${tileCls(sk.tile)}">${esc(sk.tile)}</span>
+      <span class="tt-stat ${tileCls(sk.tile)}">${esc(sk.tile)}</span>
     </div>
     <div class="tt-desc">${esc(sk.desc)}</div>
+    <div style="margin-top:0.4rem;font-size:0.72rem;color:var(--text3)">Character Tile: N/A</div>
   </div>
 </div>`;
     }).join('');
@@ -162,7 +163,7 @@ function t1Section() {
   <div class="card">
     <div class="card-title">Board Positioning</div>
     <div style="margin-top:0.5rem">
-      <img src="/img/board_pos" alt="Board Positioning" style="max-width:340px;border-radius:6px;border:1px solid var(--border2)" onerror="this.outerHTML='<div style=\\'color:var(--text3);font-size:0.82rem\\'>Image not yet set — upload via Admin → Images</div>'">
+      <img src="/img/board_pos" alt="Board Positioning" style="max-width:340px;border-radius:6px;border:1px solid var(--border2)" onerror="this.outerHTML='<div style=\\'color:var(--text3);font-size:0.82rem\\'>N/A</div>'">
     </div>
   </div>
 </div>`;
