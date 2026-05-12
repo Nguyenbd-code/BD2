@@ -53,18 +53,18 @@ export async function handleAdmin(request, env) {
 
   const imgKeys = ['board_pos','rou_gear','seir_gear','lecliss_gear','schera_gear','sylvia_gear','icon_msp','icon_lw','icon_cns','icon_pp'];
   const imgLabels = {
-    board_pos:'Board Positioning',rou_gear:'Rou Gear',seir_gear:'Seir Gear',
-    lecliss_gear:'Lecliss Gear',schera_gear:'Scheherazade Gear',sylvia_gear:'Sylvia Gear',
-    icon_msp:'Schera: Magic Professor',icon_lw:'Schera: Lapis Witch',
-    icon_cns:'Schera: Code Name S',icon_pp:'Schera: Purple Prince',
+    board_pos:'Board Positioning', rou_gear:'Rou Gear', seir_gear:'Seir Gear',
+    lecliss_gear:'Lecliss Gear', schera_gear:'Scheherazade Gear', sylvia_gear:'Sylvia Gear',
+    icon_msp:'Schera: Magic Professor', icon_lw:'Schera: Lapis Witch',
+    icon_cns:'Schera: Code Name S', icon_pp:'Schera: Purple Prince',
   };
 
   const skillSlots = [
-    { char:'Rou',           slots:['Snack Time','Half Moon Kick','Hide & Seek 1','Terra Burst','Hide & Seek 2'] },
-    { char:'Seir',          slots:['Protective Instinct 1','He is Bullying Me 1','Protective Instinct 2','He is Bullying Me 2','Protective Instinct 3'] },
-    { char:'Lecliss',       slots:['Curse Replica 1','Auto Defense Mode 1','Curse Replica 2','Auto Defense Mode 2','Curse Replica 3'] },
-    { char:'Scheherazade',  slots:['Sapphire Boomerang 1','Aqua Break 1','Aqua Silence','Sapphire Boomerang 2','Aqua Break 2'] },
-    { char:'Sylvia',        slots:['CBFS 1','Bikini Blaster 1','The Punisher','CBFS 2','Bikini Blaster 2'] },
+    { char:'Rou',          slots:['Snack Time','Half Moon Kick','Hide & Seek 1','Terra Burst','Hide & Seek 2'] },
+    { char:'Seir',         slots:['Protective Instinct 1','He is Bullying Me 1','Protective Instinct 2','He is Bullying Me 2','Protective Instinct 3'] },
+    { char:'Lecliss',      slots:['Curse Replica 1','Auto Defense Mode 1','Curse Replica 2','Auto Defense Mode 2','Curse Replica 3'] },
+    { char:'Scheherazade', slots:['Sapphire Boomerang 1','Aqua Break 1','Aqua Silence','Sapphire Boomerang 2','Aqua Break 2'] },
+    { char:'Sylvia',       slots:['CBFS 1','Bikini Blaster 1','The Punisher','CBFS 2','Bikini Blaster 2'] },
   ];
 
   const tileOptHtml = skillSlots.map(({char,slots}) =>
@@ -102,11 +102,11 @@ export async function handleAdmin(request, env) {
   </div>
 
   <div class="admin-tabs">
-    <button class="tab-btn active" onclick="switchTab('coupons',this)">Coupons</button>
-    <button class="tab-btn" onclick="switchTab('compositions',this)">Compositions</button>
-    <button class="tab-btn" onclick="switchTab('emotes',this)">Emotes</button>
-    <button class="tab-btn" onclick="switchTab('images',this)">📷 Images</button>
-    <button class="tab-btn" onclick="switchTab('t1content',this)">⚙ T1 Content</button>
+    <button class="tab-btn active"  onclick="showTab('coupons',this)">Coupons</button>
+    <button class="tab-btn"         onclick="showTab('comps',this)">Compositions</button>
+    <button class="tab-btn"         onclick="showTab('emotes',this)">Emotes</button>
+    <button class="tab-btn"         onclick="showTab('images',this)">📷 Images</button>
+    <button class="tab-btn"         onclick="showTab('t1',this)">⚙ T1 Content</button>
   </div>
 
   <!-- COUPONS -->
@@ -134,7 +134,7 @@ export async function handleAdmin(request, env) {
   </div>
 
   <!-- COMPOSITIONS -->
-  <div class="admin-section" id="tab-compositions">
+  <div class="admin-section" id="tab-comps">
     <div class="admin-form">
       <h3>Add Composition</h3>
       <div id="comp-alert"></div>
@@ -222,13 +222,13 @@ export async function handleAdmin(request, env) {
   </div>
 
   <!-- T1 CONTENT -->
-  <div class="admin-section" id="tab-t1content">
+  <div class="admin-section" id="tab-t1">
     <div class="admin-form">
       <h3>T1 Character Build Notes</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the build notes shown on hover over each character portrait.</p>
       <div class="form-group">
         <label>Character</label>
-        <select id="notes-char" onchange="loadNotes()">
+        <select id="notes-char">
           <option value="Rou">Rou</option>
           <option value="Seir">Seir</option>
           <option value="Lecliss">Lecliss</option>
@@ -246,7 +246,7 @@ export async function handleAdmin(request, env) {
 
     <div class="admin-form">
       <h3>T1 Unit Order</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the numbered placement order (1–5) shown in the guide.</p>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the numbered placement order (positions 1–5).</p>
       ${[1,2,3,4,5].map(i => `
       <div class="form-group">
         <label>Position ${i}</label>
@@ -260,147 +260,171 @@ export async function handleAdmin(request, env) {
 
     <div class="admin-form">
       <h3>Skill Tile Patterns</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload tile pattern screenshots via the 📷 Images tab. They appear in skill hover tooltips.</p>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload tile screenshots via the 📷 Images tab.</p>
       ${tileStatusHtml}
     </div>
   </div>
 </div>
 
 <script>
-function switchTab(name, btn) {
-  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (name === 't1content') loadNotes();
-  if (name === 't1content') loadOrder();
+/* ── Tab switching ─────────────────────────────────────────── */
+function showTab(name, btn) {
+  var sections = document.querySelectorAll('.admin-section');
+  var buttons  = document.querySelectorAll('.tab-btn');
+  for (var i = 0; i < sections.length; i++) sections[i].classList.remove('active');
+  for (var i = 0; i < buttons.length;  i++) buttons[i].classList.remove('active');
+  var target = document.getElementById('tab-' + name);
+  if (target) target.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 't1') { loadNotes(); loadOrder(); }
 }
 
-function esc(s) {
+/* ── Helpers ───────────────────────────────────────────────── */
+function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function alert2(id, ok, msg) {
-  const el = document.getElementById(id);
+function showAlert(id, ok, msg) {
+  var el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = '<div class="alert ' + (ok?'alert-success':'alert-error') + '">' + esc(msg) + '</div>';
-  setTimeout(() => el.innerHTML = '', 3000);
+  el.innerHTML = '<div class="alert ' + (ok ? 'alert-success' : 'alert-error') + '">' + escH(msg) + '</div>';
+  setTimeout(function() { if (el) el.innerHTML = ''; }, 3000);
 }
-
-async function post(path, body) {
-  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+async function apiPost(path, body) {
+  var r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
   return r.json();
 }
 
-/* COUPONS */
+/* ── img-key change handler (safe, runs after DOM ready) ───── */
+var imgKeyEl = document.getElementById('img-key');
+if (imgKeyEl) {
+  imgKeyEl.addEventListener('change', function() {
+    var ckg = document.getElementById('custom-key-group');
+    if (ckg) ckg.style.display = this.value === '__custom__' ? 'block' : 'none';
+  });
+}
+
+/* ── Coupons ───────────────────────────────────────────────── */
 async function addCoupon() {
-  const code = document.getElementById('c-code').value.trim();
-  const rewards = document.getElementById('c-rewards').value.trim();
-  const expiry = document.getElementById('c-expiry').value.trim();
-  if (!code) return alert2('coupon-alert', false, 'Code is required');
-  const r = await post('/api/admin/coupon/add', { code, rewards, expiry: expiry||null });
-  alert2('coupon-alert', r.success, r.message);
+  var code    = document.getElementById('c-code').value.trim();
+  var rewards = document.getElementById('c-rewards').value.trim();
+  var expiry  = document.getElementById('c-expiry').value.trim();
+  if (!code) { showAlert('coupon-alert', false, 'Code is required'); return; }
+  var r = await apiPost('/api/admin/coupon/add', { code, rewards, expiry: expiry || null });
+  showAlert('coupon-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('c-code').value = '';
     document.getElementById('c-rewards').value = '';
     document.getElementById('c-expiry').value = '';
-    const list = document.getElementById('coupon-list');
-    const div = document.createElement('div');
-    div.className = 'admin-item'; div.id = 'coupon-' + r.id;
-    div.innerHTML = '<div class="admin-item-info"><strong>' + esc(code) + '</strong> — ' + esc(rewards) + ' · Active</div><button class="btn-danger" onclick="deleteCoupon(' + r.id + ')">Delete</button>';
+    var list = document.getElementById('coupon-list');
+    var div = document.createElement('div');
+    div.className = 'admin-item';
+    div.id = 'coupon-' + r.id;
+    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(code) + '</strong> — ' + escH(rewards) + ' · Active</div>'
+      + '<button class="btn-danger" onclick="deleteCoupon(' + r.id + ')">Delete</button>';
     list.prepend(div);
   }
 }
 async function deleteCoupon(id) {
-  const r = await post('/api/admin/coupon/delete', { id });
-  if (r.success) document.getElementById('coupon-' + id)?.remove();
+  var r = await apiPost('/api/admin/coupon/delete', { id });
+  if (r.success) { var el = document.getElementById('coupon-' + id); if (el) el.remove(); }
 }
 
-/* COMPOSITIONS */
+/* ── Compositions ──────────────────────────────────────────── */
 async function addComp() {
-  const tier = document.getElementById('comp-tier').value;
-  const name = document.getElementById('comp-name').value.trim();
-  const type = document.getElementById('comp-type').value;
-  const description = document.getElementById('comp-desc').value.trim();
-  const countered_by = document.getElementById('comp-cby').value.trim();
-  const last_updated = new Date().toISOString().slice(0,10);
-  if (!name) return alert2('comp-alert', false, 'Name is required');
-  const r = await post('/api/admin/comp/add', { tier, name, type, description, countered_by, last_updated });
-  alert2('comp-alert', r.success, r.message);
+  var tier        = document.getElementById('comp-tier').value;
+  var name        = document.getElementById('comp-name').value.trim();
+  var type        = document.getElementById('comp-type').value;
+  var description = document.getElementById('comp-desc').value.trim();
+  var cby         = document.getElementById('comp-cby').value.trim();
+  var updated     = new Date().toISOString().slice(0,10);
+  if (!name) { showAlert('comp-alert', false, 'Name is required'); return; }
+  var r = await apiPost('/api/admin/comp/add', { tier, name, type, description, countered_by: cby, last_updated: updated });
+  showAlert('comp-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('comp-name').value = '';
     document.getElementById('comp-desc').value = '';
-    const list = document.getElementById('comp-list');
-    const div = document.createElement('div');
-    div.className = 'admin-item'; div.id = 'comp-' + r.id;
-    div.innerHTML = '<div class="admin-item-info"><strong>' + esc(tier) + ' — ' + esc(name) + '</strong> · ' + esc(type) + '</div><button class="btn-danger" onclick="deleteComp(' + r.id + ')">Delete</button>';
+    var list = document.getElementById('comp-list');
+    var div = document.createElement('div');
+    div.className = 'admin-item';
+    div.id = 'comp-' + r.id;
+    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(tier) + ' — ' + escH(name) + '</strong> · ' + escH(type) + '</div>'
+      + '<button class="btn-danger" onclick="deleteComp(' + r.id + ')">Delete</button>';
     list.prepend(div);
   }
 }
 async function deleteComp(id) {
-  const r = await post('/api/admin/comp/delete', { id });
-  if (r.success) document.getElementById('comp-' + id)?.remove();
+  var r = await apiPost('/api/admin/comp/delete', { id });
+  if (r.success) { var el = document.getElementById('comp-' + id); if (el) el.remove(); }
 }
 
-/* EMOTES */
+/* ── Emotes ────────────────────────────────────────────────── */
 async function addEmote() {
-  const name = document.getElementById('e-name').value.trim();
-  const image_url = document.getElementById('e-url').value.trim();
-  if (!name || !image_url) return alert2('emote-alert', false, 'Name and URL are required');
-  const r = await post('/api/admin/emote/add', { name, image_url });
-  alert2('emote-alert', r.success, r.message);
+  var name      = document.getElementById('e-name').value.trim();
+  var image_url = document.getElementById('e-url').value.trim();
+  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and URL required'); return; }
+  var r = await apiPost('/api/admin/emote/add', { name, image_url });
+  showAlert('emote-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('e-name').value = '';
     document.getElementById('e-url').value = '';
-    const list = document.getElementById('emote-list');
-    const div = document.createElement('div');
-    div.className = 'admin-item'; div.id = 'emote-' + r.id;
-    div.innerHTML = '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem"><img src="' + esc(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px"><strong>' + esc(name) + '</strong></div><button class="btn-danger" onclick="deleteEmote(' + r.id + ')">Delete</button>';
+    var list = document.getElementById('emote-list');
+    var div = document.createElement('div');
+    div.className = 'admin-item';
+    div.id = 'emote-' + r.id;
+    div.innerHTML = '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
+      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
+      + '<strong>' + escH(name) + '</strong></div>'
+      + '<button class="btn-danger" onclick="deleteEmote(' + r.id + ')">Delete</button>';
     list.prepend(div);
   }
 }
 async function deleteEmote(id) {
-  const r = await post('/api/admin/emote/delete', { id });
-  if (r.success) document.getElementById('emote-' + id)?.remove();
+  var r = await apiPost('/api/admin/emote/delete', { id });
+  if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); }
 }
 
-/* IMAGES */
-document.getElementById('img-key').addEventListener('change', function() {
-  document.getElementById('custom-key-group').style.display = this.value === '__custom__' ? 'block' : 'none';
-});
-
+/* ── Images ────────────────────────────────────────────────── */
 async function uploadImage() {
-  let key = document.getElementById('img-key').value;
-  if (key === '__custom__') key = document.getElementById('img-custom-key').value.trim();
-  const file = document.getElementById('img-file').files[0];
-  if (!key) return alert2('img-alert', false, 'Select or enter a key');
-  if (!file) return alert2('img-alert', false, 'Select an image file');
-  alert2('img-alert', true, 'Compressing...');
-  const data = await compressImage(file, 340, 0.85);
-  const r = await post('/api/admin/image/upload', { key, data });
-  alert2('img-alert', r.success, r.message);
+  var keyEl  = document.getElementById('img-key');
+  var fileEl = document.getElementById('img-file');
+  if (!keyEl || !fileEl) return;
+  var key = keyEl.value === '__custom__'
+    ? (document.getElementById('img-custom-key') || {}).value || ''
+    : keyEl.value;
+  var file = fileEl.files[0];
+  if (!key)  { showAlert('img-alert', false, 'Select or enter a key'); return; }
+  if (!file) { showAlert('img-alert', false, 'Select an image file'); return; }
+  showAlert('img-alert', true, 'Compressing…');
+  var data = await compressImage(file, 340, 0.85);
+  var r = await apiPost('/api/admin/image/upload', { key, data });
+  showAlert('img-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
-    document.getElementById('img-file').value = '';
-    let slot = document.getElementById('imgslot-' + key);
+    fileEl.value = '';
+    var slot = document.getElementById('imgslot-' + key);
     if (!slot) {
-      const grid = document.querySelector('.img-grid');
-      if (grid) { slot = document.createElement('div'); slot.className='img-slot'; slot.id='imgslot-'+key; grid.appendChild(slot); }
+      var grid = document.querySelector('.img-grid');
+      if (grid) { slot = document.createElement('div'); slot.className = 'img-slot'; slot.id = 'imgslot-' + key; grid.appendChild(slot); }
     }
-    if (slot) slot.innerHTML = '<img src="' + esc(data) + '"><div class="img-slot-key">' + esc(key) + '</div><button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\'' + esc(key) + '\')">Delete</button>';
+    if (slot) slot.innerHTML = '<img src="' + escH(data) + '"><div class="img-slot-key">' + escH(key) + '</div>'
+      + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\'' + escH(key) + '\')">Delete</button>';
   }
 }
 async function deleteImage(key) {
-  const r = await post('/api/admin/image/delete', { key });
-  if (r.success) { const s = document.getElementById('imgslot-' + key); if(s) s.remove(); }
+  var r = await apiPost('/api/admin/image/delete', { key });
+  if (r.success) { var s = document.getElementById('imgslot-' + key); if (s) s.remove(); }
 }
-
 function compressImage(file, maxWidth, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const canvas = document.getElementById('compress-canvas');
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        var canvas = document.getElementById('compress-canvas');
         canvas.width  = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -414,43 +438,46 @@ function compressImage(file, maxWidth, quality) {
   });
 }
 
-/* T1 NOTES */
+/* ── T1 Notes ──────────────────────────────────────────────── */
 async function loadNotes() {
-  const char = document.getElementById('notes-char').value;
+  var charEl = document.getElementById('notes-char');
+  if (!charEl) return;
   try {
-    const r = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(char));
-    const data = await r.json();
-    document.getElementById('notes-text').value = data.notes || '';
+    var r = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
+    var data = await r.json();
+    var textEl = document.getElementById('notes-text');
+    if (textEl) textEl.value = data.notes || '';
   } catch(e) {}
 }
 async function saveNotes() {
-  const char = document.getElementById('notes-char').value;
-  const notes = document.getElementById('notes-text').value;
-  const r = await post('/api/admin/t1/notes/save', { char, notes });
-  alert2('notes-alert', r.success, r.message);
+  var charEl = document.getElementById('notes-char');
+  var textEl = document.getElementById('notes-text');
+  if (!charEl || !textEl) return;
+  var r = await apiPost('/api/admin/t1/notes/save', { char: charEl.value, notes: textEl.value });
+  showAlert('notes-alert', r.success, r.message);
 }
+var notesCharEl = document.getElementById('notes-char');
+if (notesCharEl) notesCharEl.addEventListener('change', loadNotes);
 
-/* T1 ORDER */
+/* ── T1 Unit Order ─────────────────────────────────────────── */
 async function loadOrder() {
   try {
-    const r = await fetch('/api/admin/t1/order/get');
-    const data = await r.json();
-    const order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-    order.forEach((name, i) => {
-      const sel = document.getElementById('order-' + (i+1));
+    var r = await fetch('/api/admin/t1/order/get');
+    var data = await r.json();
+    var order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
+    order.forEach(function(name, i) {
+      var sel = document.getElementById('order-' + (i + 1));
       if (sel) sel.value = name;
     });
   } catch(e) {}
 }
 async function saveOrder() {
-  const order = [1,2,3,4,5].map(i => document.getElementById('order-' + i).value);
-  const r = await post('/api/admin/t1/order/save', { order });
-  alert2('order-alert', r.success, r.message);
-}
-
-// Load notes/order on initial T1 tab open if already active
-if (document.getElementById('tab-t1content').classList.contains('active')) {
-  loadNotes(); loadOrder();
+  var order = [1,2,3,4,5].map(function(i) {
+    var el = document.getElementById('order-' + i);
+    return el ? el.value : '';
+  }).filter(Boolean);
+  var r = await apiPost('/api/admin/t1/order/save', { order });
+  showAlert('order-alert', r.success, r.message);
 }
 </script>
 `);

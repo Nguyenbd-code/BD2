@@ -74,24 +74,22 @@ function t1Section() {
     const icons = skills.map((sk, i) => {
       const tileCl = tileCls(sk.tile);
       const iconContent = sk.icon
-        ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(sk.costume.substring(0,3).toUpperCase())}" style="width:36px;height:36px;object-fit:cover;border-radius:3px" onerror="this.outerHTML='<span class=\\'skill-abbr\\'>${esc(sk.costume.substring(0,3).toUpperCase())}</span>'">`
+        ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(sk.costume.substring(0,3).toUpperCase())}" style="width:38px;height:38px;object-fit:cover;border-radius:50%;border:2px solid var(--border2)" onerror="this.outerHTML='<span class=\\'skill-abbr\\'>${esc(sk.costume.substring(0,3).toUpperCase())}</span>'">`
         : `<div class="skill-abbr">${esc(sk.costume.substring(0,3).toUpperCase())}</div>`;
       return `
 <div class="skill-wrap">
   <div class="skill-icon-box">
     <div class="skill-num">${i+1}</div>
     ${iconContent}
-    <div class="skill-tile-mini ${tileCl}">${esc(sk.tile)}</div>
   </div>
   <div class="tt-popup">
     <div class="tt-name">${esc(sk.name)}</div>
     <div class="tt-stats">
       <span class="tt-stat">${esc(sk.sp)}</span>
       <span class="tt-stat">${esc(sk.cd)}</span>
-      <span class="tt-stat">${esc(sk.tile)}</span>
+      <span class="tt-stat tile-stat ${tileCls(sk.tile)}">${esc(sk.tile)}</span>
     </div>
     <div class="tt-desc">${esc(sk.desc)}</div>
-    <div class="tt-tile-placeholder">Tile pattern — TBD</div>
   </div>
 </div>`;
     }).join('');

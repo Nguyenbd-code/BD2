@@ -169,6 +169,9 @@ main{padding-top:60px;position:relative;z-index:1;}
 .img-slot{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;text-align:center;font-size:0.7rem;color:var(--text3);}
 .img-slot img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:4px;margin-bottom:0.25rem;}
 .img-slot-key{font-family:'Cinzel',serif;font-size:0.62rem;color:var(--gold3);word-break:break-all;}
+/* EASTER EGG */
+@keyframes egg-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.egg-shake{animation:egg-shake 0.35s ease;}
 /* FOOTER */
 footer{border-top:1px solid var(--border2);padding:2rem;text-align:center;color:var(--text3);font-size:0.8rem;margin-top:4rem;}
 footer span{color:var(--gold);}

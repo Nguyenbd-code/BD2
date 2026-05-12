@@ -12,8 +12,10 @@ export async function handleRedeem(request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json, text/plain, */*',
         'Origin': 'https://redeem.bd2.pmang.cloud',
         'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
       body: new URLSearchParams({ nickname, coupon_code: code }).toString(),
     });
@@ -30,8 +32,9 @@ export async function handleRedeem(request) {
     if (msg.includes('already') || msg.includes('used') || data.code === 4 || data.resultCode === 4) {
       return json({ success:false, already_used:true, message:'Already Used' });
     }
-    return json({ success:false, message: (data.message || data.msg || data.result || 'Failed').toString().substring(0,100) });
+    const errMsg = (data.message || data.msg || data.result || '').toString().substring(0, 120);
+    return json({ success:false, message: errMsg || `BD2 responded: ${text.substring(0, 120)}` });
   } catch(e) {
-    return json({ success:false, message:'Error connecting to BD2 servers.' });
+    return json({ success:false, message:'Error connecting to BD2 servers: ' + e.message });
   }
 }
