@@ -1,221 +1,116 @@
 import { json } from '../layout/layout.js';
 
-const ADMIN_PASSWORD = 'Anime0404!';
-
 function isAuthed(request) {
   const cookie = request.headers.get('Cookie') || '';
   return cookie.split(';').some(c => c.trim() === 'admin=true');
 }
 
-function unauthorized() {
-  return json({ error: 'Unauthorized' }, 401);
-}
+function unauth() { return json({ success: false, message: 'Unauthorized' }, 401); }
 
 export async function handleAdminApi(request, env) {
-  if (!isAuthed(request)) return unauthorized();
+  if (!isAuthed(request)) return unauth();
 
-  const url = new URL(request.url);
-  // Strip /api/admin prefix
-  const sub = url.pathname.replace(/^\/api\/admin\/?/, '');
+  const url    = new URL(request.url);
+  const path   = url.pathname;
   const method = request.method;
 
-  // ── Coupons ──────────────────────────────────────────────
-  if (sub === 'coupons' || sub === 'coupons/') {
-    if (method === 'GET') return getCoupons(env);
-    if (method === 'POST') return addCoupon(request, env);
-  }
-  const couponDel = sub.match(/^coupons\/(\d+)$/);
-  if (couponDel && method === 'DELETE') return deleteCoupon(couponDel[1], env);
-
-  // ── Compositions ─────────────────────────────────────────
-  if (sub === 'compositions' || sub === 'compositions/') {
-    if (method === 'GET') return getCompositions(env);
-    if (method === 'POST') return addComposition(request, env);
-  }
-  const compDel = sub.match(/^compositions\/(\d+)$/);
-  if (compDel && method === 'DELETE') return deleteComposition(compDel[1], env);
-
-  // ── Emotes ───────────────────────────────────────────────
-  if (sub === 'emotes' || sub === 'emotes/') {
-    if (method === 'GET') return getEmotes(env);
-    if (method === 'POST') return addEmote(request, env);
-  }
-  const emoteDel = sub.match(/^emotes\/(\d+)$/);
-  if (emoteDel && method === 'DELETE') return deleteEmote(emoteDel[1], env);
-
-  // ── Images ───────────────────────────────────────────────
-  if (sub === 'images' || sub === 'images/') {
-    if (method === 'GET') return getImages(env);
-    if (method === 'POST') return uploadImage(request, env);
-  }
-  const imgDel = sub.match(/^images\/(.+)$/);
-  if (imgDel && method === 'DELETE') return deleteImage(imgDel[1], env);
-
-  // ── Notes (per-character build notes) ────────────────────
-  const notesMatch = sub.match(/^notes\/(.+)$/);
-  if (notesMatch) {
-    if (method === 'GET') return getNotes(notesMatch[1], env);
-    if (method === 'POST') return setNotes(notesMatch[1], request, env);
+  let body = {};
+  if (method === 'POST') {
+    try { body = await request.json(); } catch { body = {}; }
   }
 
-  // ── Unit Order ───────────────────────────────────────────
-  if (sub === 'unit-order') {
-    if (method === 'GET') return getUnitOrder(env);
-    if (method === 'POST') return setUnitOrder(request, env);
-  }
-
-  return json({ error: 'Not Found' }, 404);
-}
-
-// ── Coupons ──────────────────────────────────────────────────────────────────
-
-async function getCoupons(env) {
-  const { results } = await env.DB.prepare(
-    'SELECT id, code, rewards, expiry, created_at FROM coupons ORDER BY id DESC'
-  ).all();
-  return json(results);
-}
-
-async function addCoupon(request, env) {
-  const body = await request.json();
-  const { code, rewards, expiry } = body;
-  if (!code) return json({ error: 'code required' }, 400);
   try {
-    const result = await env.DB.prepare(
-      'INSERT INTO coupons (code, rewards, expiry) VALUES (?, ?, ?)'
-    ).bind(code.trim(), rewards || '', expiry || null).run();
-    return json({ ok: true, id: result.meta.last_row_id });
-  } catch (e) {
-    if (e.message?.includes('UNIQUE')) return json({ error: 'Code already exists' }, 409);
-    throw e;
+    // ── Coupons ──────────────────────────────────────────────
+    if (path === '/api/admin/coupon/add' && method === 'POST') {
+      if (!body.code) return json({ success:false, message:'Code required' }, 400);
+      const r = await env.DB.prepare(
+        'INSERT INTO coupons (code, rewards, expiry, active) VALUES (?,?,?,1)'
+      ).bind(body.code.trim(), body.rewards||'', body.expiry||null).run();
+      return json({ success:true, message:'Coupon added!', id: r.meta.last_row_id });
+    }
+
+    if (path === '/api/admin/coupon/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM coupons WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Compositions ─────────────────────────────────────────
+    if (path === '/api/admin/comp/add' && method === 'POST') {
+      if (!body.name) return json({ success:false, message:'Name required' }, 400);
+      const r = await env.DB.prepare(
+        'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated) VALUES (?,?,?,?,?,?)'
+      ).bind(body.tier||'T2', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
+      return json({ success:true, message:'Composition added!', id: r.meta.last_row_id });
+    }
+
+    if (path === '/api/admin/comp/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM compositions WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Emotes ───────────────────────────────────────────────
+    if (path === '/api/admin/emote/add' && method === 'POST') {
+      if (!body.name || !body.image_url) return json({ success:false, message:'Name and image_url required' }, 400);
+      const r = await env.DB.prepare(
+        'INSERT INTO emotes (name, image_url) VALUES (?,?)'
+      ).bind(body.name.trim(), body.image_url.trim()).run();
+      return json({ success:true, message:'Emote added!', id: r.meta.last_row_id });
+    }
+
+    if (path === '/api/admin/emote/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM emotes WHERE id=?').bind(body.id).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Images ───────────────────────────────────────────────
+    if (path === '/api/admin/image/upload' && method === 'POST') {
+      if (!body.key || !body.data) return json({ success:false, message:'Missing key or data.' });
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(body.key, body.data).run();
+      return json({ success:true, message:'Uploaded: ' + body.key });
+    }
+
+    if (path === '/api/admin/image/delete' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM images WHERE key=?').bind(body.key).run();
+      return json({ success:true, message:'Image deleted.' });
+    }
+
+    // ── T1 Notes ─────────────────────────────────────────────
+    if (path === '/api/admin/t1/notes/save' && method === 'POST') {
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)')
+        .bind('notes_' + body.char, body.notes || '').run();
+      return json({ success:true, message:'Notes saved for ' + body.char });
+    }
+
+    if (path === '/api/admin/t1/notes/get' && method === 'GET') {
+      const char = new URL(request.url).searchParams.get('char') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('notes_' + char).first();
+      return json({ notes: row ? row.data : null });
+    }
+
+    // ── T1 Unit Order ─────────────────────────────────────────
+    if (path === '/api/admin/t1/order/save' && method === 'POST') {
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)')
+        .bind('unit_order', JSON.stringify(body.order || [])).run();
+      return json({ success:true, message:'Unit order saved!' });
+    }
+
+    if (path === '/api/admin/t1/order/get' && method === 'GET') {
+      const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('unit_order').first();
+      const order = row ? JSON.parse(row.data) : ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
+      return json({ order });
+    }
+
+    // ── Image list ────────────────────────────────────────────
+    if (path === '/api/admin/images/list' && method === 'GET') {
+      const r = await env.DB.prepare(
+        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' ORDER BY key"
+      ).all();
+      return json({ images: r.results || [] });
+    }
+
+  } catch(e) {
+    return json({ success:false, message:'DB error: ' + e.message }, 500);
   }
+
+  return json({ success:false, message:'Not found' }, 404);
 }
-
-async function deleteCoupon(id, env) {
-  await env.DB.prepare('DELETE FROM coupons WHERE id = ?').bind(Number(id)).run();
-  return json({ ok: true });
-}
-
-// ── Compositions ─────────────────────────────────────────────────────────────
-
-async function getCompositions(env) {
-  const { results } = await env.DB.prepare(
-    'SELECT id, tier, name, type, counters, countered_by, characters, notes FROM compositions ORDER BY tier, id'
-  ).all();
-  return json(results.map(r => ({
-    ...r,
-    characters: tryParse(r.characters, []),
-    notes: tryParse(r.notes, []),
-  })));
-}
-
-async function addComposition(request, env) {
-  const body = await request.json();
-  const { tier, name, type, counters, counteredBy, characters, notes } = body;
-  if (!tier || !name) return json({ error: 'tier and name required' }, 400);
-  const result = await env.DB.prepare(
-    `INSERT INTO compositions (tier, name, type, counters, countered_by, characters, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    tier, name, type || 'ATK',
-    counters || '', counteredBy || '',
-    JSON.stringify(characters || []),
-    JSON.stringify(notes || [])
-  ).run();
-  return json({ ok: true, id: result.meta.last_row_id });
-}
-
-async function deleteComposition(id, env) {
-  await env.DB.prepare('DELETE FROM compositions WHERE id = ?').bind(Number(id)).run();
-  return json({ ok: true });
-}
-
-// ── Emotes ───────────────────────────────────────────────────────────────────
-
-async function getEmotes(env) {
-  const { results } = await env.DB.prepare(
-    'SELECT id, name, url, created_at FROM emotes ORDER BY id DESC'
-  ).all();
-  return json(results);
-}
-
-async function addEmote(request, env) {
-  const body = await request.json();
-  const { name, url } = body;
-  if (!name || !url) return json({ error: 'name and url required' }, 400);
-  const result = await env.DB.prepare(
-    'INSERT INTO emotes (name, url) VALUES (?, ?)'
-  ).bind(name.trim(), url.trim()).run();
-  return json({ ok: true, id: result.meta.last_row_id });
-}
-
-async function deleteEmote(id, env) {
-  await env.DB.prepare('DELETE FROM emotes WHERE id = ?').bind(Number(id)).run();
-  return json({ ok: true });
-}
-
-// ── Images ───────────────────────────────────────────────────────────────────
-
-async function getImages(env) {
-  const { results } = await env.DB.prepare(
-    "SELECT key FROM images ORDER BY key"
-  ).all();
-  return json(results.map(r => r.key));
-}
-
-async function uploadImage(request, env) {
-  const body = await request.json();
-  const { key, data } = body;
-  if (!key || !data) return json({ error: 'key and data required' }, 400);
-  await env.DB.prepare(
-    'INSERT OR REPLACE INTO images (key, data) VALUES (?, ?)'
-  ).bind(key.trim(), data).run();
-  return json({ ok: true });
-}
-
-async function deleteImage(key, env) {
-  await env.DB.prepare('DELETE FROM images WHERE key = ?').bind(key).run();
-  return json({ ok: true });
-}
-
-// ── Notes ─────────────────────────────────────────────────────────────────────
-
-async function getNotes(character, env) {
-  const key = `notes_${character}`;
-  const row = await env.DB.prepare('SELECT data FROM images WHERE key = ?')
-    .bind(key).first();
-  return json({ notes: row ? row.data : '' });
-}
-
-async function setNotes(character, request, env) {
-  const body = await request.json();
-  const { notes } = body;
-  const key = `notes_${character}`;
-  await env.DB.prepare('INSERT OR REPLACE INTO images (key, data) VALUES (?, ?)')
-    .bind(key, notes || '').run();
-  return json({ ok: true });
-}
-
-// ── Unit Order ───────────────────────────────────────────────────────────────
-
-async function getUnitOrder(env) {
-  const row = await env.DB.prepare('SELECT data FROM images WHERE key = ?')
-    .bind('unit_order').first();
-  return json({ order: row ? tryParse(row.data, []) : [] });
-}
-
-async function setUnitOrder(request, env) {
-  const body = await request.json();
-  const { order } = body;
-  await env.DB.prepare('INSERT OR REPLACE INTO images (key, data) VALUES (?, ?)')
-    .bind('unit_order', JSON.stringify(order || [])).run();
-  return json({ ok: true });
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function tryParse(str, fallback) {
-  try { return JSON.parse(str); } catch { return fallback; }
-}
-
-export { ADMIN_PASSWORD, isAuthed };
