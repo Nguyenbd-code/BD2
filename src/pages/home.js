@@ -133,6 +133,7 @@ export async function handleHome(request, env) {
   window.checkEgg = function() {
     var val = input.value;
     if (val === 'Seji404') {
+      localStorage.setItem('kitsu_unlocked', 'true');
       result.textContent = '✓ Access Granted';
       result.style.color = '#d4af37';
       input.style.borderColor = '#d4af37';
