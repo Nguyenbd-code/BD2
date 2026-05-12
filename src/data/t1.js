@@ -1,107 +1,102 @@
-export const T1_DATA = {
-  name: 'Sylvia Double Taunt',
-  type: 'ATK',
-  warning: 'Do Not Use unless going for Rank 1 — last hour only',
-  characters: [
-    {
-      name: 'Rou',
-      costume: 'Red Riding Hood',
-      bondStats: 'HP +62.40%, DEF +13.40%',
-      gearKey: 'rou_gear',
-      tilePrefix: 'tile_rou',
-    },
-    {
-      name: 'Seir',
-      costume: 'B-Rank Idol',
-      bondStats: 'HP +62.40%, Magic Resist +13.40%',
-      gearKey: 'seir_gear',
-      tilePrefix: 'tile_seir',
-    },
-    {
-      name: 'Lecliss',
-      costume: 'Android Queen',
-      bondStats: 'HP +62.40%, DEF +13.40%',
-      gearKey: 'lecliss_gear',
-      tilePrefix: 'tile_lecliss',
-    },
-    {
-      name: 'Scheherazade',
-      costume: 'Magic Professor',
-      bondStats: 'Magic ATK +80, Magic Resist +5.00%, Water DMG +30.00%',
-      gearKey: 'schera_gear',
-      tilePrefix: 'tile_schera',
-    },
-    {
-      name: 'Sylvia',
-      costume: 'Bikini Agent',
-      bondStats: 'ATK +80, Crit Rate +4.60%, Crit DMG +47.20%',
-      gearKey: 'sylvia_gear',
-      tilePrefix: 'tile_sylvia',
-    },
-  ],
-  rotation: [
-    {
-      character: 'Rou',
-      skills: [
-        { abbr: 'PS', sp: 0, cd: 0, tile: 'SELF',  desc: 'Passive — Increases own HP. Activates taunt when HP is above threshold.' },
-        { abbr: 'S1', sp: 2, cd: 2, tile: 'FRONT', desc: 'Creates a shield proportional to max HP. Taunts enemies for 1 turn.' },
-        { abbr: 'S2', sp: 3, cd: 3, tile: 'FRONT', desc: 'AoE DEF shred on front row. Increases own DEF for 2 turns.' },
-        { abbr: 'S3', sp: 4, cd: 4, tile: 'SELF',  desc: 'Massive HP recovery + grant barrier to adjacent allies.' },
-        { abbr: 'ULT', sp: 5, cd: 5, tile: 'ALL',  desc: 'Ultimate — Full row taunt. Grants invincibility for 1 hit. Recovers 30% HP.' },
-      ],
-    },
-    {
-      character: 'Seir',
-      skills: [
-        { abbr: 'PS', sp: 0, cd: 0, tile: 'SELF',  desc: 'Passive — Restores HP to lowest-HP ally each turn.' },
-        { abbr: 'S1', sp: 2, cd: 2, tile: 'SELF',  desc: 'Heals self and adjacent allies. Removes 1 debuff from each.' },
-        { abbr: 'S2', sp: 3, cd: 3, tile: 'ALL',   desc: 'Grants Magic Resist barrier to all allies for 2 turns.' },
-        { abbr: 'S3', sp: 4, cd: 4, tile: 'FRONT', desc: 'Single target magic attack. Reduces target Magic Resist.' },
-        { abbr: 'ULT', sp: 5, cd: 5, tile: 'ALL',  desc: 'Ultimate — Full team HP recovery + Magic Resist buff for 3 turns.' },
-      ],
-    },
-    {
-      character: 'Lecliss',
-      skills: [
-        { abbr: 'PS', sp: 0, cd: 0, tile: 'SELF',  desc: 'Passive — Reflects a portion of received damage back to attacker.' },
-        { abbr: 'S1', sp: 2, cd: 2, tile: 'FRONT', desc: 'Grants DEF buff to self and adjacent. Creates a shield tile.' },
-        { abbr: 'S2', sp: 3, cd: 3, tile: 'FRONT', desc: 'Counter stance — deals damage back on next hit, reduced damage taken.' },
-        { abbr: 'S3', sp: 4, cd: 4, tile: 'SELF',  desc: 'Activates overdrive mode — DEF +40%, immune to CC for 2 turns.' },
-        { abbr: 'ULT', sp: 5, cd: 5, tile: 'ALL',  desc: 'Ultimate — Deals AoE damage based on own DEF. Applies armor break.' },
-      ],
-    },
-    {
-      character: 'Scheherazade',
-      skills: [
-        { abbr: 'MSP', sp: 0, cd: 0, tile: 'SELF',  desc: 'Magic Professor — Passive. Boosts Water DMG by 15% for all allies.', iconKey: 'icon_msp' },
-        { abbr: 'LW',  sp: 2, cd: 2, tile: 'FRONT', desc: 'Lapis Witch — Water magic bolt. Reduces target Magic Resist by 20% for 2 turns.', iconKey: 'icon_lw' },
-        { abbr: 'CNS', sp: 3, cd: 3, tile: 'ALL',   desc: 'Code Name S — AoE Water damage to all enemies. Applies Wet status (reduces Fire Resist).', iconKey: 'icon_cns' },
-        { abbr: 'PP',  sp: 4, cd: 4, tile: 'FRONT', desc: 'Purple Prince — Focused Water burst. 300% Magic ATK. Ignores 30% of target DEF.', iconKey: 'icon_pp' },
-        { abbr: 'ULT', sp: 5, cd: 5, tile: 'ALL',   desc: 'Ultimate — Massive AoE Water DMG. 450% Magic ATK to all enemies. Resets Water DMG stacks.', iconKey: null },
-      ],
-    },
-    {
-      character: 'Sylvia',
-      skills: [
-        { abbr: 'PS', sp: 0, cd: 0, tile: 'SELF',  desc: 'Passive — Each attack has 30% chance to apply Crit DMG stack (up to 5).' },
-        { abbr: 'S1', sp: 2, cd: 2, tile: 'FRONT', desc: 'Quick Strike — ATK +20% self for 2 turns. Single target hit, low CD.' },
-        { abbr: 'S2', sp: 3, cd: 3, tile: 'FRONT', desc: 'Dual Taunt — Applies taunt to self and one ally. Boosts Crit Rate for 2 turns.' },
-        { abbr: 'S3', sp: 4, cd: 4, tile: 'ALL',   desc: 'Chain Attack — Hits random enemies 3 times. Each hit applies Crit DMG buff stack.' },
-        { abbr: 'ULT', sp: 5, cd: 5, tile: 'ALL',  desc: 'Ultimate — Unleashes all Crit DMG stacks in one burst. 500% ATK + 50% per stack.' },
-      ],
-    },
-  ],
+export const SCHERA_ICONS = {
+  msp: '/img/icon_msp',
+  lw:  '/img/icon_lw',
+  cns: '/img/icon_cns',
+  pp:  '/img/icon_pp',
 };
 
-export const SCHERA_ICON_KEYS = ['icon_msp', 'icon_lw', 'icon_cns', 'icon_pp'];
+export const T1_IMAGES = {
+  board_pos:   '/img/board_pos',
+  rou_gear:    '/img/rou_gear',
+  seir_gear:   '/img/seir_gear',
+  lecliss_gear:'/img/lecliss_gear',
+  schera_gear: '/img/schera_gear',
+  sylvia_gear: '/img/sylvia_gear',
+  icon_msp:    '/img/icon_msp',
+  icon_lw:     '/img/icon_lw',
+  icon_cns:    '/img/icon_cns',
+  icon_pp:     '/img/icon_pp',
+};
+
+export const T1_DATA = {
+  unitOrder: [
+    { pos:1, name:'Rou' },
+    { pos:2, name:'Seir' },
+    { pos:3, name:'Lecliss' },
+    { pos:4, name:'Scheherazade' },
+    { pos:5, name:'Sylvia' },
+  ],
+  bonds: {
+    'Rou': {
+      costume: 'Red Riding Hood',
+      stats: ['HP: +62.40%', 'DEF: +13.40%'],
+      notes: 'Buffs whole team with Energy Guard scaling off Rou HP. Build HP to at least 21,000. Needs 50% Crit Rate minimum.',
+    },
+    'Seir': {
+      costume: 'B-Rank Idol',
+      stats: ['HP: +62.40%', 'Magic Resist: +13.40%'],
+      notes: 'Grants SP on hit and 40-85% DMG reduction. Skill Potential 3 adds Energy Guard = 100% max HP. Needs 29,000 HP and 105% Magic Resist.',
+    },
+    'Lecliss': {
+      costume: 'Android Queen',
+      stats: ['HP: +62.40%', 'DEF: +13.40%'],
+      notes: 'Counter build. Energy Guard 65% max HP for 4 turns. Counter deals 15% max HP Physical DMG per hit. Needs 33,000 HP and 90% DEF.',
+    },
+    'Scheherazade': {
+      costume: 'Magic Professor',
+      stats: ['Magic ATK: +80', 'Magic Resist: +5.00%', 'Water DMG: +30.00%'],
+      notes: 'Full dispel uptime across 4 costumes with 5-turn cooldown. Wants 50% Critical Rate. Build MATK + CDMG.',
+    },
+    'Sylvia': {
+      costume: 'Bikini Agent',
+      stats: ['ATK: +80', 'Crit Rate: +4.60%', 'Crit DMG: +47.20%'],
+      notes: 'Extends all buff durations by 2 turns. Synergises with Sword Queen ATK buff. Wants 50% Critical Rate and lots of ATK% subs.',
+    },
+  },
+  rotation: {
+    'Rou': [
+      { name:"It's Snack Time!", costume:'Red Riding Hood', sp:'SP 3', cd:'CD 5', tile:'FRONT', desc:'Crit Rate +30%, Crit DMG +150% for 4 turns. Creates Energy Guard equal to 50% of max HP for 4 turns for all allies.' },
+      { name:'Half Moon Kick', costume:'White Cat', sp:'SP 2', cd:'CD 3', tile:'FRONT', desc:'75% evasion chance for 2 turns. Knockback 3 tiles — collision deals 100% max HP DMG. DoT 75% ATK per turn for 6 turns.' },
+      { name:"Let's Play Hide and Seek!", costume:"Nature's Claw", sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'75% evasion for 2 turns. 5-hit Physical DMG equal to 7% max HP each hit. DEF shred 20% at SP2.' },
+      { name:'Terra Burst', costume:'Stray Cat', sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'Crit Rate +30% for 1 turn. Physical DMG 500% ATK in wide AOE.' },
+      { name:"Let's Play Hide and Seek!", costume:"Nature's Claw", sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'75% evasion for 2 turns. 5-hit Physical DMG equal to 7% max HP each hit. DEF shred 20% at SP2.' },
+    ],
+    'Seir': [
+      { name:'Protective Instinct', costume:"Demon's Daughter", sp:'SP 3', cd:'CD 5', tile:'SELF', desc:'Heal 15% max HP on hit for 4 turns. DMG reduction 40-85%. Taunt for 4 turns at SP3.' },
+      { name:'He is Bullying Me!', costume:'B-Rank Idol', sp:'SP 2', cd:'CD 5', tile:'SELF', desc:'Acquire 2 SP when attacked for 2 turns. DMG reduction 40-85%. Energy Guard 100% max HP at SP3.' },
+      { name:'Protective Instinct', costume:"Demon's Daughter", sp:'SP 3', cd:'CD 5', tile:'SELF', desc:'Heal 15% max HP on hit for 4 turns. DMG reduction 40-85%. Taunt for 4 turns at SP3.' },
+      { name:'He is Bullying Me!', costume:'B-Rank Idol', sp:'SP 2', cd:'CD 5', tile:'SELF', desc:'Acquire 2 SP when attacked for 2 turns. DMG reduction 40-85%. Energy Guard 100% max HP at SP3.' },
+      { name:'Protective Instinct', costume:"Demon's Daughter", sp:'SP 3', cd:'CD 5', tile:'SELF', desc:'Heal 15% max HP on hit for 4 turns. DMG reduction 40-85%. Taunt for 4 turns at SP3.' },
+    ],
+    'Lecliss': [
+      { name:'Curse Replica', costume:'Killer Doll', sp:'SP 1', cd:'CD 5', tile:'SELF', desc:'Taunt for 2 turns. Decrease incoming DMG by 85% for 2 turns.' },
+      { name:'Auto Defense Mode', costume:'Android Queen', sp:'SP 4', cd:'CD 5', tile:'SELF', desc:'Counter target for 15% max HP Physical DMG when attacked for 4 turns. Energy Guard 65% max HP for 4 turns.' },
+      { name:'Curse Replica', costume:'Killer Doll', sp:'SP 1', cd:'CD 5', tile:'SELF', desc:'Taunt for 2 turns. Decrease incoming DMG by 85% for 2 turns.' },
+      { name:'Auto Defense Mode', costume:'Android Queen', sp:'SP 4', cd:'CD 5', tile:'SELF', desc:'Counter target for 15% max HP Physical DMG when attacked for 4 turns. Energy Guard 65% max HP for 4 turns.' },
+      { name:'Curse Replica', costume:'Killer Doll', sp:'SP 1', cd:'CD 5', tile:'SELF', desc:'Taunt for 2 turns. Decrease incoming DMG by 85% for 2 turns.' },
+    ],
+    'Scheherazade': [
+      { name:'Sapphire Boomerang', costume:'Code Name S',        icon:'cns', sp:'SP 4', cd:'CD 5', tile:'FRONT', desc:'3-hit Magic DMG 95% MATK each. Remove target Buff Effect. Apply Silence for 2 turns.' },
+      { name:'Aqua Break',         costume:'Lapis Witch',         icon:'lw',  sp:'SP 4', cd:'CD 5', tile:'FRONT', desc:'3-hit Magic DMG 90% MATK each. Remove target Buff Effect.' },
+      { name:'Aqua Silence',       costume:'Magic School Professor',icon:'msp',sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'3x3 AOE Magic DMG. Remove target Buff Effect. 15% M.RES shred at SP1.' },
+      { name:'Sapphire Boomerang', costume:'Code Name S',        icon:'cns', sp:'SP 4', cd:'CD 5', tile:'FRONT', desc:'3-hit Magic DMG 95% MATK each. Remove target Buff Effect. Apply Silence for 2 turns.' },
+      { name:'Aqua Break',         costume:'Lapis Witch',         icon:'lw',  sp:'SP 4', cd:'CD 5', tile:'FRONT', desc:'3-hit Magic DMG 90% MATK each. Remove target Buff Effect.' },
+    ],
+    'Sylvia': [
+      { name:'Continuous Blossom Flying Sword', costume:'Sword Queen',   sp:'SP 1', cd:'CD 5', tile:'FRONT', desc:'ATK +100% self buff for 2 turns (+225% at +5). 4-hit Physical DMG 25% ATK. Sets up combo for Bikini Blaster.' },
+      { name:'Bikini Blaster',                  costume:'Bikini Agent',   sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'Extend all buff durations by 2 turns. Physical DMG 400% ATK.' },
+      { name:'The Punisher',                    costume:'Desert Flower',  sp:'SP 4', cd:'CD 5', tile:'SELF',  desc:'Counter target for 400% ATK Physical DMG when attacked for 4 turns. 50% DMG reduction for 4 turns.' },
+      { name:'Continuous Blossom Flying Sword', costume:'Sword Queen',   sp:'SP 1', cd:'CD 5', tile:'FRONT', desc:'ATK +100% self buff for 2 turns (+225% at +5). 4-hit Physical DMG 25% ATK.' },
+      { name:'Bikini Blaster',                  costume:'Bikini Agent',   sp:'SP 5', cd:'CD 5', tile:'FRONT', desc:'Extend all buff durations by 2 turns. Physical DMG 400% ATK.' },
+    ],
+  },
+};
 
 export const T1_IMAGE_KEYS = [
   'board_pos',
-  'rou_gear', 'seir_gear', 'lecliss_gear', 'schera_gear', 'sylvia_gear',
-  'icon_msp', 'icon_lw', 'icon_cns', 'icon_pp',
-  ...Array.from({ length: 5 }, (_, i) => `tile_rou_${i + 1}`),
-  ...Array.from({ length: 5 }, (_, i) => `tile_seir_${i + 1}`),
-  ...Array.from({ length: 5 }, (_, i) => `tile_lecliss_${i + 1}`),
-  ...Array.from({ length: 5 }, (_, i) => `tile_schera_${i + 1}`),
-  ...Array.from({ length: 5 }, (_, i) => `tile_sylvia_${i + 1}`),
+  'rou_gear','seir_gear','lecliss_gear','schera_gear','sylvia_gear',
+  'icon_msp','icon_lw','icon_cns','icon_pp',
+  ...['rou','seir','lecliss','schera','sylvia'].flatMap(c =>
+    [1,2,3,4,5].map(i => `tile_${c}_${i}`)
+  ),
 ];

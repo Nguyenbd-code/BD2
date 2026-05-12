@@ -1,54 +1,47 @@
+import { json } from '../layout/layout.js';
+
 export async function handleRedeem(request) {
   let body;
+  try { body = await request.json(); } catch { return json({ success: false, message: 'Invalid request body.' }, 400); }
+
+  const { nickname, code } = body;
+  if (!nickname || !code) return json({ success: false, message: 'Missing nickname or code.' });
+
+  let rawText = '';
+  let statusCode = 0;
   try {
-    body = await request.json();
-  } catch {
-    return jsonErr('Invalid request body');
+    const res = await fetch('https://redeem.bd2.pmang.cloud/bd2/coupon/use', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': '*/*',
+        'Origin': 'https://redeem.bd2.pmang.cloud',
+        'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+      body: new URLSearchParams({ nickname, coupon_code: code }).toString(),
+    });
+
+    statusCode = res.status;
+    rawText = await res.text();
+
+    let data;
+    try { data = JSON.parse(rawText); } catch { data = {}; }
+
+    const rc  = data.result_code ?? data.resultCode ?? data.code ?? null;
+    const msg = String(data.message || data.msg || data.result || '').toLowerCase();
+
+    if (data.result === 'SUCCESS' || rc === 0 || msg.includes('success')) {
+      return json({ success: true, message: 'Success' });
+    }
+    if (rc === 4 || msg.includes('already') || msg.includes('used') || msg.includes('expired')) {
+      return json({ success: false, already_used: true, message: 'Already Used' });
+    }
+
+    const cleanMsg = rawText.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 80);
+    return json({ success: false, message: 'Status: ' + statusCode + ' | ' + (cleanMsg || rawText.substring(0, 200)) });
+
+  } catch(e) {
+    return json({ success: false, message: 'Error: ' + e.message + (rawText ? ' | Status: ' + statusCode + ' | ' + rawText.replace(/<[^>]*>/g,'').trim().substring(0, 80) : '') });
   }
-
-  const { nickname, coupon_code } = body;
-  if (!nickname || !coupon_code) {
-    return jsonErr('Missing nickname or coupon_code');
-  }
-
-  const params = new URLSearchParams({ nickname, coupon_code });
-
-  let upstream;
-  try {
-    upstream = await fetch(
-      'https://redeem.bd2.pmang.cloud/bd2/coupon/use?lang=en-EN',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
-      }
-    );
-  } catch (err) {
-    return jsonErr('Failed to reach redemption server');
-  }
-
-  let data;
-  const text = await upstream.text();
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = { raw: text };
-  }
-
-  // Determine success — BD2 API returns result_code 0 on success
-  const isSuccess =
-    upstream.ok &&
-    (data.result_code === 0 || data.result_code === '0' || data.result === 'success');
-
-  return new Response(JSON.stringify({ ok: isSuccess, data }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-function jsonErr(msg) {
-  return new Response(JSON.stringify({ ok: false, error: msg }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }
