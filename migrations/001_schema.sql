@@ -1,0 +1,66 @@
+CREATE TABLE IF NOT EXISTS compositions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tier TEXT NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  counters TEXT,
+  countered_by TEXT,
+  characters TEXT NOT NULL,
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS characters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  role TEXT,
+  notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS costumes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER REFERENCES characters(id),
+  name TEXT NOT NULL,
+  stats TEXT
+);
+
+CREATE TABLE IF NOT EXISTS rotations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  composition_id INTEGER REFERENCES compositions(id),
+  character TEXT NOT NULL,
+  skill_order INTEGER NOT NULL,
+  abbr TEXT,
+  sp INTEGER DEFAULT 0,
+  cd INTEGER DEFAULT 0,
+  tile_type TEXT,
+  description TEXT,
+  icon_key TEXT
+);
+
+CREATE TABLE IF NOT EXISTS coupons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  rewards TEXT,
+  expiry TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS emotes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gear (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character TEXT NOT NULL,
+  slot TEXT,
+  name TEXT,
+  stats TEXT
+);
+
+CREATE TABLE IF NOT EXISTS images (
+  key TEXT PRIMARY KEY,
+  data TEXT NOT NULL
+);
