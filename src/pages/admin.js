@@ -119,7 +119,7 @@ export async function handleAdmin(request, env) {
       <div class="form-group"><label>Rewards</label><input type="text" id="c-rewards" placeholder="50 Diamonds + 3 Tickets"></div>
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addCoupon()">Add Code</button>
     </div>
-    <div class="admin-list" id="coupon-list">
+    <div id="coupon-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${coupons.map(c => `
       <div class="admin-item" id="coupon-${c.id}">
         <div class="admin-item-info">
@@ -148,7 +148,7 @@ export async function handleAdmin(request, env) {
       <div class="form-group"><label>Countered By</label><input type="text" id="comp-cby" placeholder="T1, Schera teams"></div>
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addComp()">Add Composition</button>
     </div>
-    <div class="admin-list" id="comp-list">
+    <div id="comp-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${comps.map(c => `
       <div class="admin-item" id="comp-${c.id}">
         <div class="admin-item-info">
@@ -169,7 +169,7 @@ export async function handleAdmin(request, env) {
       </div>
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addEmote()">Add Emote</button>
     </div>
-    <div class="admin-list" id="emote-list">
+    <div id="emote-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${emotes.map(e => `
       <div class="admin-item" id="emote-${e.id}">
         <div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">
@@ -256,6 +256,28 @@ export async function handleAdmin(request, env) {
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload tile screenshots via the Images tab.</p>
       ${tileStatusHtml}
     </div>
+
+    <div class="admin-form">
+      <h3>Board Positioning</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit which characters occupy each board tile. DEF = left side, ATK = right side.</p>
+      <div id="board-alert"></div>
+      <div style="display:flex;gap:1.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+        <div>
+          <div style="text-align:center;font-size:0.65rem;color:#3498db;font-weight:700;letter-spacing:0.07em;margin-bottom:5px">DEF ←</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            ${['d1','d2','d3','d4','d5','d6'].map(k => `<input type="text" id="b${k}" placeholder="${k}" style="width:52px;height:52px;background:rgba(41,128,185,0.1);border:1px solid rgba(41,128,185,0.3);color:var(--text);font-size:0.65rem;text-align:center;border-radius:5px;font-family:'Cinzel',serif;font-weight:700;outline:none;padding:2px">`).join('')}
+          </div>
+        </div>
+        <div style="font-size:1.4rem;color:var(--gold)">⟶</div>
+        <div>
+          <div style="text-align:center;font-size:0.65rem;color:#e74c3c;font-weight:700;letter-spacing:0.07em;margin-bottom:5px">→ ATK</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            ${['a1','a2','a3','a4','a5','a6'].map(k => `<input type="text" id="b${k}" placeholder="${k}" style="width:52px;height:52px;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:var(--text);font-size:0.65rem;text-align:center;border-radius:5px;font-family:'Cinzel',serif;font-weight:700;outline:none;padding:2px">`).join('')}
+          </div>
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" onclick="saveBoard()">Save Board</button>
+    </div>
   </div>
 </div>
 
@@ -275,7 +297,7 @@ function showTab(name) {
   }
   var activeBtn = document.querySelector('[data-tab="' + name + '"]');
   if (activeBtn) activeBtn.classList.add('active');
-  if (name === 't1') { loadNotes(); loadOrder(); }
+  if (name === 't1') { loadNotes(); loadOrder(); loadBoard(); }
 }
 
 /* ── Helpers ── */
@@ -470,6 +492,28 @@ async function loadOrder() {
     }
   } catch(e) {}
 }
+/* ── Board Layout ── */
+async function loadBoard() {
+  try {
+    var res  = await fetch('/api/admin/board/get');
+    var data = await res.json();
+    var b    = data.board || {};
+    ['d1','d2','d3','d4','d5','d6','a1','a2','a3','a4','a5','a6'].forEach(function(k) {
+      var el = document.getElementById('b' + k);
+      if (el) el.value = b[k] || '';
+    });
+  } catch(e) {}
+}
+async function saveBoard() {
+  var board = {};
+  ['d1','d2','d3','d4','d5','d6','a1','a2','a3','a4','a5','a6'].forEach(function(k) {
+    var el = document.getElementById('b' + k);
+    board[k] = el ? el.value.trim() : '';
+  });
+  var r = await apiPost('/api/admin/board/save', { board });
+  showAlert('board-alert', r.success, r.message);
+}
+
 async function saveOrder() {
   var order = [];
   for (var i = 1; i <= 5; i++) {

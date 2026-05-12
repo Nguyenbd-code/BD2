@@ -25,7 +25,7 @@ export async function handleCoupons(request, env) {
 <div class="hero" style="padding-bottom:2rem">
   <div class="hero-tag">Rewards</div>
   <h1>Coupon <span>Codes</span></h1>
-  <p>Enter your in-game nickname and click Redeem All — every active code will be tried automatically</p>
+  <p>Enter your in-game nickname and click Redeem All — every active code is tried automatically</p>
 </div>
 
 <div class="coupon-form">
@@ -49,12 +49,41 @@ export async function handleCoupons(request, env) {
 
 <script>
 var CODES = ${codesJson};
+var BD2_URL = 'https://redeem.bd2.pmang.cloud/bd2/coupon/use';
+var BD2_PAGE = 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN';
 
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+async function tryRedeemDirect(nickname, code) {
+  var res = await fetch(BD2_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ nickname: nickname, coupon_code: code }).toString(),
+  });
+  var text = await res.text();
+  var data;
+  try { data = JSON.parse(text); } catch { data = {}; }
+  var rc  = data.result_code !== undefined ? data.result_code : (data.resultCode !== undefined ? data.resultCode : (data.code !== undefined ? data.code : null));
+  var msg = String(data.message || data.msg || data.result || '').toLowerCase();
+  if (data.result === 'SUCCESS' || rc === 0 || msg.includes('success')) return { success: true };
+  if (rc === 4 || msg.includes('already') || msg.includes('used') || msg.includes('expired')) return { already_used: true };
+  return { failed: true, raw: text.replace(/<[^>]*>/g,'').trim().substring(0,100) };
+}
+
+function setManualFallback(row, code) {
+  var badge = row.querySelector('.result-badge');
+  badge.className = 'result-badge rb-failed';
+  badge.style.display = 'none';
+  var extra = document.createElement('span');
+  extra.style.cssText = 'display:inline-flex;gap:0.4rem;align-items:center;flex-wrap:wrap';
+  extra.innerHTML = '<span class="result-badge rb-failed" style="font-size:0.7rem">Manual</span>'
+    + '<button class="copy-btn" onclick="navigator.clipboard.writeText(\\'' + escH(code) + '\\').then(function(){this.textContent=\\'Copied!\\';setTimeout(function(){document.querySelector(\\'[data-copy=\\"' + escH(code) + '\\"]\\')||0},1500)}.bind(this))" style="font-size:0.72rem">Copy Code</button>'
+    + '<a href="' + BD2_PAGE + '" target="_blank" class="copy-btn" style="font-size:0.72rem;text-decoration:none">Open BD2 Page</a>';
+  row.appendChild(extra);
+}
 
 async function redeemAll() {
   var nickname = document.getElementById('nickname').value.trim();
@@ -66,10 +95,8 @@ async function redeemAll() {
   btn.textContent = 'Redeeming…';
 
   var resultsList = document.getElementById('results-list');
-  var resultsDiv  = document.getElementById('redeem-results');
-  resultsDiv.style.display = 'block';
+  document.getElementById('redeem-results').style.display = 'block';
 
-  // Build pending rows for all codes upfront
   resultsList.innerHTML = CODES.map(function(c) {
     return '<div class="result-row" id="r-' + escH(c.code) + '">'
       + '<span class="result-code">' + escH(c.code) + '</span>'
@@ -81,35 +108,26 @@ async function redeemAll() {
     var code = CODES[i].code;
     var row  = document.getElementById('r-' + escH(code));
     if (row) row.querySelector('.result-badge').textContent = 'Trying…';
-
     await delay(400);
 
     try {
-      var res  = await fetch('/api/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nickname, code: code }),
-      });
-      var data = await res.json();
+      var result = await tryRedeemDirect(nickname, code);
       if (!row) continue;
       var badge = row.querySelector('.result-badge');
-      if (data.success) {
+      if (result.success) {
         badge.className = 'result-badge rb-success';
         badge.textContent = '✓ Success!';
-      } else if (data.already_used) {
+      } else if (result.already_used) {
         badge.className = 'result-badge rb-used';
         badge.textContent = 'Already Used';
       } else {
         badge.className = 'result-badge rb-failed';
-        badge.textContent = data.message || 'Failed';
-        badge.title = data.message || '';
+        badge.textContent = result.raw || 'Failed';
+        badge.title = result.raw || '';
       }
     } catch(e) {
-      if (row) {
-        var badge = row.querySelector('.result-badge');
-        badge.className = 'result-badge rb-failed';
-        badge.textContent = 'Network Error';
-      }
+      // CORS blocked or network error — show manual fallback
+      if (row) setManualFallback(row, code);
     }
   }
 
