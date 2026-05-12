@@ -123,9 +123,15 @@ export async function handleAdminApi(request, env) {
     if (path === '/api/admin/chars/add' && method === 'POST') {
       if (!body.name || !body.slug) return json({ success:false, message:'Name and slug required' }, 400);
       const r = await env.DB.prepare(
-        'INSERT INTO char_registry (name, slug, status) VALUES (?,?,?)'
-      ).bind(body.name.trim(), body.slug.trim(), body.status||'active').run();
+        'INSERT INTO char_registry (name, slug, element, status) VALUES (?,?,?,?)'
+      ).bind(body.name.trim(), body.slug.trim(), body.element||'Dark', body.status||'active').run();
       return json({ success:true, message:'Character added!', id: r.meta.last_row_id });
+    }
+    if (path === '/api/admin/chars/update' && method === 'POST') {
+      if (!body.id) return json({ success:false, message:'id required' }, 400);
+      await env.DB.prepare('UPDATE char_registry SET name=?,element=?,status=? WHERE id=?')
+        .bind(body.name||'', body.element||'Dark', body.status||'active', body.id).run();
+      return json({ success:true, message:'Updated.' });
     }
     if (path === '/api/admin/chars/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM char_registry WHERE id=?').bind(body.id).run();
@@ -166,6 +172,27 @@ export async function handleAdminApi(request, env) {
     if (path === '/api/admin/skills/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM char_skills WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Comp Media (board images + video URLs) ────────────────
+    if (path === '/api/admin/comp/media/save' && method === 'POST') {
+      if (!body.tier || !body.media_type || body.value === undefined)
+        return json({ success:false, message:'tier, media_type, value required' }, 400);
+      await env.DB.prepare(
+        'INSERT INTO comp_media (tier,media_type,value) VALUES (?,?,?) ON CONFLICT(tier,media_type) DO UPDATE SET value=excluded.value'
+      ).bind(body.tier, body.media_type, body.value).run().catch(async () => {
+        // Fallback if no UNIQUE constraint yet
+        await env.DB.prepare('DELETE FROM comp_media WHERE tier=? AND media_type=?').bind(body.tier, body.media_type).run();
+        await env.DB.prepare('INSERT INTO comp_media (tier,media_type,value) VALUES (?,?,?)').bind(body.tier, body.media_type, body.value).run();
+      });
+      return json({ success:true, message:'Media saved.' });
+    }
+    if (path === '/api/admin/comp/media/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const r = await env.DB.prepare('SELECT media_type, value FROM comp_media WHERE tier=?').bind(tier).all();
+      const media = {};
+      for (const row of (r.results || [])) media[row.media_type] = row.value;
+      return json({ media });
     }
 
   } catch(e) {
