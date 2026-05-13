@@ -44,7 +44,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .atk{color:#3498db;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
 .def{color:#2ecc71;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
 .guide-layout{display:flex;gap:0;align-items:flex-start;}
-.guide-sidebar{width:auto;min-width:110px;max-width:160px;flex-shrink:0;position:sticky;top:72px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.5rem;margin:1.5rem 0 1.5rem 1rem;max-height:calc(100vh - 90px);overflow-y:auto;}
+.guide-sidebar{width:auto;min-width:110px;max-width:160px;flex-shrink:0;position:sticky;top:72px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.5rem;margin:1.5rem 0 1.5rem 1rem;height:fit-content;max-height:calc(100vh - 90px);overflow-y:auto;align-self:flex-start;}
 .guide-sidebar-title{font-family:'Cinzel',serif;font-size:0.7rem;font-weight:600;color:var(--gold3);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border2);}
 .sidebar-link{display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.5rem;border-radius:4px;text-decoration:none;transition:background 0.15s;margin-bottom:1px;}
 .sidebar-link:hover{background:var(--bg4);}
@@ -53,7 +53,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .sidebar-name{font-size:0.72rem;color:var(--text2);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
 .guide-content{flex:1;min-width:0;}
 @media(max-width:900px){.guide-sidebar{display:none;}}
-.comp-section{padding:2rem 1.5rem;max-width:1200px;margin:0 auto;scroll-margin-top:72px;}
+.comp-section{padding:2rem 1.5rem;max-width:1200px;margin:0 auto;scroll-margin-top:80px;}
 .comp-header{display:flex;align-items:center;gap:1rem;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--border2);}
 .comp-header h2{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;}
 .comp-meta{color:var(--text3);font-size:0.85rem;margin-top:0.25rem;}
@@ -62,11 +62,11 @@ main{padding-top:60px;position:relative;z-index:1;}
 .card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.5rem;}
 .card-title{font-family:'Cinzel',serif;font-size:0.85rem;font-weight:600;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border2);}
 .char-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;}
-.char-card-wrap{perspective:800px;height:140px;cursor:pointer;position:relative;}
-.char-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 0.5s;}
-.char-card-wrap:hover .char-card-inner,.char-card-inner.flipped{transform:rotateY(180deg);}
+.char-card-wrap{perspective:1000px;cursor:pointer;position:relative;}
+.char-card-inner{position:relative;width:100%;height:220px;transform-style:preserve-3d;transition:transform 0.5s ease;}
+.char-card-inner.flipped{transform:rotateY(180deg);}
 .char-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);overflow:hidden;}
-.char-face-back{transform:rotateY(180deg);}
+.char-face-back{transform:rotateY(180deg);border:2px solid var(--gold);border-radius:8px;}
 .card-zoom{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);font-size:0.72rem;cursor:pointer;padding:2px 5px;border-radius:3px;z-index:2;line-height:1;}
 #guide-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.87);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
 #guide-lightbox.open{display:flex;}
@@ -101,14 +101,15 @@ main{padding-top:60px;position:relative;z-index:1;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
-.rot-table{display:flex;flex-direction:column;gap:0.5rem;}
-.rot-row{display:flex;align-items:center;gap:1rem;}
-.rot-char{width:90px;flex-shrink:0;font-weight:700;font-size:0.83rem;color:var(--text2);}
-.rot-skills{display:flex;gap:0.5rem;flex-wrap:wrap;}
-.skill-icon-box{width:52px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
+.rot-table{display:flex;flex-direction:column;gap:0;}
+.rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);}
+.rot-row:last-child{border-bottom:none;}
+.rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;}
+.rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:hidden;}
+.skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}
-.skill-num{font-size:0.6rem;color:var(--text3);margin-bottom:2px;}
-.skill-abbr{font-family:'Cinzel',serif;font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+.skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}
+.skill-abbr{font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:3px;}
 .skill-tile-mini{display:inline-flex;align-items:center;justify-content:center;font-size:0.55rem;padding:1px 5px;border-radius:2px;height:auto;width:auto;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
@@ -184,6 +185,9 @@ main{padding-top:60px;position:relative;z-index:1;}
 /* FOOTER */
 footer{border-top:1px solid var(--border2);padding:2rem;text-align:center;color:var(--text3);font-size:0.8rem;margin-top:4rem;}
 footer span{color:var(--gold);}
+/* IMAGE ERROR HIDE */
+.img-err-hide.errored{display:none;}
+.img-err-dim.errored{opacity:0.2;}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
