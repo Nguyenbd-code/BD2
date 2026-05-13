@@ -41,26 +41,24 @@ function charStrip(chars, compId) {
     const cid  = `${slug}-${compId}`;
     const en   = esc(c.name);
     const eb   = esc(c.bond);
-    return `<div class="char-card-wrap" style="flex:1;min-width:130px;max-width:200px;height:170px" data-action="card-flip" data-slug="${cid}">
-  <div class="char-card-inner" id="card-${cid}" style="height:170px">
-    <div class="char-face" style="border-top:3px solid ${col}">
-      <div style="height:95px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'Cinzel',serif;font-size:2rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+    return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
+  <div class="char-card-inner" id="card-${cid}">
+    <div class="char-face">
+      <div style="height:140px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.45rem 0.6rem">
-        <div style="font-weight:700;font-size:0.82rem;color:var(--text)">${en}</div>
-        <div style="font-size:0.68rem;color:var(--gold)">${eb}</div>
+      <div style="padding:0.5rem 0.6rem;text-align:center">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text)">${en}</div>
+        <div style="font-size:0.68rem;color:var(--gold);margin-top:2px">${eb}</div>
       </div>
-      <button data-action="expand-img" data-src="/img/char_${slug}_portrait" style="position:absolute;top:4px;right:26px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
       <button data-action="card-pin" data-slug="${cid}" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--text3);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5" title="Pin">📌</button>
     </div>
-    <div class="char-face char-face-back" style="border-top:3px solid ${col}">
-      <div style="height:130px;position:relative;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+    <div class="char-face char-face-back">
+      <div style="position:absolute;inset:0;background:var(--bg2);display:flex;align-items:center;justify-content:center">
         <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
         <img src="/img/char_${slug}_gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.3rem 0.6rem;font-size:0.68rem;color:var(--text3)">Gear — ${en}</div>
       <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
     </div>
   </div>
@@ -75,7 +73,7 @@ function boardMediaBox(tier, type, mediaMap) {
   const isAtk    = type !== 'DEF';
   const arrow     = isAtk ? '⟶' : '⟵';
 
-  const boxStyle = 'flex:1;min-height:140px;border:1px solid rgba(201,168,76,0.3);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
+  const boxStyle = 'flex:1;min-height:220px;border:1px solid rgba(201,168,76,0.3);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
 
   const imgBox = `<div style="${boxStyle}">
     <span style="color:var(--text3);font-size:0.75rem">Coming soon</span>
@@ -90,8 +88,8 @@ function boardMediaBox(tier, type, mediaMap) {
 
   const arrowEl = `<div style="color:var(--gold);font-size:1.4rem;flex-shrink:0;padding:0 0.4rem">${arrow}</div>`;
 
-  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.6rem">
-  <div style="display:flex;align-items:center;gap:0">
+  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.6rem;min-height:260px;display:flex;flex-direction:column;justify-content:center">
+  <div style="display:flex;align-items:stretch;gap:0;flex:1">
     ${isAtk ? imgBox + arrowEl + vidBox : vidBox + arrowEl + imgBox}
   </div></div>`;
 }
@@ -103,39 +101,36 @@ function t1Section(board, mediaMap) {
   const order  = T1_DATA.unitOrder;
   const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
 
-  // T1 character strip (with tooltips — kept from original)
+  // T1 character strip — portrait front, gear back, 220px, with tooltips
   const charCards = chars.map((name, idx) => {
     const b    = bonds[name];
     const slug = cSlug(name);
     const col  = colors[idx];
     const cid  = `${slug}-t1`;
     return `
-<div class="char-card-wrap" style="flex:1;min-width:140px;max-width:200px;height:170px" data-action="card-flip" data-slug="${cid}">
-  <div class="char-card-inner tt-parent" id="card-${cid}" style="height:170px">
-    <div class="char-face" style="border-top:3px solid ${col}">
-      <div style="height:75px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'Cinzel',serif;font-size:2rem;color:${col};font-weight:700">${esc(name.charAt(0))}</span>
-        <img src="/img/char_${slug}_gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
+  <div class="char-card-inner tt-parent" id="card-${cid}">
+    <div class="char-face">
+      <div style="height:140px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(name.charAt(0))}</span>
+        <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.4rem 0.6rem">
-        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.82rem;color:var(--text)">${esc(name)}</div>
-        <div style="font-size:0.68rem;color:var(--gold)">${esc(b.costume)}</div>
-        <div style="font-size:0.62rem;color:var(--text3);margin-top:1px">${b.stats.slice(0,2).join(' · ')}</div>
+      <div style="padding:0.5rem 0.6rem;text-align:center">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text)">${esc(name)}</div>
+        <div style="font-size:0.68rem;color:var(--gold);margin-top:2px">${esc(b.costume)}</div>
       </div>
-      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
       <div class="tt-popup">
         <div class="tt-name">${esc(name)} — ${esc(b.costume)}</div>
         <div class="tt-stats">${b.stats.map(s=>`<span class="tt-stat">${esc(s)}</span>`).join('')}</div>
         <div class="tt-desc">${esc(b.notes)}</div>
       </div>
     </div>
-    <div class="char-face char-face-back" style="border-top:3px solid ${col}">
-      <div style="height:130px;position:relative;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="color:var(--text3);font-size:0.75rem">No portrait</span>
-        <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
+    <div class="char-face char-face-back">
+      <div style="position:absolute;inset:0;background:var(--bg2);display:flex;align-items:center;justify-content:center">
+        <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
+        <img src="/img/char_${slug}_gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.3rem 0.6rem;font-size:0.68rem;color:var(--text3)">Portrait — ${esc(name)}</div>
-      <button data-action="expand-img" data-src="/img/char_${slug}_portrait" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
+      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
     </div>
   </div>
 </div>`;
@@ -195,7 +190,7 @@ function t1Section(board, mediaMap) {
     ${charCards}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:1rem;align-items:start">
+  <div style="display:grid;grid-template-columns:0.8fr 1.4fr 0.8fr;gap:1rem;align-items:start">
     <div class="card">
       <div class="card-title">Skill Rotation</div>
       <div class="rot-table">${rotRows}</div>
@@ -258,7 +253,7 @@ function compSection(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${strip}</div>
 
-  <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:1rem;align-items:start">
+  <div style="display:grid;grid-template-columns:0.8fr 1.4fr 0.8fr;gap:1rem;align-items:start">
     <div class="card">
       <div class="card-title">Skill Rotation</div>
       <div style="color:var(--text3);font-size:0.82rem;text-align:center;padding:1rem 0">Skill data coming soon</div>
