@@ -101,14 +101,15 @@ main{padding-top:60px;position:relative;z-index:1;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
-.rot-table{display:flex;flex-direction:column;gap:0.5rem;}
-.rot-row{display:flex;align-items:center;gap:1rem;}
-.rot-char{width:90px;flex-shrink:0;font-weight:700;font-size:0.83rem;color:var(--text2);}
-.rot-skills{display:flex;gap:0.5rem;flex-wrap:wrap;}
-.skill-icon-box{width:52px;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
+.rot-table{display:flex;flex-direction:column;gap:0;}
+.rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);}
+.rot-row:last-child{border-bottom:none;}
+.rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;}
+.rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:hidden;}
+.skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}
-.skill-num{font-size:0.6rem;color:var(--text3);margin-bottom:2px;}
-.skill-abbr{font-family:'Cinzel',serif;font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+.skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}
+.skill-abbr{font-family:'Cinzel',serif;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:3px;}
 .skill-tile-mini{display:inline-flex;align-items:center;justify-content:center;font-size:0.55rem;padding:1px 5px;border-radius:2px;height:auto;width:auto;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
@@ -184,6 +185,9 @@ main{padding-top:60px;position:relative;z-index:1;}
 /* FOOTER */
 footer{border-top:1px solid var(--border2);padding:2rem;text-align:center;color:var(--text3);font-size:0.8rem;margin-top:4rem;}
 footer span{color:var(--gold);}
+/* IMAGE ERROR HIDE */
+.img-err-hide.errored{display:none;}
+.img-err-dim.errored{opacity:0.2;}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
