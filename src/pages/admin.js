@@ -51,52 +51,48 @@ export async function handleAdmin(request, env) {
   } catch(e) {}
 
   const tierOptions = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-    .map(n => `<option value="T${n}">T${n}</option>`).join('');
+    .map(n => '<option value="T' + n + '">T' + n + '</option>').join('');
 
-  const imgGridHtml = images.length ? images.map(img => `
-  <div class="img-slot" id="imgslot-${esc(img.key)}">
-    <img src="/img/${esc(img.key)}" alt="${esc(img.key)}" style="object-fit:contain;background:var(--bg2)" onclick="openAdminLightbox(\\'/img/${esc(img.key)}\\')" onerror="this.style.display=\\'none\\'">
-    <div class="img-slot-key">${esc(img.key)}</div>
-    <button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\\'${esc(img.key)}\\')">Delete</button>
-  </div>`).join('') : '<p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p>';
+  const imgGridHtml = images.length ? images.map(img =>
+    '<div class="img-slot" id="imgslot-' + esc(img.key) + '">'
+    + '<img src="/img/' + esc(img.key) + '" alt="' + esc(img.key) + '" style="object-fit:contain;background:var(--bg2)" data-action="admin-lightbox" data-src="/img/' + esc(img.key) + '" onerror="this.style.display=\'none\'">'
+    + '<div class="img-slot-key">' + esc(img.key) + '</div>'
+    + '<button class="btn-danger" style="margin-top:4px;width:100%" data-action="image-delete" data-key="' + esc(img.key) + '">Delete</button>'
+    + '</div>'
+  ).join('') : '<p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p>';
 
   const compsListHtml = comps.map(c => {
     const isAtk = (c.type || '').toUpperCase() === 'ATK';
     const badgeStyle = isAtk
       ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
       : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
-    const badgeText = isAtk ? '⚔ ATK' : '🛡 DEF';
-    return `
-    <div class="admin-item" id="comp-${c.id}">
-      <div class="admin-item-info">
-        <strong>${esc(c.tier)} — ${esc(c.name)}</strong>
-        <span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;${badgeStyle}">${badgeText}</span>
-      </div>
-      <button class="btn-danger" onclick="deleteComp(${c.id})">Delete</button>
-    </div>`;
+    const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
+    return '<div class="admin-item" id="comp-' + c.id + '">'
+      + '<div class="admin-item-info">'
+      + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
+      + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
+      + '</div>'
+      + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
+      + '</div>';
   }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No custom compositions yet.</p>';
 
-  const elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
+  const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const charsListHtml = chars.map(c => {
-    const elemColor = elemColors[c.element] || '#888';
-    const nameEsc = esc(c.name).replace(/'/g, "\\'");
-    const slugEsc = esc(c.slug).replace(/'/g, "\\'");
-    return `<div class="admin-item" id="char-${c.id}" style="cursor:pointer" onclick="selectChar(${c.id},\\'${nameEsc}\\',\\'${slugEsc}\\')">
-    <div class="admin-item-info" style="display:flex;align-items:center;gap:0.4rem">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${elemColor};flex-shrink:0"></span>
-      <strong>${esc(c.name)}</strong>
-      ${c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">🔜</span>' : ''}
-    </div>
-    <button class="btn-danger" onclick="event.stopPropagation();deleteChar(${c.id})" style="font-size:0.72rem;padding:3px 8px">✕</button>
-  </div>`;
+    const elemColor = elemColorsServer[c.element] || '#888';
+    return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '">'
+      + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
+      + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
+      + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
+      + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
+      + '</div>';
   }).join('') || '<p style="color:var(--text3);font-size:0.83rem;padding:0.5rem 0">No characters yet.</p>';
 
   const charSelectOptions = chars.map(c =>
-    `<option value="${esc(c.slug)}">${esc(c.name)}</option>`
+    '<option value="' + esc(c.slug) + '">' + esc(c.name) + '</option>'
   ).join('');
 
   const dbCompOptions = comps.map(c =>
-    `<option value="db-${c.id}">${esc(c.tier)} — ${esc(c.name)} (${esc(c.type || '')})</option>`
+    '<option value="db-' + c.id + '" data-tier="' + esc(c.tier) + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
   return layout('Admin Panel', `
@@ -107,12 +103,14 @@ export async function handleAdmin(request, env) {
   </div>
 
   <div class="admin-tabs">
-    <button class="tab-btn active" data-tab="coupons"  onclick="showTab(\\'coupons\\')">Coupons</button>
-    <button class="tab-btn"        data-tab="comps"    onclick="showTab(\\'comps\\')">Compositions</button>
-    <button class="tab-btn"        data-tab="emotes"   onclick="showTab(\\'emotes\\')">Emotes</button>
-    <button class="tab-btn"        data-tab="images"   onclick="showTab(\\'images\\')">Images</button>
-    <button class="tab-btn"        data-tab="chars"    onclick="showTab(\\'chars\\')">Characters</button>
+    <button class="tab-btn active" data-action="tab-switch" data-tab="coupons">Coupons</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
   </div>
+
+  <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
 
   <!-- ═══════════════════════════════════════════════════════════ COUPONS -->
   <div class="admin-section active" id="tab-coupons">
@@ -127,20 +125,20 @@ export async function handleAdmin(request, env) {
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addCoupon()">Add Code</button>
     </div>
     <div id="coupon-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
-      ${coupons.map(c => `
-      <div class="admin-item" id="coupon-${c.id}">
-        <div class="admin-item-info">
-          <strong>${esc(c.code)}</strong> — ${esc(c.rewards || '')}
-          ${c.expiry ? ` · Expires ${esc(c.expiry)}` : ''} · ${c.active ? 'Active' : 'Inactive'}
-        </div>
-        <button class="btn-danger" onclick="deleteCoupon(${c.id})">Delete</button>
-      </div>`).join('') || '<p style="color:var(--text3);font-size:0.83rem">No coupons yet.</p>'}
+      ${coupons.map(c =>
+        '<div class="admin-item" id="coupon-' + c.id + '">'
+        + '<div class="admin-item-info">'
+        + '<strong>' + esc(c.code) + '</strong> &mdash; ' + esc(c.rewards || '')
+        + (c.expiry ? ' &middot; Expires ' + esc(c.expiry) : '') + ' &middot; ' + (c.active ? 'Active' : 'Inactive')
+        + '</div>'
+        + '<button class="btn-danger" data-action="coupon-delete" data-id="' + c.id + '">Delete</button>'
+        + '</div>'
+      ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No coupons yet.</p>'}
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ COMPOSITIONS -->
   <div class="admin-section" id="tab-comps">
-    <!-- Composition selector -->
     <div class="admin-form">
       <h3>Edit Composition Content</h3>
       <div class="form-group">
@@ -160,7 +158,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Comp editor (shown when a tier is selected) -->
       <div id="comp-editor" style="display:none;margin-top:1rem">
-        <div style="font-family:\\'Cinzel\\',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
+        <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
 
         <!-- Board image -->
         <div class="form-group">
@@ -178,15 +176,16 @@ export async function handleAdmin(request, env) {
             <input type="url" id="comp-video-url" placeholder="https://..." style="flex:1">
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
           </div>
+          <div id="comp-video-alert"></div>
         </div>
 
         <!-- T1 extras: notes + unit order -->
         <div id="comp-t1-extras" style="display:none">
           <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:\\'Cinzel\\',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
+            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
             <div class="form-group">
               <label>Character</label>
-              <select id="notes-char-comp">
+              <select id="notes-char-comp" onchange="loadCompNotes()">
                 <option value="Rou">Rou</option>
                 <option value="Seir">Seir</option>
                 <option value="Lecliss">Lecliss</option>
@@ -201,14 +200,15 @@ export async function handleAdmin(request, env) {
             <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompNotes()">Save Notes</button>
           </div>
           <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:\\'Cinzel\\',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Unit Order</h4>
-            ${[1,2,3,4,5].map(i => `
-            <div class="form-group">
-              <label>Position ${i}</label>
-              <select id="order-comp-${i}">
-                ${['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
-              </select>
-            </div>`).join('')}
+            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Unit Order</h4>
+            ${[1,2,3,4,5].map(i =>
+              '<div class="form-group">'
+              + '<label>Position ' + i + '</label>'
+              + '<select id="order-comp-' + i + '">'
+              + ['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('')
+              + '</select>'
+              + '</div>'
+            ).join('')}
             <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompOrder()">Save Unit Order</button>
           </div>
         </div>
@@ -218,7 +218,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Add new comp form -->
       <div id="comp-add-form" style="display:none;margin-top:1rem">
-        <h4 style="font-family:\\'Cinzel\\',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
+        <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
         <div class="form-row">
           <div class="form-group">
             <label>Tier</label>
@@ -258,14 +258,15 @@ export async function handleAdmin(request, env) {
       <button class="btn" style="width:auto;padding:10px 24px" onclick="addEmote()">Add Emote</button>
     </div>
     <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
-      ${emotes.map(e => `
-      <div class="admin-item" id="emote-${e.id}">
-        <div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">
-          <img src="${esc(e.image_url)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\\'none\\'">
-          <strong>${esc(e.name)}</strong>
-        </div>
-        <button class="btn-danger" onclick="deleteEmote(${e.id})">Delete</button>
-      </div>`).join('') || '<p style="color:var(--text3);font-size:0.83rem">No emotes yet.</p>'}
+      ${emotes.map(e =>
+        '<div class="admin-item" id="emote-' + e.id + '">'
+        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
+        + '<img src="' + esc(e.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
+        + '<strong>' + esc(e.name) + '</strong>'
+        + '</div>'
+        + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '">Delete</button>'
+        + '</div>'
+      ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No emotes yet.</p>'}
     </div>
   </div>
 
@@ -278,11 +279,11 @@ export async function handleAdmin(request, env) {
 
       <!-- Category sub-tabs -->
       <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem">
-        <button class="img-cat-btn active" data-cat="all"   onclick="setImgCat(\\'all\\')">All</button>
-        <button class="img-cat-btn"        data-cat="chars" onclick="setImgCat(\\'chars\\')">Characters</button>
-        <button class="img-cat-btn"        data-cat="comps" onclick="setImgCat(\\'comps\\')">Compositions</button>
-        <button class="img-cat-btn"        data-cat="tiles" onclick="setImgCat(\\'tiles\\')">Skills/Tiles</button>
-        <button class="img-cat-btn"        data-cat="other" onclick="setImgCat(\\'other\\')">Other</button>
+        <button class="img-cat-btn active" data-action="img-cat" data-cat="all">All</button>
+        <button class="img-cat-btn"        data-action="img-cat" data-cat="chars">Characters</button>
+        <button class="img-cat-btn"        data-action="img-cat" data-cat="comps">Compositions</button>
+        <button class="img-cat-btn"        data-action="img-cat" data-cat="tiles">Skills/Tiles</button>
+        <button class="img-cat-btn"        data-action="img-cat" data-cat="other">Other</button>
       </div>
 
       <!-- Characters category -->
@@ -316,7 +317,7 @@ export async function handleAdmin(request, env) {
         <div class="form-group">
           <label>Tier</label>
           <select id="img-comp-tier" onchange="updateImgKey()">
-            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(n => `<option value="T${n}">T${n}</option>`).join('')}
+            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(n => '<option value="T' + n + '">T' + n + '</option>').join('')}
           </select>
         </div>
         <p style="font-size:0.8rem;color:var(--text3)">Slot: Board Image (fixed)</p>
@@ -387,7 +388,7 @@ export async function handleAdmin(request, env) {
 
     <!-- Admin lightbox -->
     <div id="admin-lightbox" onclick="closeAdminLightbox()">
-      <img id="admin-lightbox-img" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px">
+      <img id="admin-lightbox-img" src="" alt="">
     </div>
   </div>
 
@@ -402,7 +403,7 @@ export async function handleAdmin(request, env) {
         <div id="char-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem">
           ${charsListHtml}
         </div>
-        <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">Add Character</button>
+        <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">+ Add Character</button>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
           <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou"></div>
           <div class="form-group"><label>Slug</label><input id="new-char-slug" placeholder="rou"></div>
@@ -432,9 +433,9 @@ export async function handleAdmin(request, env) {
 
           <!-- Sub-tab buttons -->
           <div style="display:flex;gap:0.4rem;margin-bottom:1rem;flex-wrap:wrap">
-            <button class="char-subtab-btn active" data-subtab="costumes" onclick="showCharSubtab(\\'costumes\\')">Costumes</button>
-            <button class="char-subtab-btn"        data-subtab="skills"   onclick="showCharSubtab(\\'skills\\')">Skills</button>
-            <button class="char-subtab-btn"        data-subtab="images"   onclick="showCharSubtab(\\'images\\')">Images</button>
+            <button class="char-subtab-btn active" data-action="char-tab" data-subtab="costumes">Costumes</button>
+            <button class="char-subtab-btn"        data-action="char-tab" data-subtab="skills">Skills</button>
+            <button class="char-subtab-btn"        data-action="char-tab" data-subtab="images">Images</button>
           </div>
 
           <!-- Costumes sub-tab -->
@@ -497,15 +498,12 @@ export async function handleAdmin(request, env) {
               </div>
             </div>
             <div id="char-img-computed-key" style="font-size:0.83rem;color:var(--text3);margin-bottom:0.75rem"></div>
-            <div class="form-group">
-              <label>Image File</label>
-              <input type="file" id="char-img-file" accept="image/*" onchange="previewCharImage(this)" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-            </div>
+            <input type="file" id="char-img-file" accept="image/*" onchange="previewCharImage(this)" style="display:none">
+            <button class="btn" style="width:auto;padding:8px 20px" data-action="upload-trigger" data-slot="char-img">Upload Image</button>
             <div id="char-img-preview-wrap" style="display:none;margin-bottom:0.75rem">
               <img id="char-img-preview" style="height:200px;width:100%;object-fit:contain;background:var(--bg2);border-radius:6px;border:1px solid var(--border2)">
             </div>
             <canvas id="char-compress-canvas" style="display:none"></canvas>
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="uploadCharImage()">Upload Image</button>
             <div id="char-img-alert"></div>
             <div id="char-img-grid" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem"></div>
           </div>
@@ -518,85 +516,43 @@ export async function handleAdmin(request, env) {
 </div>
 
 <style>
-.img-cat-btn {
-  display:inline-block;
-  background:var(--bg4);
-  border:1px solid var(--border2);
-  color:var(--text2);
-  padding:6px 12px;
-  border-radius:4px;
-  font-size:0.8rem;
-  cursor:pointer;
-}
-.img-cat-btn.active {
-  background:rgba(201,168,76,0.15);
-  border-color:var(--gold);
-  color:var(--gold);
-}
-.char-subtab-btn {
-  display:inline-block;
-  background:var(--bg4);
-  border:1px solid var(--border2);
-  color:var(--text2);
-  padding:5px 12px;
-  border-radius:4px;
-  font-size:0.78rem;
-  cursor:pointer;
-}
-.char-subtab-btn.active {
-  background:rgba(201,168,76,0.15);
-  border-color:var(--gold);
-  color:var(--gold);
-}
-.char-selected {
-  border-color:var(--gold) !important;
-  background:rgba(201,168,76,0.08) !important;
-}
-#admin-lightbox {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.87);
-  z-index:9999;
-  align-items:center;
-  justify-content:center;
-  cursor:zoom-out;
-}
-#admin-lightbox.open {
-  display:flex;
-}
-#admin-lightbox img {
-  max-width:90vw;
-  max-height:90vh;
-  object-fit:contain;
-  border-radius:8px;
-}
+.img-cat-btn { display:inline-block; background:var(--bg4); border:1px solid var(--border2); color:var(--text2); padding:6px 12px; border-radius:4px; font-size:0.8rem; cursor:pointer; }
+.img-cat-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
+.char-subtab-btn { display:inline-block; background:var(--bg4); border:1px solid var(--border2); color:var(--text2); padding:5px 12px; border-radius:4px; font-size:0.78rem; cursor:pointer; }
+.char-subtab-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
+.char-row { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; background:var(--bg4); border-radius:5px; cursor:pointer; border:1px solid transparent; }
+.char-row:hover { border-color:var(--border2); }
+.char-row.selected { border-color:var(--gold); background:rgba(201,168,76,0.08); }
+.elem-dot { display:inline-block; width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+#admin-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.87); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
+#admin-lightbox.open { display:flex; }
+#admin-lightbox img { max-width:90vw; max-height:90vh; object-fit:contain; border-radius:8px; }
 </style>
 
 <script>
-/* ── Tab switching ── */
-function showTab(name) {
-  console.log('showTab:', name);
-  document.querySelectorAll('.admin-section').forEach(function(s) { s.classList.remove('active'); });
-  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  var t = document.getElementById('tab-' + name);
-  if (t) t.classList.add('active');
-  var b = document.querySelector('[data-tab="' + name + '"]');
-  if (b) b.classList.add('active');
-  if (name === 'chars') loadChars();
-  if (name === 'images') updateImgKey();
-}
+/* ═══════════════════════════════════════════════════════ STATE VARS ══ */
+var _selectedCharId   = 0;
+var _selectedCharSlug = '';
+var _selectedCharName = '';
+var _selectedCostumeSlug = '';
+var _compTier = '';
+var _compBoardKey = '';
+var _imgCat = 'all';
 
-/* ── Helpers ── */
+var elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
+
+/* ═══════════════════════════════════════════════════════════ HELPERS ══ */
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
 function showAlert(id, ok, msg) {
   var el = document.getElementById(id);
   if (!el) return;
   el.innerHTML = '<div class="alert ' + (ok ? 'alert-success' : 'alert-error') + '">' + escH(msg) + '</div>';
   setTimeout(function() { el.innerHTML = ''; }, 3000);
 }
+
 async function apiPost(path, body) {
   try {
     var r = await fetch(path, {
@@ -610,14 +566,6 @@ async function apiPost(path, body) {
   }
 }
 
-/* ── Element badge helper ── */
-function elemBadge(element) {
-  var colors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
-  var c = colors[element] || '#888';
-  return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + c + ';margin-right:4px;flex-shrink:0"></span>';
-}
-
-/* ── Image compress helper ── */
 function compressToDataUrl(file, canvasId, maxW, quality) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
@@ -639,12 +587,50 @@ function compressToDataUrl(file, canvasId, maxW, quality) {
   });
 }
 
-/* ══════════════════════════════════════════════════════ COMPOSITIONS ══ */
-var _compTier = '';
-var _compBoardKey = '';
+/* ══════════════════════════════════════════════════════ TAB SWITCHING ══ */
+function showTab(name) {
+  document.querySelectorAll('.admin-section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  var t = document.getElementById('tab-' + name);
+  if (t) t.classList.add('active');
+  var btn = document.querySelector('[data-tab="' + name + '"]');
+  if (btn) btn.classList.add('active');
+  if (name === 'chars')  loadChars();
+  if (name === 'images') updateImgKey();
+}
 
+/* ══════════════════════════════════════════════════════════ COUPONS ══ */
+async function addCoupon() {
+  var code    = ((document.getElementById('c-code')    || {}).value || '').trim();
+  var rewards = ((document.getElementById('c-rewards') || {}).value || '').trim();
+  var expiry  = ((document.getElementById('c-expiry')  || {}).value || '').trim();
+  if (!code) { showAlert('coupon-alert', false, 'Code is required'); return; }
+  var r = await apiPost('/api/admin/coupon/add', { code: code, rewards: rewards, expiry: expiry || null });
+  showAlert('coupon-alert', r.success, r.message);
+  if (r.success) {
+    document.getElementById('c-code').value    = '';
+    document.getElementById('c-rewards').value = '';
+    document.getElementById('c-expiry').value  = '';
+    var div = document.createElement('div');
+    div.className = 'admin-item';
+    div.id = 'coupon-' + r.id;
+    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(code) + '</strong> &mdash; ' + escH(rewards) + ' &middot; Active</div>'
+      + '<button class="btn-danger" data-action="coupon-delete" data-id="' + r.id + '">Delete</button>';
+    var list = document.getElementById('coupon-list');
+    if (list) list.prepend(div);
+  }
+}
+
+async function deleteCoupon(id) {
+  var r = await apiPost('/api/admin/coupon/delete', { id: id });
+  if (r.success) { var el = document.getElementById('coupon-' + id); if (el) el.remove(); }
+  else showAlert('coupon-alert', false, r.message);
+}
+
+/* ══════════════════════════════════════════════════════ COMPOSITIONS ══ */
 function selectComp() {
-  var val = (document.getElementById('comp-select') || {}).value || '';
+  var sel       = document.getElementById('comp-select');
+  var val       = sel ? sel.value : '';
   var editorEl  = document.getElementById('comp-editor');
   var addFormEl = document.getElementById('comp-add-form');
   var t1extras  = document.getElementById('comp-t1-extras');
@@ -666,17 +652,13 @@ function selectComp() {
   if (addFormEl) addFormEl.style.display = 'none';
   if (editorEl)  editorEl.style.display  = 'block';
 
-  var staticTiers = { T1:'T1', T2:'T2', T3:'T3', T4:'T4', T5:'T5', T6:'T6' };
+  var staticTiers = { T1:true, T2:true, T3:true, T4:true, T5:true, T6:true };
   var isStatic = !!staticTiers[val];
   var isDbComp = val.indexOf('db-') === 0;
 
   if (isStatic) {
     _compTier = val;
-    if (val === 'T1') {
-      _compBoardKey = 'board_pos';
-    } else {
-      _compBoardKey = 'comp_' + val.toLowerCase() + '_board';
-    }
+    _compBoardKey = val === 'T1' ? 'board_pos' : 'comp_' + val.toLowerCase() + '_board';
     if (labelEl) labelEl.textContent = val + ' — Editing content';
     if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
     if (t1extras) t1extras.style.display = val === 'T1' ? 'block' : 'none';
@@ -684,7 +666,8 @@ function selectComp() {
     loadCompMedia(val);
   } else if (isDbComp) {
     var dbId = val.replace('db-', '');
-    _compTier = 'db-' + dbId;
+    var tierFromAttr = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].dataset.tier || '' : '';
+    _compTier = tierFromAttr || ('db-' + dbId);
     _compBoardKey = 'comp_db' + dbId + '_board';
     if (labelEl) labelEl.textContent = 'DB Comp #' + dbId + ' — Editing content';
     if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
@@ -726,20 +709,19 @@ async function loadCompMedia(tier) {
     var urlEl = document.getElementById('comp-video-url');
     if (urlEl) urlEl.value = data.video || '';
     var preview = document.getElementById('comp-board-preview');
-    if (preview && data.board_key) {
-      preview.innerHTML = '<img src="/img/' + escH(data.board_key) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem" onerror="this.style.display=\'none\'">';
-    } else if (preview && _compBoardKey) {
-      preview.innerHTML = '<img src="/img/' + escH(_compBoardKey) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem" onerror="this.style.display=\'none\'">';
+    var boardKey = data.board_key || _compBoardKey;
+    if (preview && boardKey) {
+      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem" onerror="this.style.display=\'none\'">';
     }
   } catch(e) {}
 }
 
 async function addComp() {
-  var tier  = (document.getElementById('new-comp-tier') || {}).value || 'T1';
+  var tier  = (document.getElementById('new-comp-tier')  || {}).value || 'T1';
   var name  = ((document.getElementById('new-comp-name') || {}).value || '').trim();
-  var type  = (document.getElementById('new-comp-type') || {}).value || 'ATK';
+  var type  = (document.getElementById('new-comp-type')  || {}).value || 'ATK';
   var desc  = ((document.getElementById('new-comp-desc') || {}).value || '').trim();
-  var cby   = ((document.getElementById('new-comp-cby') || {}).value || '').trim();
+  var cby   = ((document.getElementById('new-comp-cby')  || {}).value || '').trim();
   if (!name) { showAlert('comp-add-alert', false, 'Name is required'); return; }
   var r = await apiPost('/api/admin/comp/add', { tier: tier, name: name, type: type, description: desc, countered_by: cby, last_updated: new Date().toISOString().slice(0,10) });
   showAlert('comp-add-alert', r.success, r.message);
@@ -750,24 +732,24 @@ async function addComp() {
     var badgeStyle = isAtk
       ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
       : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
-    var badgeText = isAtk ? '⚔ ATK' : '🛡 DEF';
+    var badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'comp-' + r.id;
-    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(tier) + ' — ' + escH(name) + '</strong>'
+    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(tier) + ' &mdash; ' + escH(name) + '</strong>'
       + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span></div>'
-      + '<button class="btn-danger" onclick="deleteComp(' + r.id + ')">Delete</button>';
+      + '<button class="btn-danger" data-action="comp-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('comp-list');
     if (list) list.prepend(div);
-    // also add to selector
-    var sel = document.getElementById('comp-select');
-    if (sel) {
+    var compSel = document.getElementById('comp-select');
+    if (compSel) {
       var opt = document.createElement('option');
       opt.value = 'db-' + r.id;
+      opt.dataset.tier = tier;
       opt.textContent = tier + ' — ' + name + ' (' + type + ')';
-      var newOpt = sel.querySelector('[value="new"]');
-      if (newOpt) sel.insertBefore(opt, newOpt);
-      else sel.appendChild(opt);
+      var newOpt = compSel.querySelector('option[value="new"]');
+      if (newOpt) compSel.insertBefore(opt, newOpt);
+      else compSel.appendChild(opt);
     }
   }
 }
@@ -819,23 +801,23 @@ async function loadCompOrder() {
   } catch(e) {}
 }
 
-/* ══════════════════════════════════════════════════════════════ EMOTES ══ */
+/* ══════════════════════════════════════════════════════════ EMOTES ══ */
 async function addEmote() {
   var name      = ((document.getElementById('e-name') || {}).value || '').trim();
-  var image_url = ((document.getElementById('e-url') || {}).value || '').trim();
+  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
   if (!name || !image_url) { showAlert('emote-alert', false, 'Name and URL required'); return; }
   var r = await apiPost('/api/admin/emote/add', { name: name, image_url: image_url });
   showAlert('emote-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('e-name').value = '';
-    document.getElementById('e-url').value = '';
+    document.getElementById('e-url').value  = '';
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
     div.innerHTML = '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\\'none\\'">'
+      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
       + '<strong>' + escH(name) + '</strong></div>'
-      + '<button class="btn-danger" onclick="deleteEmote(' + r.id + ')">Delete</button>';
+      + '<button class="btn-danger" data-action="emote-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('emote-list');
     if (list) list.prepend(div);
   }
@@ -847,37 +829,7 @@ async function deleteEmote(id) {
   else showAlert('emote-alert', false, r.message);
 }
 
-/* ═══════════════════════════════════════════════════════════ COUPONS ══ */
-async function addCoupon() {
-  var code    = ((document.getElementById('c-code') || {}).value || '').trim();
-  var rewards = ((document.getElementById('c-rewards') || {}).value || '').trim();
-  var expiry  = ((document.getElementById('c-expiry') || {}).value || '').trim();
-  if (!code) { showAlert('coupon-alert', false, 'Code is required'); return; }
-  var r = await apiPost('/api/admin/coupon/add', { code: code, rewards: rewards, expiry: expiry || null });
-  showAlert('coupon-alert', r.success, r.message);
-  if (r.success) {
-    document.getElementById('c-code').value    = '';
-    document.getElementById('c-rewards').value = '';
-    document.getElementById('c-expiry').value  = '';
-    var div = document.createElement('div');
-    div.className = 'admin-item';
-    div.id = 'coupon-' + r.id;
-    div.innerHTML = '<div class="admin-item-info"><strong>' + escH(code) + '</strong> — ' + escH(rewards) + ' · Active</div>'
-      + '<button class="btn-danger" onclick="deleteCoupon(' + r.id + ')">Delete</button>';
-    var list = document.getElementById('coupon-list');
-    if (list) list.prepend(div);
-  }
-}
-
-async function deleteCoupon(id) {
-  var r = await apiPost('/api/admin/coupon/delete', { id: id });
-  if (r.success) { var el = document.getElementById('coupon-' + id); if (el) el.remove(); }
-  else showAlert('coupon-alert', false, r.message);
-}
-
-/* ═══════════════════════════════════════════════════════════ IMAGES ══ */
-var _imgCat = 'all';
-
+/* ══════════════════════════════════════════════════════════ IMAGES ══ */
 function setImgCat(cat) {
   _imgCat = cat;
   var cats = ['chars','comps','tiles','other'];
@@ -894,10 +846,10 @@ function setImgCat(cat) {
 function updateImgKey() {
   var key = '';
   if (_imgCat === 'chars') {
-    var charSel  = document.getElementById('img-char-sel');
-    var slotSel  = document.getElementById('img-slot-type');
-    var ch   = charSel ? charSel.value : 'rou';
-    var sl   = slotSel ? slotSel.value : 'portrait';
+    var charSel = document.getElementById('img-char-sel');
+    var slotSel = document.getElementById('img-slot-type');
+    var ch  = charSel ? charSel.value : 'rou';
+    var sl  = slotSel ? slotSel.value : 'portrait';
     var slug = ch.toLowerCase().replace('scheherazade','schera');
     var costumeWrap = document.getElementById('img-costume-sel-wrap');
     if (sl === 'portrait') {
@@ -930,14 +882,14 @@ function updateImgKey() {
 
 function previewImage(input) {
   if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  var url  = URL.createObjectURL(file);
-  var wrap = document.getElementById('img-preview-wrap');
+  var file  = input.files[0];
+  var url   = URL.createObjectURL(file);
+  var wrap  = document.getElementById('img-preview-wrap');
   var imgEl = document.getElementById('img-preview');
   var info  = document.getElementById('img-preview-info');
   if (!wrap || !imgEl) return;
   imgEl.onload = function() {
-    if (info) info.textContent = imgEl.naturalWidth + ' × ' + imgEl.naturalHeight + '  ·  ~' + (file.size / 1024).toFixed(0) + ' kb';
+    if (info) info.textContent = imgEl.naturalWidth + ' \xd7 ' + imgEl.naturalHeight + '  \xb7  ~' + (file.size / 1024).toFixed(0) + ' kb';
     wrap.style.display = 'block';
   };
   imgEl.src = url;
@@ -967,9 +919,9 @@ async function uploadImage() {
       grid.appendChild(slot);
     }
     if (slot) {
-      slot.innerHTML = '<img src="' + escH(data) + '" style="object-fit:contain;background:var(--bg2)" onclick="openAdminLightbox(this.src)">'
+      slot.innerHTML = '<img src="' + escH(data) + '" style="object-fit:contain;background:var(--bg2)" data-action="admin-lightbox" data-src="' + escH(data) + '">'
         + '<div class="img-slot-key">' + escH(key) + '</div>'
-        + '<button class="btn-danger" style="margin-top:4px;width:100%" onclick="deleteImage(\\'' + escH(key) + '\\')">Delete</button>';
+        + '<button class="btn-danger" style="margin-top:4px;width:100%" data-action="image-delete" data-key="' + escH(key) + '">Delete</button>';
     }
   }
 }
@@ -993,12 +945,7 @@ function closeAdminLightbox() {
   if (lb) lb.classList.remove('open');
 }
 
-/* ═══════════════════════════════════════════════════════ CHARACTERS ══ */
-var _selectedCharId   = 0;
-var _selectedCharSlug = '';
-var _selectedCharName = '';
-var _selectedCostumeSlug = '';
-
+/* ══════════════════════════════════════════════════════ CHARACTERS ══ */
 function toggleAddCharForm() {
   var f = document.getElementById('add-char-form');
   if (!f) return;
@@ -1016,25 +963,22 @@ async function loadChars() {
       return;
     }
     list.innerHTML = data.chars.map(function(c) {
-      var safeN = escH(c.name).replace(/'/g, "\\'");
-      var safeS = escH(c.slug).replace(/'/g, "\\'");
-      return '<div class="admin-item" id="char-' + c.id + '" style="cursor:pointer" onclick="selectChar(' + c.id + ',\\'' + safeN + '\\',\\'' + safeS + '\\')">'
-        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.4rem">'
-        + elemBadge(c.element)
-        + '<strong>' + escH(c.name) + '</strong>'
-        + (c.status === 'upcoming' ? ' <span style="color:var(--gold);font-size:0.75rem">🔜</span>' : '')
-        + '</div>'
-        + '<button class="btn-danger" style="font-size:0.72rem;padding:3px 8px" onclick="event.stopPropagation();deleteChar(' + c.id + ')">✕</button>'
+      var col = elemColors[c.element] || '#888';
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
+        + '<span class="elem-dot" style="background:' + col + '"></span>'
+        + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
+        + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
+        + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
         + '</div>';
     }).join('');
   } catch(e) {}
 }
 
 async function addChar() {
-  var name    = ((document.getElementById('new-char-name') || {}).value || '').trim();
-  var slug    = ((document.getElementById('new-char-slug') || {}).value || '').trim();
-  var element = (document.getElementById('new-char-element') || {}).value || 'Dark';
-  var status  = (document.getElementById('new-char-status') || {}).value || 'active';
+  var name    = ((document.getElementById('new-char-name')    || {}).value || '').trim();
+  var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
+  var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
+  var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
   showAlert('char-alert', r.success, r.message);
@@ -1051,17 +995,16 @@ async function deleteChar(id) {
   else showAlert('char-alert', false, r.message);
 }
 
-async function selectChar(id, name, slug) {
+function selectChar(id, name, slug) {
   _selectedCharId   = id;
   _selectedCharSlug = slug;
   _selectedCharName = name;
 
-  // highlight selected
-  document.querySelectorAll('#char-list .admin-item').forEach(function(el) {
-    el.classList.remove('char-selected');
+  document.querySelectorAll('#char-list .char-row').forEach(function(el) {
+    el.classList.remove('selected');
   });
   var row = document.getElementById('char-' + id);
-  if (row) row.classList.add('char-selected');
+  if (row) row.classList.add('selected');
 
   var detail = document.getElementById('char-detail');
   var nameEl = document.getElementById('detail-char-name');
@@ -1092,7 +1035,6 @@ async function loadCostumes(charSlug) {
     var list = document.getElementById('costume-list');
     if (!list) return;
 
-    // also populate skills costume selector
     var skillsSel = document.getElementById('skills-costume-sel');
 
     if (!data.costumes || !data.costumes.length) {
@@ -1101,14 +1043,12 @@ async function loadCostumes(charSlug) {
       return;
     }
     list.innerHTML = data.costumes.map(function(c) {
-      var safeN = escH(c.costume_name).replace(/'/g, "\\'");
-      var safeS = escH(c.costume_slug).replace(/'/g, "\\'");
       return '<div class="admin-item" id="costume-' + c.id + '">'
-        + '<div class="admin-item-info" style="cursor:pointer" onclick="selectCostume(' + c.id + ',\\'' + safeN + '\\',\\'' + safeS + '\\')">'
+        + '<div class="admin-item-info" data-action="costume-select" data-id="' + c.id + '" data-name="' + escH(c.costume_name) + '" data-slug="' + escH(c.costume_slug) + '" style="cursor:pointer">'
         + '<strong>' + escH(c.costume_name) + '</strong>'
         + (c.bond_stats ? '<span style="font-size:0.75rem;color:var(--text3);display:block">' + escH(c.bond_stats.substring(0,60)) + '</span>' : '')
         + '</div>'
-        + '<button class="btn-danger" onclick="deleteCostume(' + c.id + ')">Delete</button>'
+        + '<button class="btn-danger" data-action="costume-delete" data-id="' + c.id + '">Delete</button>'
         + '</div>';
     }).join('');
 
@@ -1121,15 +1061,15 @@ async function loadCostumes(charSlug) {
 }
 
 async function addCostume() {
-  var name  = ((document.getElementById('cost-name') || {}).value || '').trim();
-  var slug  = ((document.getElementById('cost-slug') || {}).value || '').trim();
+  var name  = ((document.getElementById('cost-name')  || {}).value || '').trim();
+  var slug  = ((document.getElementById('cost-slug')  || {}).value || '').trim();
   var stats = ((document.getElementById('cost-stats') || {}).value || '').trim();
   if (!name || !slug) { showAlert('cost-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/costumes/add', { char_slug: _selectedCharSlug, costume_name: name, costume_slug: slug, bond_stats: stats });
   showAlert('cost-alert', r.success, r.message);
   if (r.success) {
-    document.getElementById('cost-name').value = '';
-    document.getElementById('cost-slug').value = '';
+    document.getElementById('cost-name').value  = '';
+    document.getElementById('cost-slug').value  = '';
     loadCostumes(_selectedCharSlug);
   }
 }
@@ -1167,10 +1107,10 @@ async function loadSkills(costumeSlug) {
     list.innerHTML = data.skills.map(function(s) {
       return '<div class="admin-item" id="skill-' + s.id + '">'
         + '<div class="admin-item-info">'
-        + '<strong>' + escH(s.skill_name) + '</strong> · SP ' + s.sp_cost + ' · CD ' + s.cooldown + ' · ' + escH(s.tile_type)
+        + '<strong>' + escH(s.skill_name) + '</strong> \xb7 SP ' + s.sp_cost + ' \xb7 CD ' + s.cooldown + ' \xb7 ' + escH(s.tile_type)
         + (s.description ? '<span style="font-size:0.72rem;color:var(--text3);display:block">' + escH(s.description.substring(0,80)) + '</span>' : '')
         + '</div>'
-        + '<button class="btn-danger" onclick="deleteSkill(' + s.id + ')">Delete</button>'
+        + '<button class="btn-danger" data-action="skill-delete" data-id="' + s.id + '">Delete</button>'
         + '</div>';
     }).join('');
   } catch(e) {}
@@ -1178,9 +1118,9 @@ async function loadSkills(costumeSlug) {
 
 async function addSkill() {
   var name = ((document.getElementById('skill-name') || {}).value || '').trim();
-  var tile = (document.getElementById('skill-tile') || {}).value || 'FRONT';
-  var sp   = (document.getElementById('skill-sp') || {}).value || '3';
-  var cd   = (document.getElementById('skill-cd') || {}).value || '5';
+  var tile = (document.getElementById('skill-tile')  || {}).value || 'FRONT';
+  var sp   = (document.getElementById('skill-sp')    || {}).value || '3';
+  var cd   = (document.getElementById('skill-cd')    || {}).value || '5';
   var desc = ((document.getElementById('skill-desc') || {}).value || '').trim();
   if (!name) { showAlert('skill-alert', false, 'Skill name required'); return; }
   var costSel = document.getElementById('skills-costume-sel');
@@ -1200,7 +1140,7 @@ async function deleteSkill(id) {
   else showAlert('skill-alert', false, r.message);
 }
 
-/* Character image functions */
+/* ═══════════════════════════════════════════ CHARACTER IMAGES ══ */
 function updateCharImgKey() {
   var slotSel = document.getElementById('char-img-slot');
   var slot    = slotSel ? slotSel.value : 'portrait';
@@ -1232,13 +1172,20 @@ function previewCharImage(input) {
   if (!wrap || !imgEl) return;
   imgEl.onload = function() { wrap.style.display = 'block'; };
   imgEl.src = url;
+  uploadCharImage(
+    (document.getElementById('char-img-slot') || {}).value || 'portrait',
+    file
+  );
 }
 
-async function uploadCharImage() {
-  var slotSel = document.getElementById('char-img-slot');
-  var slot    = slotSel ? slotSel.value : 'portrait';
-  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+async function uploadCharImage(slot, file) {
+  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
   if (!slug) { showAlert('char-img-alert', false, 'Select a character first'); return; }
+  if (!file) {
+    var fileEl = document.getElementById('char-img-file');
+    file = fileEl && fileEl.files[0];
+  }
+  if (!file) { showAlert('char-img-alert', false, 'Select an image file'); return; }
   var key = '';
   if (slot === 'portrait') {
     key = 'char_' + slug + '_portrait';
@@ -1249,19 +1196,35 @@ async function uploadCharImage() {
     if (!cs) { showAlert('char-img-alert', false, 'Enter costume slug'); return; }
     key = 'char_' + slug + '_' + cs + '_icon';
   }
-  var fileEl = document.getElementById('char-img-file');
-  var file   = fileEl && fileEl.files[0];
-  if (!file) { showAlert('char-img-alert', false, 'Select an image file'); return; }
   showAlert('char-img-alert', true, 'Compressing…');
   var data = await compressToDataUrl(file, 'char-compress-canvas', 340, 0.85);
   var r = await apiPost('/api/admin/image/upload', { key: key, data: data });
   showAlert('char-img-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
-    if (fileEl) fileEl.value = '';
+    var fileEl2 = document.getElementById('char-img-file');
+    if (fileEl2) fileEl2.value = '';
     var wrap = document.getElementById('char-img-preview-wrap');
     if (wrap) wrap.style.display = 'none';
     loadCharImgGrid();
   }
+}
+
+function triggerCharUpload(slot) {
+  var fileEl = document.getElementById('char-img-file');
+  if (!fileEl) return;
+  fileEl.onchange = function() {
+    if (fileEl.files && fileEl.files[0]) {
+      var wrap  = document.getElementById('char-img-preview-wrap');
+      var imgEl = document.getElementById('char-img-preview');
+      if (wrap && imgEl) {
+        var url = URL.createObjectURL(fileEl.files[0]);
+        imgEl.onload = function() { wrap.style.display = 'block'; };
+        imgEl.src = url;
+      }
+      uploadCharImage(slot, fileEl.files[0]);
+    }
+  };
+  fileEl.click();
 }
 
 async function loadCharImgGrid() {
@@ -1269,22 +1232,55 @@ async function loadCharImgGrid() {
   if (!grid || !_selectedCharSlug) return;
   var slug = _selectedCharSlug.toLowerCase().replace('scheherazade','schera');
   var slots = [
-    { key: 'char_' + slug + '_portrait', label: 'Portrait' },
-    { key: 'char_' + slug + '_gear',     label: 'Gear' },
+    { key: 'char_' + slug + '_portrait', label: 'Portrait',  slot: 'portrait' },
+    { key: 'char_' + slug + '_gear',     label: 'Gear',      slot: 'gear' },
   ];
   var cosInput = document.getElementById('char-img-costume-slug');
   var cs = cosInput ? cosInput.value.trim() : '';
-  if (cs) slots.push({ key: 'char_' + slug + '_' + cs + '_icon', label: cs + ' Icon' });
+  if (cs) slots.push({ key: 'char_' + slug + '_' + cs + '_icon', label: cs + ' Icon', slot: 'icon' });
 
   grid.innerHTML = slots.map(function(s) {
     return '<div style="text-align:center;width:100px">'
-      + '<img src="/img/' + escH(s.key) + '" style="width:100px;height:100px;object-fit:contain;background:var(--bg2);border-radius:6px;border:1px solid var(--border2)" onerror="this.style.opacity=0.2" onclick="openAdminLightbox(this.src)">'
+      + '<img src="/img/' + escH(s.key) + '" style="width:100px;height:100px;object-fit:contain;background:var(--bg2);border-radius:6px;border:1px solid var(--border2)" onerror="this.style.opacity=\'0.2\'" data-action="admin-lightbox" data-src="/img/' + escH(s.key) + '">'
       + '<div style="font-size:0.7rem;color:var(--text3);margin-top:3px">' + escH(s.label) + '</div>'
+      + '<button class="btn" style="font-size:0.68rem;padding:3px 8px;margin-top:4px" data-action="upload-trigger" data-slot="' + escH(s.slot) + '">Upload</button>'
       + '</div>';
   }).join('');
 }
 
-/* ── Init ── */
+/* ═════════════════════════════════════════ ADMIN LIGHTBOX ══ */
+/* (openAdminLightbox / closeAdminLightbox already defined above) */
+
+/* ════════════════════════════════════════════ ERROR DISPLAY ══ */
+window.onerror = function(msg, src, line) {
+  var el = document.getElementById('admin-debug');
+  if (el) el.textContent = 'JS Error line ' + line + ': ' + msg;
+};
+
+/* ══════════════════════════════════════ DELEGATED CLICK LISTENER ══ */
+document.addEventListener('click', function(e) {
+  var b = e.target.closest('[data-action]');
+  if (!b) return;
+  var action = b.dataset.action;
+  var id     = b.dataset.id;
+  var key    = b.dataset.key;
+  if (action === 'coupon-delete')   deleteCoupon(id);
+  if (action === 'comp-delete')     deleteComp(id);
+  if (action === 'emote-delete')    deleteEmote(id);
+  if (action === 'image-delete')    deleteImage(key);
+  if (action === 'char-delete')     deleteChar(id);
+  if (action === 'costume-delete')  deleteCostume(id);
+  if (action === 'skill-delete')    deleteSkill(id);
+  if (action === 'char-select')     selectChar(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
+  if (action === 'costume-select')  selectCostume(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
+  if (action === 'admin-lightbox')  openAdminLightbox(b.dataset.src);
+  if (action === 'upload-trigger')  triggerCharUpload(b.dataset.slot);
+  if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
+  if (action === 'img-cat')         setImgCat(b.dataset.cat);
+  if (action === 'tab-switch')      showTab(b.dataset.tab);
+});
+
+/* ═════════════════════════════════════════════════════ INIT ══ */
 updateImgKey();
 </script>
 `);

@@ -1,5 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
-import { T1_DATA, SCHERA_ICONS, T1_IMAGES } from '../data/t1.js';
+import { T1_DATA, SCHERA_ICONS } from '../data/t1.js';
 
 const STATIC_COMPS = [
   { id:'t2', tier:'T2', name:'Eleaneer+Roxy Dispel', type:'ATK', warning:null,
@@ -28,104 +28,129 @@ function tileCls(type) {
   return { ALL:'tile-all', FRONT:'tile-front', SKIP:'tile-skip', SELF:'tile-self' }[type] || 'tile-front';
 }
 
-function charSlug(name) {
-  return name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+function cSlug(name) {
+  return name.toLowerCase().replace(/[^a-z]/g, '');
 }
 
-function charCard(name, bond) {
-  const slug = charSlug(name);
-  const initial = esc(name.charAt(0));
-  const en = esc(name);
-  const eb = esc(bond);
-  return `
-<div class="char-card-wrap" onclick="this.querySelector('.char-card-inner').classList.toggle('flipped')">
-  <div class="char-card-inner">
-    <div class="char-face">
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:0.4rem;text-align:center">
-        <div style="font-family:'Cinzel',serif;font-size:1.4rem;color:var(--gold);font-weight:700">${initial}</div>
-        <div style="font-size:0.72rem;font-weight:700;color:var(--text);margin-top:0.2rem">${en}</div>
-        <div style="font-size:0.62rem;color:var(--gold);margin-top:0.1rem">${eb}</div>
+// Horizontal character strip with flip cards (used by T2-T6 and DB comps)
+function charStrip(chars, compId) {
+  const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+  return chars.map((c, idx) => {
+    const slug = cSlug(c.name);
+    const col  = colors[idx % colors.length];
+    const cid  = `${slug}-${compId}`;
+    const en   = esc(c.name);
+    const eb   = esc(c.bond);
+    return `<div class="char-card-wrap" style="flex:1;min-width:130px;max-width:200px;height:170px" data-action="card-flip" data-slug="${cid}">
+  <div class="char-card-inner" id="card-${cid}" style="height:170px">
+    <div class="char-face" style="border-top:3px solid ${col}">
+      <div style="height:95px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Cinzel',serif;font-size:2rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+        <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
       </div>
-      <img src="/img/char_${slug}_portrait" alt="${en}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
-      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.82));padding:0.3rem 0.4rem;pointer-events:none">
-        <div style="font-size:0.68rem;font-weight:700;color:#fff">${en}</div>
-        <div style="font-size:0.6rem;color:var(--gold)">${eb}</div>
+      <div style="padding:0.45rem 0.6rem">
+        <div style="font-weight:700;font-size:0.82rem;color:var(--text)">${en}</div>
+        <div style="font-size:0.68rem;color:var(--gold)">${eb}</div>
       </div>
-      <button class="card-zoom" onclick="event.stopPropagation();openLightbox('/img/char_${slug}_portrait')">⤢</button>
+      <button data-action="expand-img" data-src="/img/char_${slug}_portrait" style="position:absolute;top:4px;right:26px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
+      <button data-action="card-pin" data-slug="${cid}" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--text3);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5" title="Pin">📌</button>
     </div>
-    <div class="char-face char-face-back">
-      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:0.72rem">No gear image</div>
-      <img src="/img/char_${slug}_gear" alt="${en} gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
-      <button class="card-zoom" onclick="event.stopPropagation();openLightbox('/img/char_${slug}_gear')">⤢</button>
+    <div class="char-face char-face-back" style="border-top:3px solid ${col}">
+      <div style="height:130px;position:relative;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
+        <img src="/img/char_${slug}_gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
+      </div>
+      <div style="padding:0.3rem 0.6rem;font-size:0.68rem;color:var(--text3)">Gear — ${en}</div>
+      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
     </div>
   </div>
 </div>`;
+  }).join('');
 }
 
+// Board + video layout for the middle column of the 3-col grid
 function boardMediaBox(tier, type, mediaMap) {
   const imageKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const videoUrl = (mediaMap[tier] || {}).video || '';
-  const isAtk = type !== 'DEF';
-  const arrow = isAtk ? '⟶' : '⟵';
+  const isAtk    = type !== 'DEF';
+  const arrow     = isAtk ? '⟶' : '⟵';
 
-  const boxBase = 'flex:1;height:220px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
+  const boxStyle = 'flex:1;min-height:140px;border:1px solid rgba(201,168,76,0.3);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
 
-  const imgBox = `<div style="${boxBase}">
-    <span style="color:var(--text3);font-size:0.83rem">Coming soon</span>
+  const imgBox = `<div style="${boxStyle}">
+    <span style="color:var(--text3);font-size:0.75rem">Coming soon</span>
     <img src="/img/${esc(imageKey)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain" onerror="this.style.display='none'">
   </div>`;
 
-  const vidBox = `<div style="${boxBase}">
+  const vidBox = `<div style="${boxStyle}">
     ${videoUrl
       ? `<video src="${esc(videoUrl)}" controls style="width:100%;height:100%;object-fit:contain"></video>`
-      : '<span style="color:var(--text3);font-size:0.83rem">N/A</span>'}
+      : '<span style="color:var(--text3);font-size:0.75rem">N/A</span>'}
   </div>`;
 
-  const arrowEl = `<div style="font-size:2rem;color:var(--gold);flex-shrink:0">${arrow}</div>`;
+  const arrowEl = `<div style="color:var(--gold);font-size:1.4rem;flex-shrink:0;padding:0 0.4rem">${arrow}</div>`;
 
-  return `<div style="display:flex;align-items:center;gap:1rem;margin-top:1rem;flex-wrap:wrap">
-  ${isAtk ? imgBox + arrowEl + vidBox : vidBox + arrowEl + imgBox}
-</div>`;
+  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.6rem">
+  <div style="display:flex;align-items:center;gap:0">
+    ${isAtk ? imgBox + arrowEl + vidBox : vidBox + arrowEl + imgBox}
+  </div></div>`;
 }
 
 function t1Section(board, mediaMap) {
-  const chars = ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-  const bonds = T1_DATA.bonds;
-  const rot   = T1_DATA.rotation;
-  const order = T1_DATA.unitOrder;
+  const chars  = ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
+  const bonds  = T1_DATA.bonds;
+  const rot    = T1_DATA.rotation;
+  const order  = T1_DATA.unitOrder;
   const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
 
+  // T1 character strip (with tooltips — kept from original)
   const charCards = chars.map((name, idx) => {
-    const b = bonds[name];
-    const slug = charSlug(name);
-    const col = colors[idx];
+    const b    = bonds[name];
+    const slug = cSlug(name);
+    const col  = colors[idx];
+    const cid  = `${slug}-t1`;
     return `
-<div class="t1-char tt-parent" style="flex:1;min-width:150px;max-width:220px">
-  <div style="width:100%;height:70px;border-radius:6px;background:var(--bg4);border:1px solid var(--border2);margin-bottom:0.6rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
-    <span style="font-family:'Cinzel',serif;font-size:2rem;color:${col};font-weight:700">${esc(name.charAt(0))}</span>
-    <img src="/img/char_${slug}_gear" alt="${esc(name)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
-  </div>
-  <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.9rem;color:var(--text)">${esc(name)}</div>
-  <div style="font-size:0.75rem;color:var(--gold);margin-bottom:0.25rem">${esc(b.costume)}</div>
-  <div style="font-size:0.7rem;color:var(--text3)">${b.stats.join(' · ')}</div>
-  <div class="tt-popup">
-    <div class="tt-name">${esc(name)} — ${esc(b.costume)}</div>
-    <div class="tt-stats">${b.stats.map(s=>`<span class="tt-stat">${esc(s)}</span>`).join('')}</div>
-    <div class="tt-desc">${esc(b.notes)}</div>
+<div class="char-card-wrap" style="flex:1;min-width:140px;max-width:200px;height:170px" data-action="card-flip" data-slug="${cid}">
+  <div class="char-card-inner tt-parent" id="card-${cid}" style="height:170px">
+    <div class="char-face" style="border-top:3px solid ${col}">
+      <div style="height:75px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Cinzel',serif;font-size:2rem;color:${col};font-weight:700">${esc(name.charAt(0))}</span>
+        <img src="/img/char_${slug}_gear" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+      </div>
+      <div style="padding:0.4rem 0.6rem">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.82rem;color:var(--text)">${esc(name)}</div>
+        <div style="font-size:0.68rem;color:var(--gold)">${esc(b.costume)}</div>
+        <div style="font-size:0.62rem;color:var(--text3);margin-top:1px">${b.stats.slice(0,2).join(' · ')}</div>
+      </div>
+      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
+      <div class="tt-popup">
+        <div class="tt-name">${esc(name)} — ${esc(b.costume)}</div>
+        <div class="tt-stats">${b.stats.map(s=>`<span class="tt-stat">${esc(s)}</span>`).join('')}</div>
+        <div class="tt-desc">${esc(b.notes)}</div>
+      </div>
+    </div>
+    <div class="char-face char-face-back" style="border-top:3px solid ${col}">
+      <div style="height:130px;position:relative;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="color:var(--text3);font-size:0.75rem">No portrait</span>
+        <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)" onerror="this.style.display='none'">
+      </div>
+      <div style="padding:0.3rem 0.6rem;font-size:0.68rem;color:var(--text3)">Portrait — ${esc(name)}</div>
+      <button data-action="expand-img" data-src="/img/char_${slug}_portrait" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
+    </div>
   </div>
 </div>`;
   }).join('');
 
+  // Skill rotation rows (T1 only)
   const rotRows = chars.map(name => {
     const skills = rot[name];
-    const icons = skills.map((sk, i) => {
-      const tileCl = tileCls(sk.tile);
+    const icons  = skills.map((sk, i) => {
       const iconContent = sk.icon
-        ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(sk.costume.substring(0,3).toUpperCase())}" style="width:38px;height:38px;object-fit:cover;border-radius:50%;border:2px solid var(--border2)" onerror="this.outerHTML='<span class=\\'skill-abbr\\'>${esc(sk.costume.substring(0,3).toUpperCase())}</span>'">`
+        ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(sk.costume.substring(0,3).toUpperCase())}" style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid var(--border2)" onerror="this.outerHTML='<span class=\\'skill-abbr\\'>${esc(sk.costume.substring(0,3).toUpperCase())}</span>'">`
         : `<div class="skill-abbr">${esc(sk.costume.substring(0,3).toUpperCase())}</div>`;
       return `
 <div class="skill-wrap">
-  <div class="skill-icon-box">
+  <div class="skill-icon-box" style="width:44px">
     <div class="skill-num">${i+1}</div>
     ${iconContent}
   </div>
@@ -140,17 +165,13 @@ function t1Section(board, mediaMap) {
   </div>
 </div>`;
     }).join('');
-    return `
-<div class="rot-row">
-  <div class="rot-char">${esc(name)}</div>
-  <div class="rot-skills">${icons}</div>
-</div>`;
+    return `<div class="rot-row"><div class="rot-char" style="width:80px;font-size:0.78rem">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
   }).join('');
 
   const orderPills = order.map(u =>
-    `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.2rem 0.5rem;background:var(--bg4);border-radius:4px">
-  <div style="width:16px;height:16px;border-radius:50%;background:var(--gold3);color:var(--bg);font-weight:700;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${u.pos}</div>
-  <div style="font-weight:700;font-size:0.75rem;color:var(--text)">${esc(u.name)}</div>
+    `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
+  <div style="width:15px;height:15px;border-radius:50%;background:var(--gold3);color:var(--bg);font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${u.pos}</div>
+  <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(u.name)}</div>
 </div>`
   ).join('');
 
@@ -163,50 +184,47 @@ function t1Section(board, mediaMap) {
         <h2 style="font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700">Sylvia Double Taunt</h2>
         <span class="atk">⚔ Attack Composition</span>
       </div>
-      <div class="comp-meta">
-        <div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">
-          ⚠ Do Not Use unless going for Rank 1 — last hour only
-        </div>
+      <div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">
+        ⚠ Do Not Use unless going for Rank 1 — last hour only
       </div>
     </div>
   </div>
 
+  <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
     ${charCards}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;align-items:start">
+  <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:1rem;align-items:start">
     <div class="card">
-      <div class="card-title">Build Notes</div>
-      <ul class="notes-list" style="max-height:200px;overflow-y:auto">
-        <li>Rou ≥21,000 HP · 50% Crit Rate · 1 HP/Res piece</li>
-        <li>Lecliss ≥33,000 HP · 90% Defence</li>
-        <li>Seir ≥29,000 HP · 105% Magic Resist</li>
-        <li>Sylvia 50% Crit Rate · max ATK% substats</li>
-        <li>Scheherazade 50% Crit Rate · MATK + CDMG build</li>
-      </ul>
+      <div class="card-title">Skill Rotation</div>
+      <div class="rot-table">${rotRows}</div>
     </div>
     <div class="card">
-      <div class="card-title">Unit Order</div>
-      <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${orderPills}</div>
+      <div class="card-title">Board Positioning</div>
+      ${boardMediaBox('T1', 'ATK', mediaMap)}
     </div>
-    <div class="card">
-      <div class="card-title">Matchups</div>
-      <div style="margin-top:0.25rem">
-        <div style="margin-bottom:0.3rem"><span style="font-size:0.75rem;color:var(--text3)">Counters: </span><span style="color:var(--text3);font-size:0.82rem">N/A</span></div>
-        <div><span style="font-size:0.75rem;color:var(--text3)">Countered By: </span><span style="color:var(--text3);font-size:0.82rem">N/A</span></div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Build Notes</div>
+        <ul class="notes-list" style="max-height:160px;overflow-y:auto">
+          <li>Rou ≥21,000 HP · 50% Crit Rate · 1 HP/Res piece</li>
+          <li>Lecliss ≥33,000 HP · 90% Defence</li>
+          <li>Seir ≥29,000 HP · 105% Magic Resist</li>
+          <li>Sylvia 50% Crit Rate · max ATK% substats</li>
+          <li>Scheherazade 50% Crit Rate · MATK + CDMG build</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Unit Order</div>
+        <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${orderPills}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Matchups</div>
+        <div style="font-size:0.78rem;color:var(--text3)">Counters: N/A</div>
+        <div style="font-size:0.78rem;color:var(--text3);margin-top:0.3rem">Countered By: N/A</div>
       </div>
     </div>
-  </div>
-
-  <div class="card" style="margin-bottom:1.5rem">
-    <div class="card-title">Skill Rotation — hover each skill for details</div>
-    <div class="rot-table">${rotRows}</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Board Positioning</div>
-    ${boardMediaBox('T1', 'ATK', mediaMap)}
   </div>
 </div>`;
 }
@@ -215,12 +233,14 @@ function compSection(comp, mediaMap) {
   const tc = { T1:'t1',T2:'t2',T3:'t3',T4:'t4',T5:'t5',T6:'t6' };
   const bc = tc[comp.tier] || 't2';
   const typeLabel = comp.type === 'ATK' ? '⚔ Attack Composition' : '🛡 Defence Composition';
-  const chars = comp.chars.map(c => charCard(c.name, c.bond)).join('');
+
+  const strip = charStrip(comp.chars, comp.id);
+
   const notes = comp.notes.map(n => `<li>${esc(n)}</li>`).join('');
   const countersHtml = comp.counters.length
-    ? `<div style="margin-bottom:0.5rem"><span style="font-size:0.78rem;color:var(--text3);margin-right:0.5rem">Counters</span>${comp.counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('')}</div>` : '';
+    ? `<div style="margin-bottom:0.4rem"><span style="font-size:0.75rem;color:var(--text3)">Counters </span>${comp.counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('')}</div>` : '';
   const beatenHtml = comp.countered_by.length
-    ? `<div><span style="font-size:0.78rem;color:var(--text3);margin-right:0.5rem">Countered By</span>${comp.countered_by.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('')}</div>` : '';
+    ? `<div><span style="font-size:0.75rem;color:var(--text3)">Countered By </span>${comp.countered_by.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('')}</div>` : '';
 
   return `
 <div class="comp-section" id="${comp.id}">
@@ -234,15 +254,23 @@ function compSection(comp, mediaMap) {
       ${comp.warning ? `<div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">⚠ ${esc(comp.warning)}</div>` : ''}
     </div>
   </div>
-  <div class="comp-grid">
+
+  <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
+  <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${strip}</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:1rem;align-items:start">
     <div class="card">
-      <div class="card-title">Character Bonds</div>
-      <div class="char-list">${chars}</div>
+      <div class="card-title">Skill Rotation</div>
+      <div style="color:var(--text3);font-size:0.82rem;text-align:center;padding:1rem 0">Skill data coming soon</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Board Positioning</div>
+      ${boardMediaBox(comp.tier, comp.type, mediaMap)}
     </div>
     <div>
       <div class="card" style="margin-bottom:1rem">
         <div class="card-title">Build Notes</div>
-        <ul class="notes-list">${notes}</ul>
+        <ul class="notes-list" style="max-height:160px;overflow-y:auto">${notes}</ul>
       </div>
       <div class="card">
         <div class="card-title">Matchups</div>
@@ -250,10 +278,6 @@ function compSection(comp, mediaMap) {
         ${!comp.counters.length && !comp.countered_by.length ? '<span style="color:var(--text3);font-size:0.82rem">Data pending</span>' : ''}
       </div>
     </div>
-  </div>
-  <div class="card" style="margin-top:1rem">
-    <div class="card-title">Board Positioning</div>
-    ${boardMediaBox(comp.tier, comp.type, mediaMap)}
   </div>
 </div>`;
 }
@@ -280,14 +304,14 @@ export async function handleGuide(request, env) {
   } catch { /* ignore */ }
 
   const sidebarLinks = [
-    ['#t1','T1','Sylvia Double Taunt','t1','ATK'],
-    ['#t2','T2','Eleaneer+Roxy Dispel','t2','ATK'],
-    ['#t3','T3','Justia Double Taunt','t3','ATK'],
-    ['#t4','T4','Blade Counter','t4','DEF'],
-    ['#t5','T5','Alec+Elise','t5','DEF'],
-    ['#t6','T6','Alec+Justia Anti Taunt','t6','DEF'],
-    ...dbComps.map(c => [`#${slugify(c.name)}`, c.tier, c.name, (c.tier||'t1').toLowerCase(), c.type||'ATK']),
-  ].map(([href,tier,name,cls,type]) => `
+    ['#t1','T1','Sylvia Double Taunt','t1'],
+    ['#t2','T2','Eleaneer+Roxy Dispel','t2'],
+    ['#t3','T3','Justia Double Taunt','t3'],
+    ['#t4','T4','Blade Counter','t4'],
+    ['#t5','T5','Alec+Elise','t5'],
+    ['#t6','T6','Alec+Justia Anti Taunt','t6'],
+    ...dbComps.map(c => [`#${slugify(c.name)}`, c.tier, c.name, (c.tier||'t1').toLowerCase()]),
+  ].map(([href,tier,name,cls]) => `
 <a href="${href}" class="sidebar-link">
   <span class="sidebar-badge ${cls}">${esc(tier)}</span>
   <span class="sidebar-name">${esc(name)}</span>
@@ -298,8 +322,8 @@ export async function handleGuide(request, env) {
     compsHtml += compSection(comp, mediaMap);
   }
   for (const comp of dbComps) {
-    const tc = {T1:'t1',T2:'t2',T3:'t3',T4:'t4',T5:'t5',T6:'t6'};
-    const bc = tc[comp.tier] || 't2';
+    const tc  = {T1:'t1',T2:'t2',T3:'t3',T4:'t4',T5:'t5',T6:'t6'};
+    const bc  = tc[comp.tier] || 't2';
     const isAtk = comp.type === 'ATK';
     compsHtml += `
 <div class="comp-section" id="${slugify(comp.name)}">
@@ -312,20 +336,16 @@ export async function handleGuide(request, env) {
     ${comp.countered_by ? `<div style="margin-top:0.5rem"><span class="counter-tag">Countered By: ${esc(comp.countered_by)}</span></div>` : ''}
   </div>
   <div class="card" style="margin-bottom:1rem">
-    <div class="tt-desc">${esc(comp.description||'')}</div>
-  </div>
-  <div class="card">
     <div class="card-title">Board Positioning</div>
     ${boardMediaBox(comp.tier, comp.type, mediaMap)}
+  </div>
+  <div class="card">
+    <div class="tt-desc">${esc(comp.description||'')}</div>
   </div>
 </div>`;
   }
 
   return layout('PvP Guide', `
-<div id="guide-lightbox" onclick="closeLightbox()">
-  <img id="guide-lightbox-img" src="" alt="">
-</div>
-
 <div style="display:flex;padding-top:1rem">
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
@@ -342,20 +362,46 @@ export async function handleGuide(request, env) {
 </div>
 
 <script>
-function openLightbox(src) {
-  var lb = document.getElementById('guide-lightbox');
-  var img = document.getElementById('guide-lightbox-img');
-  if (!lb || !img) return;
-  img.src = src;
-  lb.classList.add('open');
-}
-function closeLightbox() {
-  var lb = document.getElementById('guide-lightbox');
-  if (lb) lb.classList.remove('open');
-}
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeLightbox();
+document.addEventListener('click', function(e) {
+  var b = e.target.closest('[data-action]');
+  if (!b) return;
+  var action = b.dataset.action;
+  if (action === 'expand-img') openLightbox(b.dataset.src);
+  if (action === 'card-flip')  toggleFlip(b.dataset.slug);
+  if (action === 'card-pin')   togglePin(b.dataset.slug, e);
 });
+
+function toggleFlip(cardId) {
+  var inner = document.getElementById('card-' + cardId);
+  if (!inner || inner.dataset.pinned === 'true') return;
+  inner.classList.toggle('flipped');
+}
+
+function togglePin(cardId, e) {
+  e.stopPropagation();
+  var inner = document.getElementById('card-' + cardId);
+  if (!inner) return;
+  var btn = e.target.closest('button');
+  var pinned = inner.dataset.pinned === 'true';
+  inner.dataset.pinned = pinned ? 'false' : 'true';
+  if (btn) btn.style.color = pinned ? 'var(--text3)' : 'var(--gold)';
+  if (!pinned) inner.classList.add('flipped');
+}
+
+function openLightbox(src) {
+  if (!src || src.indexOf('undefined') !== -1) return;
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  var img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;border:2px solid #c9a84c';
+  ov.appendChild(img);
+  ov.onclick = function() { if (document.body.contains(ov)) document.body.removeChild(ov); };
+  document.addEventListener('keydown', function escFn(ev) {
+    if (ev.key === 'Escape' && document.body.contains(ov)) { document.body.removeChild(ov); document.removeEventListener('keydown', escFn); }
+  }, { once: true });
+  document.body.appendChild(ov);
+}
 </script>
 `, 'guide');
 }
