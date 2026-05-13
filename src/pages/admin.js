@@ -55,7 +55,7 @@ export async function handleAdmin(request, env) {
 
   const imgGridHtml = images.length ? images.map(img =>
     '<div class="img-slot" id="imgslot-' + esc(img.key) + '">'
-    + '<img src="/img/' + esc(img.key) + '" alt="' + esc(img.key) + '" style="object-fit:contain;background:var(--bg2)" data-action="admin-lightbox" data-src="/img/' + esc(img.key) + '" onerror="this.style.display=\'none\'">'
+    + '<img src="/img/' + esc(img.key) + '" alt="' + esc(img.key) + '" style="object-fit:contain;background:var(--bg2)" class="img-err-hide" data-action="admin-lightbox" data-src="/img/' + esc(img.key) + '">'
     + '<div class="img-slot-key">' + esc(img.key) + '</div>'
     + '<button class="btn-danger" style="margin-top:4px;width:100%" data-action="image-delete" data-key="' + esc(img.key) + '">Delete</button>'
     + '</div>'
@@ -261,7 +261,7 @@ export async function handleAdmin(request, env) {
       ${emotes.map(e =>
         '<div class="admin-item" id="emote-' + e.id + '">'
         + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-        + '<img src="' + esc(e.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
+        + '<img src="' + esc(e.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" class="img-err-hide">'
         + '<strong>' + esc(e.name) + '</strong>'
         + '</div>'
         + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '">Delete</button>'
@@ -527,6 +527,9 @@ export async function handleAdmin(request, env) {
 #admin-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.87); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
 #admin-lightbox.open { display:flex; }
 #admin-lightbox img { max-width:90vw; max-height:90vh; object-fit:contain; border-radius:8px; }
+.img-err-hide { }
+.img-err-hide.errored { display:none; }
+.img-err-dim.errored { opacity:0.2; }
 </style>
 
 <script>
@@ -711,7 +714,7 @@ async function loadCompMedia(tier) {
     var preview = document.getElementById('comp-board-preview');
     var boardKey = data.board_key || _compBoardKey;
     if (preview && boardKey) {
-      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem" onerror="this.style.display=\'none\'">';
+      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
   } catch(e) {}
 }
@@ -815,7 +818,7 @@ async function addEmote() {
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
     div.innerHTML = '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" onerror="this.style.display=\'none\'">'
+      + '<img src="' + escH(image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" class="img-err-hide">'
       + '<strong>' + escH(name) + '</strong></div>'
       + '<button class="btn-danger" data-action="emote-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('emote-list');
@@ -1241,7 +1244,7 @@ async function loadCharImgGrid() {
 
   grid.innerHTML = slots.map(function(s) {
     return '<div style="text-align:center;width:100px">'
-      + '<img src="/img/' + escH(s.key) + '" style="width:100px;height:100px;object-fit:contain;background:var(--bg2);border-radius:6px;border:1px solid var(--border2)" onerror="this.style.opacity=\'0.2\'" data-action="admin-lightbox" data-src="/img/' + escH(s.key) + '">'
+      + '<img src="/img/' + escH(s.key) + '" class="img-err-dim" style="width:100px;height:100px;object-fit:contain;background:var(--bg2);border-radius:6px;border:1px solid var(--border2)" data-action="admin-lightbox" data-src="/img/' + escH(s.key) + '">'
       + '<div style="font-size:0.7rem;color:var(--text3);margin-top:3px">' + escH(s.label) + '</div>'
       + '<button class="btn" style="font-size:0.68rem;padding:3px 8px;margin-top:4px" data-action="upload-trigger" data-slot="' + escH(s.slot) + '">Upload</button>'
       + '</div>';
@@ -1281,6 +1284,12 @@ document.addEventListener('click', function(e) {
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
+document.addEventListener('error', function(e) {
+  var t = e.target;
+  if (t.tagName !== 'IMG') return;
+  if (t.classList.contains('img-err-hide')) t.classList.add('errored');
+  if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
+}, true);
 updateImgKey();
 </script>
 `);
