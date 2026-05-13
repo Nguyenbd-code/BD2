@@ -44,15 +44,14 @@ function charStrip(chars, compId) {
     return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
   <div class="char-card-inner" id="card-${cid}">
     <div class="char-face">
-      <div style="height:140px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
         <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.5rem 0.6rem;text-align:center">
-        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text)">${en}</div>
-        <div style="font-size:0.68rem;color:var(--gold);margin-top:2px">${eb}</div>
+      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${en}</div>
+        <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${eb}</div>
       </div>
-      <button data-action="card-pin" data-slug="${cid}" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--text3);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5" title="Pin">📌</button>
     </div>
     <div class="char-face char-face-back">
       <div style="position:absolute;inset:0;background:var(--bg2);display:flex;align-items:center;justify-content:center">
@@ -73,31 +72,29 @@ function boardMediaBox(tier, type, mediaMap) {
   const isAtk    = type !== 'DEF';
   const arrow     = isAtk ? '⟶' : '⟵';
 
-  const boxStyle = 'flex:1;min-height:220px;border:1px solid rgba(201,168,76,0.3);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
+  const boxStyle = 'flex:1;min-height:180px;max-height:220px;border:1px solid rgba(201,168,76,0.25);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
 
   const imgBox = `<div style="${boxStyle}">
-    <span style="color:var(--text3);font-size:0.75rem">Coming soon</span>
-    <img src="/img/${esc(imageKey)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain" onerror="this.style.display='none'">
+    <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
+    <img src="/img/${esc(imageKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
   </div>`;
 
-  const vidBox = `<div style="${boxStyle}">
-    ${videoUrl
-      ? `<video src="${esc(videoUrl)}" controls style="width:100%;height:100%;object-fit:contain"></video>`
-      : '<span style="color:var(--text3);font-size:0.75rem">N/A</span>'}
-  </div>`;
+  const vidBox = videoUrl
+    ? `<div style="${boxStyle}"><video src="${esc(videoUrl)}" controls style="width:100%;height:100%;object-fit:contain"></video></div>`
+    : `<div style="${boxStyle}"><div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);font-size:0.85rem;font-weight:700">Video</div><div style="font-size:0.75rem;color:var(--text3);margin-top:0.2rem">Coming soon</div></div></div>`;
 
   const arrowEl = `<div style="color:var(--gold);font-size:1.4rem;flex-shrink:0;padding:0 0.4rem">${arrow}</div>`;
 
-  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.6rem;min-height:260px;display:flex;flex-direction:column;justify-content:center">
-  <div style="display:flex;align-items:stretch;gap:0;flex:1">
+  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.5rem">
+  <div style="display:flex;align-items:stretch;gap:0">
     ${isAtk ? imgBox + arrowEl + vidBox : vidBox + arrowEl + imgBox}
   </div></div>`;
 }
 
-function t1Section(board, mediaMap) {
+function t1Section(board, mediaMap, dbRotation = null) {
   const chars  = ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
   const bonds  = T1_DATA.bonds;
-  const rot    = T1_DATA.rotation;
+  const rot    = dbRotation || T1_DATA.rotation;
   const order  = T1_DATA.unitOrder;
   const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
 
@@ -111,13 +108,13 @@ function t1Section(board, mediaMap) {
 <div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
   <div class="char-card-inner tt-parent" id="card-${cid}">
     <div class="char-face">
-      <div style="height:140px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
         <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
       </div>
-      <div style="padding:0.5rem 0.6rem;text-align:center">
-        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text)">${esc(name)}</div>
-        <div style="font-size:0.68rem;color:var(--gold);margin-top:2px">${esc(b.costume)}</div>
+      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(name)}</div>
+        <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${esc(b.costume)}</div>
       </div>
       <div class="tt-popup">
         <div class="tt-name">${esc(name)} — ${esc(b.costume)}</div>
@@ -145,7 +142,7 @@ function t1Section(board, mediaMap) {
         : `<div class="skill-abbr">${esc(sk.costume.substring(0,3).toUpperCase())}</div>`;
       return `
 <div class="skill-wrap">
-  <div class="skill-icon-box" style="width:44px">
+  <div class="skill-icon-box" style="width:38px;flex-shrink:0">
     <div class="skill-num">${i+1}</div>
     ${iconContent}
   </div>
@@ -283,18 +280,27 @@ const DEFAULT_BOARD = {
 };
 
 export async function handleGuide(request, env) {
-  let dbComps = [], board = DEFAULT_BOARD, mediaMap = {};
+  let dbComps = [], board = DEFAULT_BOARD, mediaMap = {}, t1DbRotation = null;
   try {
-    const [compRes, boardRow, mediaRes] = await Promise.all([
+    const [compRes, boardRow, mediaRes, t1RotRes] = await Promise.all([
       env.DB.prepare('SELECT tier, name, type, description, countered_by FROM compositions ORDER BY tier, id').all(),
       env.DB.prepare("SELECT data FROM images WHERE key='board_layout'").first(),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({ results: [] })),
+      env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind('T1').all().catch(() => ({ results: [] })),
     ]);
     dbComps = compRes.results || [];
     if (boardRow) board = { ...DEFAULT_BOARD, ...JSON.parse(boardRow.data) };
     for (const m of (mediaRes.results || [])) {
       if (!mediaMap[m.tier]) mediaMap[m.tier] = {};
       mediaMap[m.tier][m.media_type] = m.value;
+    }
+    const t1RotRows = t1RotRes.results || [];
+    if (t1RotRows.length) {
+      t1DbRotation = {};
+      for (const r of t1RotRows) {
+        if (!t1DbRotation[r.char_name]) t1DbRotation[r.char_name] = [];
+        t1DbRotation[r.char_name].push({ name: r.skill_name, costume: r.costume||'', sp: 'SP '+r.sp_cost, cd: 'CD '+r.cooldown, tile: r.tile_type||'FRONT', desc: r.description||'' });
+      }
     }
   } catch { /* ignore */ }
 
@@ -312,7 +318,7 @@ export async function handleGuide(request, env) {
   <span class="sidebar-name">${esc(name)}</span>
 </a>`).join('');
 
-  let compsHtml = t1Section(board, mediaMap);
+  let compsHtml = t1Section(board, mediaMap, t1DbRotation);
   for (const comp of STATIC_COMPS) {
     compsHtml += compSection(comp, mediaMap);
   }
@@ -363,25 +369,19 @@ document.addEventListener('click', function(e) {
   var action = b.dataset.action;
   if (action === 'expand-img') openLightbox(b.dataset.src);
   if (action === 'card-flip')  toggleFlip(b.dataset.slug);
-  if (action === 'card-pin')   togglePin(b.dataset.slug, e);
 });
 
 function toggleFlip(cardId) {
   var inner = document.getElementById('card-' + cardId);
-  if (!inner || inner.dataset.pinned === 'true') return;
+  if (!inner) return;
   inner.classList.toggle('flipped');
 }
 
-function togglePin(cardId, e) {
-  e.stopPropagation();
-  var inner = document.getElementById('card-' + cardId);
-  if (!inner) return;
-  var btn = e.target.closest('button');
-  var pinned = inner.dataset.pinned === 'true';
-  inner.dataset.pinned = pinned ? 'false' : 'true';
-  if (btn) btn.style.color = pinned ? 'var(--text3)' : 'var(--gold)';
-  if (!pinned) inner.classList.add('flipped');
-}
+document.addEventListener('error', function(e) {
+  if (e.target.classList && e.target.classList.contains('img-err-hide')) {
+    e.target.classList.add('errored');
+  }
+}, true);
 
 function openLightbox(src) {
   if (!src || src.indexOf('undefined') !== -1) return;

@@ -85,7 +85,14 @@ export async function handleAdminApi(request, env) {
     if (path === '/api/admin/t1/notes/get' && method === 'GET') {
       const char = url.searchParams.get('char') || '';
       const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('notes_' + char).first();
-      return json({ notes: row ? row.data : null });
+      const defaults = {
+        Rou: 'Needs ≥21,000 HP · 50% Critical Rate · 1 HP/Res piece to survive empowered basic',
+        Seir: 'Needs ≥29,000 HP · 105% Magic Resist',
+        Lecliss: 'Needs ≥33,000 HP · 90% Defence',
+        Scheherazade: '50% Critical Rate · MATK + CDMG build',
+        Sylvia: '50% Critical Rate · max ATK% substats',
+      };
+      return json({ notes: row ? row.data : (defaults[char] || null) });
     }
 
     // ── T1 Unit Order ─────────────────────────────────────────
@@ -193,6 +200,30 @@ export async function handleAdminApi(request, env) {
       const media = {};
       for (const row of (r.results || [])) media[row.media_type] = row.value;
       return json({ media });
+    }
+
+    // ── Comp Rotations ────────────────────────────────────────
+    if (path === '/api/admin/comp/rotation/save' && method === 'POST') {
+      if (!body.tier || !body.char_name || body.slot === undefined)
+        return json({ success:false, message:'tier, char_name, slot required' }, 400);
+      await env.DB.prepare(
+        'INSERT INTO comp_rotations (tier,char_name,slot,skill_name,costume,sp_cost,cooldown,tile_type,description) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(tier,char_name,slot) DO UPDATE SET skill_name=excluded.skill_name,costume=excluded.costume,sp_cost=excluded.sp_cost,cooldown=excluded.cooldown,tile_type=excluded.tile_type,description=excluded.description'
+      ).bind(body.tier, body.char_name, body.slot, body.skill_name||'', body.costume||'', body.sp_cost||1, body.cooldown||5, body.tile_type||'FRONT', body.description||'').run().catch(async () => {
+        await env.DB.prepare('DELETE FROM comp_rotations WHERE tier=? AND char_name=? AND slot=?').bind(body.tier, body.char_name, body.slot).run();
+        await env.DB.prepare('INSERT INTO comp_rotations (tier,char_name,slot,skill_name,costume,sp_cost,cooldown,tile_type,description) VALUES (?,?,?,?,?,?,?,?,?)').bind(body.tier, body.char_name, body.slot, body.skill_name||'', body.costume||'', body.sp_cost||1, body.cooldown||5, body.tile_type||'FRONT', body.description||'').run();
+      });
+      return json({ success:true, message:'Rotation saved.' });
+    }
+    if (path === '/api/admin/comp/rotation/delete' && method === 'POST') {
+      if (!body.tier || !body.char_name || body.slot === undefined)
+        return json({ success:false, message:'tier, char_name, slot required' }, 400);
+      await env.DB.prepare('DELETE FROM comp_rotations WHERE tier=? AND char_name=? AND slot=?').bind(body.tier, body.char_name, body.slot).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+    if (path === '/api/admin/comp/rotation/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const r = await env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind(tier).all().catch(() => ({ results: [] }));
+      return json({ rotation: r.results || [] });
     }
 
   } catch(e) {

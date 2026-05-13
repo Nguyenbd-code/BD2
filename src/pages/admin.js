@@ -77,15 +77,25 @@ export async function handleAdmin(request, env) {
   }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No custom compositions yet.</p>';
 
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
-  const charsListHtml = chars.map(c => {
-    const elemColor = elemColorsServer[c.element] || '#888';
-    return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '">'
-      + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
-      + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
-      + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
-      + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
-      + '</div>';
-  }).join('') || '<p style="color:var(--text3);font-size:0.83rem;padding:0.5rem 0">No characters yet.</p>';
+  const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
+  const groupedChars     = {};
+  for (const c of chars) { const el = c.element||'Dark'; if (!groupedChars[el]) groupedChars[el]=[]; groupedChars[el].push(c); }
+  let charsListHtml = '';
+  for (const el of elemOrderServer) {
+    const grp = groupedChars[el];
+    if (!grp || !grp.length) continue;
+    charsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
+    charsListHtml += grp.map(c => {
+      const elemColor = elemColorsServer[c.element] || '#888';
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '">'
+        + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
+        + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
+        + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
+        + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
+        + '</div>';
+    }).join('');
+  }
+  if (!charsListHtml) charsListHtml = '<p style="color:var(--text3);font-size:0.83rem;padding:0.5rem 0">No characters yet.</p>';
 
   const charSelectOptions = chars.map(c =>
     '<option value="' + esc(c.slug) + '">' + esc(c.name) + '</option>'
@@ -177,6 +187,27 @@ export async function handleAdmin(request, env) {
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
           </div>
           <div id="comp-video-alert"></div>
+        </div>
+
+        <!-- Skill Rotation (all tiers) -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Character Name</label><input id="rot-char-name" placeholder="Rou"></div>
+            <div class="form-group"><label>Slot #</label><input type="number" id="rot-slot" value="1" min="1" max="10" style="width:70px"></div>
+          </div>
+          <div class="form-group"><label>Skill Name</label><input id="rot-skill-name" placeholder="Half Moon Kick"></div>
+          <div class="form-row">
+            <div class="form-group"><label>SP Cost</label><input type="number" id="rot-sp" value="3" min="1" max="10"></div>
+            <div class="form-group"><label>Cooldown</label><input type="number" id="rot-cd" value="5" min="1" max="10"></div>
+            <div class="form-group"><label>Tile Type</label>
+              <select id="rot-tile"><option>FRONT</option><option>SELF</option><option>ALL</option><option>SKIP</option></select>
+            </div>
+          </div>
+          <div class="form-group"><label>Description</label><textarea id="rot-desc" rows="2" placeholder="Skill effect..."></textarea></div>
+          <div id="rot-alert"></div>
+          <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompRotationSlot()">Save Slot</button>
+          <div id="rot-list" style="margin-top:0.75rem"></div>
         </div>
 
         <!-- T1 extras: notes + unit order -->
@@ -667,6 +698,7 @@ function selectComp() {
     if (t1extras) t1extras.style.display = val === 'T1' ? 'block' : 'none';
     if (val === 'T1') { loadCompNotes(); loadCompOrder(); }
     loadCompMedia(val);
+    loadCompRotation();
   } else if (isDbComp) {
     var dbId = val.replace('db-', '');
     var tierFromAttr = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].dataset.tier || '' : '';
@@ -676,6 +708,7 @@ function selectComp() {
     if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
     if (t1extras) t1extras.style.display = 'none';
     loadCompMedia('db-' + dbId);
+    loadCompRotation();
   }
 }
 
@@ -965,15 +998,25 @@ async function loadChars() {
       list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No characters yet.</p>';
       return;
     }
-    list.innerHTML = data.chars.map(function(c) {
-      var col = elemColors[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
-        + '<span class="elem-dot" style="background:' + col + '"></span>'
-        + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
-        + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
-        + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
-        + '</div>';
-    }).join('');
+    var elemOrder = ['Light','Dark','Fire','Water','Wind'];
+    var grouped = {};
+    data.chars.forEach(function(c) { var el = c.element||'Dark'; if (!grouped[el]) grouped[el]=[]; grouped[el].push(c); });
+    var html = '';
+    elemOrder.forEach(function(el) {
+      var grp = grouped[el];
+      if (!grp || !grp.length) return;
+      html += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
+      grp.forEach(function(c) {
+        var col = elemColors[c.element] || '#888';
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
+          + '<span class="elem-dot" style="background:' + col + '"></span>'
+          + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
+          + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
+          + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
+          + '</div>';
+      });
+    });
+    list.innerHTML = html;
   } catch(e) {}
 }
 
@@ -1251,6 +1294,61 @@ async function loadCharImgGrid() {
   }).join('');
 }
 
+/* ══════════════════════════════════════════ COMP ROTATION ══ */
+async function loadCompRotation() {
+  var list = document.getElementById('rot-list');
+  if (!list || !_compTier) return;
+  try {
+    var res  = await fetch('/api/admin/comp/rotation/get?tier=' + encodeURIComponent(_compTier));
+    var data = await res.json();
+    buildRotationDisplay(data.rotation || []);
+  } catch(e) {}
+}
+
+function buildRotationDisplay(rows) {
+  var list = document.getElementById('rot-list');
+  if (!list) return;
+  if (!rows.length) { list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No rotation saved yet.</p>'; return; }
+  var byChar = {};
+  rows.forEach(function(r) { if (!byChar[r.char_name]) byChar[r.char_name]=[]; byChar[r.char_name].push(r); });
+  var html = '';
+  Object.keys(byChar).forEach(function(charName) {
+    html += '<div style="margin-bottom:0.6rem"><div style="font-weight:700;font-size:0.82rem;color:var(--text2);margin-bottom:0.3rem">' + escH(charName) + '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem">';
+    byChar[charName].forEach(function(r) {
+      html += '<div class="admin-item" style="flex:none;padding:0.4rem 0.6rem;gap:0.5rem;align-items:flex-start">'
+        + '<div><div style="font-size:0.65rem;color:var(--text3)">Slot ' + r.slot + '</div>'
+        + '<strong style="font-size:0.8rem">' + escH(r.skill_name || '') + '</strong>'
+        + '<div style="font-size:0.7rem;color:var(--text3)">SP' + r.sp_cost + ' \xb7 CD' + r.cooldown + ' \xb7 ' + escH(r.tile_type || 'FRONT') + '</div></div>'
+        + '<button class="btn-danger" style="font-size:0.7rem;padding:2px 6px;flex-shrink:0" data-action="rot-delete" data-char="' + escH(charName) + '" data-slot="' + r.slot + '">&#x2715;</button>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+  list.innerHTML = html;
+}
+
+async function saveCompRotationSlot() {
+  if (!_compTier) { showAlert('rot-alert', false, 'Select a composition first'); return; }
+  var charName  = ((document.getElementById('rot-char-name')  || {}).value || '').trim();
+  var slot      = +((document.getElementById('rot-slot')       || {}).value || 1);
+  var skillName = ((document.getElementById('rot-skill-name')  || {}).value || '').trim();
+  var sp        = +((document.getElementById('rot-sp')          || {}).value || 3);
+  var cd        = +((document.getElementById('rot-cd')          || {}).value || 5);
+  var tile      = (document.getElementById('rot-tile')          || {}).value || 'FRONT';
+  var desc      = ((document.getElementById('rot-desc')         || {}).value || '').trim();
+  if (!charName || !skillName) { showAlert('rot-alert', false, 'Character name and skill name required'); return; }
+  var r = await apiPost('/api/admin/comp/rotation/save', { tier: _compTier, char_name: charName, slot: slot, skill_name: skillName, sp_cost: sp, cooldown: cd, tile_type: tile, description: desc });
+  showAlert('rot-alert', r.success, r.message);
+  if (r.success) loadCompRotation();
+}
+
+async function deleteCompRotationSlot(charName, slot) {
+  var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: slot });
+  if (r.success) loadCompRotation();
+  else showAlert('rot-alert', false, r.message);
+}
+
 /* ═════════════════════════════════════════ ADMIN LIGHTBOX ══ */
 /* (openAdminLightbox / closeAdminLightbox already defined above) */
 
@@ -1281,6 +1379,7 @@ document.addEventListener('click', function(e) {
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
+  if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
