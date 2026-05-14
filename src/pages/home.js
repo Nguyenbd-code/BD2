@@ -1,49 +1,36 @@
-import { layout } from '../layout/layout.js';
+import { layout, esc } from '../layout/layout.js';
+
+function compCard(comp) {
+  const color    = comp.color || '#c9a84c';
+  const shortDesc = esc((comp.short_description || comp.description || '').substring(0, 80));
+  const typeIcon  = comp.type === 'ATK' ? '⚔' : '🛡';
+  const tier      = comp.tier || '';
+  const anchor    = tier.toLowerCase().replace(/[^a-z0-9]/g,'');
+  return `<a href="/guide#${anchor}" style="text-decoration:none">
+    <div style="background:var(--bg3);border:1px solid rgba(201,168,76,0.1);border-top:3px solid ${color};border-radius:8px;padding:1rem;transition:border-color 0.2s" onmouseenter="this.style.borderColor='${color}'" onmouseleave="this.style.borderColor='rgba(201,168,76,0.1)'">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+        <span style="background:${color};color:#fff;font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:3px">${esc(tier)}</span>
+        <span style="font-size:0.72rem;color:var(--text3)">${typeIcon} ${esc(comp.type||'')}</span>
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:0.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(comp.name||'')}</div>
+      <div style="font-size:0.75rem;color:var(--text3);line-height:1.4">${shortDesc}</div>
+    </div>
+  </a>`;
+}
 
 export async function handleHome(request, env) {
+  let compRows = [];
+  try {
+    const res = await env.DB.prepare('SELECT * FROM compositions ORDER BY tier ASC').all();
+    compRows = res.results || [];
+  } catch { /* ignore */ }
+
   return layout('Home', `
 <div class="hero">
   <div class="hero-tag">GrandMasters PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
   <p>Curated PvP team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu.</p>
   <div class="hero-disclaimer">⚠ These compositions are intended for Top 30 to Rank 1 ranked play. Meta may shift with balance updates.</div>
-</div>
-
-<div class="section">
-  <div class="section-title">Composition Overview</div>
-  <div class="section-sub">Click any tier to jump to the full breakdown</div>
-  <div class="tier-grid">
-    <a href="/guide#t1" class="tier-card">
-      <div class="tier-badge t1">T1</div> <span class="atk">ATK</span>
-      <h3>Sylvia Double Taunt</h3>
-      <p>Do Not Use unless going for Rank 1 — last hour only</p>
-    </a>
-    <a href="/guide#t2" class="tier-card">
-      <div class="tier-badge t2">T2</div> <span class="atk">ATK</span>
-      <h3>Eleaneer+Roxy Dispel</h3>
-      <p>General PvP attacking and climbing</p>
-    </a>
-    <a href="/guide#t3" class="tier-card">
-      <div class="tier-badge t3">T3</div> <span class="atk">ATK</span>
-      <h3>Justia Double Taunt</h3>
-      <p>Strong attack composition</p>
-    </a>
-    <a href="/guide#t4" class="tier-card">
-      <div class="tier-badge t4">T4</div> <span class="def">DEF</span>
-      <h3>Blade Counter</h3>
-      <p>General PvP defence</p>
-    </a>
-    <a href="/guide#t5" class="tier-card">
-      <div class="tier-badge t5">T5</div> <span class="def">DEF</span>
-      <h3>Alec+Elise</h3>
-      <p>Michaela Counter — low win rate outside niche</p>
-    </a>
-    <a href="/guide#t6" class="tier-card">
-      <div class="tier-badge t6">T6</div> <span class="def">DEF</span>
-      <h3>Alec+Justia Anti Taunt</h3>
-      <p>Counters T3 and Double Taunt teams</p>
-    </a>
-  </div>
 </div>
 
 <div class="section" style="padding-top:0">
@@ -87,6 +74,15 @@ export async function handleHome(request, env) {
     </div>
   </div>
 </div>
+
+<section style="max-width:1100px;margin:0 auto 4rem;padding:0 1.5rem">
+  <h2 style="font-family:'Cinzel',serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
+  <div style="width:40px;height:2px;background:var(--gold);margin-bottom:1.5rem;opacity:0.5"></div>
+  ${compRows.length === 0
+    ? '<p style="color:var(--text3);font-size:0.9rem">No information yet.</p>'
+    : '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">' + compRows.map(c => compCard(c)).join('') + '</div>'
+  }
+</section>
 
 <div style="text-align:center;padding:2rem 0 0.5rem;opacity:0.18">
   <span id="egg-trigger" title="" style="cursor:pointer;font-size:0.9rem;user-select:none;transition:opacity 0.2s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.18'">⚔</span>
