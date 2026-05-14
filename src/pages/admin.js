@@ -167,6 +167,12 @@ export async function handleAdmin(request, env) {
       <div id="comp-editor" style="display:none;margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
 
+        <!-- Team Name -->
+        <div class="form-group">
+          <label>TEAM NAME</label>
+          <input type="text" id="comp-name" placeholder="Team name...">
+        </div>
+
         <!-- Color + Short Desc row -->
         <div class="form-row">
           <div class="form-group">
@@ -191,8 +197,8 @@ export async function handleAdmin(request, env) {
             </div>
           </div>
           <div class="form-group">
-            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home card — max 80 chars)</span></label>
-            <input type="text" id="comp-short-desc" maxlength="80" placeholder="Brief summary for home page card...">
+            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home page card tagline — max 80 chars)</span></label>
+            <input type="text" id="comp-short-desc" maxlength="80" placeholder="e.g. Best in slot carry composition...">
           </div>
         </div>
 
@@ -922,6 +928,8 @@ async function loadCompData(id) {
     var opt = sel ? sel.options[sel.selectedIndex] : null;
     if (!opt) return;
 
+    var nameEl = document.getElementById('comp-name');
+    if (nameEl && opt.dataset.name !== undefined) nameEl.value = opt.dataset.name;
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
     var sdEl = document.getElementById('comp-short-desc');
@@ -953,16 +961,17 @@ async function saveCompMeta() {
   var color    = (document.getElementById('comp-color')      || {}).value || '#c9a84c';
   var shortDesc= ((document.getElementById('comp-short-desc')|| {}).value || '').trim();
   var notes    = ((document.getElementById('comp-build-notes')|| {}).value || '').trim();
+  var name     = ((document.getElementById('comp-name') || {}).value || '').trim();
   var sel      = document.getElementById('comp-select');
   var opt      = sel ? sel.options[sel.selectedIndex] : null;
-  var name     = opt ? opt.dataset.name  || '' : '';
+  if (!name && opt) name = opt.dataset.name || '';
   var type     = opt ? opt.dataset.type  || 'ATK' : 'ATK';
   var cby      = opt ? opt.dataset.cby   || '' : '';
   var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
-    if (opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
+    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
   }
   showAlert('comp-meta-alert', r.success, r.message);
 }
@@ -1017,7 +1026,6 @@ async function loadCompChars() {
         + charOpts + '</select>'
         + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
         + '<option value="">— Costume —</option></select>'
-        + '<input type="text" id="bond-stats-' + n + '" value="' + escH(ex.bond_stats||'') + '" placeholder="Bond stats..." style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
         + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
         + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
         + '</div></div>';
@@ -1067,7 +1075,6 @@ async function saveCompBonds() {
   for (var n = 1; n <= 5; n++) {
     var charSel = document.getElementById('bond-char-' + n);
     var costSel = document.getElementById('bond-cost-' + n);
-    var statsEl = document.getElementById('bond-stats-' + n);
     var charName = charSel ? charSel.value : '';
     if (!charName) continue;
     var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
@@ -1076,7 +1083,7 @@ async function saveCompBonds() {
       char_name: charName,
       char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
       costume_name: costSel ? costSel.value : '',
-      bond_stats: statsEl ? statsEl.value : '',
+      bond_stats: '',
     });
   }
   var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
@@ -1601,7 +1608,7 @@ function buildRotationSelectors(allChars) {
     );
     return '<div>'
       + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:2px">Char ' + i + '</div>'
-      + '<select class="rot-char-sel" data-pos="' + i + '" style="width:100%;font-size:0.8rem" data-action="rot-char-change">' + selOpts + '</select>'
+      + '<select class="rot-char-sel" data-pos="' + i + '" style="width:100%;font-size:0.8rem;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px;border-radius:4px" data-action="rot-char-change">' + selOpts + '</select>'
       + '</div>';
   }).join('');
   buildRotationGrid();
@@ -1634,28 +1641,29 @@ function buildRotationGrid() {
   sels.forEach(function(s) { if (s.value) selected.push(s.value); });
   if (!selected.length) { grid.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">Select characters above to build the rotation grid.</p>'; return; }
 
-  var html = '';
+  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.75rem;padding:2px 4px;width:100%';
+  var html = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(selected.length, 5) + ',1fr);gap:0.75rem">';
   selected.forEach(function(charName) {
     var costumes  = _rotCostMap[charName] || [];
     var saved     = _rotSaved[charName]   || {};
     var costOpts  = '<option value="">— None —</option>' + costumes.map(function(cn) {
       return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
     }).join('');
-    html += '<div style="margin-bottom:0.75rem">';
-    html += '<div style="font-weight:700;font-size:0.82rem;color:var(--gold2);margin-bottom:0.35rem">' + escH(charName) + '</div>';
-    html += '<div style="display:flex;flex-direction:column;gap:0.2rem">';
+    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem">';
+    html += '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);margin-bottom:0.4rem;text-align:center">' + escH(charName) + '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem">';
     for (var slot = 1; slot <= 10; slot++) {
       var cur = saved[slot] || '';
-      var selOpts = costOpts.replace('value="' + escH(cur) + '"', 'value="' + escH(cur) + '" selected');
-      html += '<div style="display:flex;align-items:center;gap:0.4rem">';
-      html += '<span style="font-size:0.7rem;color:var(--text3);width:14px;text-align:right;flex-shrink:0">' + slot + '</span>';
-      html += '<select style="flex:1;font-size:0.78rem;padding:2px 4px"'
+      var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
+      html += '<div style="display:flex;align-items:center;gap:0.2rem">';
+      html += '<span style="font-size:0.65rem;color:var(--text3);width:12px;flex-shrink:0;text-align:right">' + slot + '</span>';
+      html += '<select style="' + selStyle + '"'
             + ' data-action="rot-slot-change"'
             + ' data-char="' + escH(charName) + '"'
             + ' data-slot="' + slot + '">'
             + selOpts + '</select>';
       if (cur) {
-        html += '<button class="btn-danger" style="font-size:0.68rem;padding:1px 5px;flex-shrink:0"'
+        html += '<button class="btn-danger" style="font-size:0.65rem;padding:1px 4px;flex-shrink:0;line-height:1"'
               + ' data-action="rot-delete"'
               + ' data-char="' + escH(charName) + '"'
               + ' data-slot="' + slot + '">×</button>';
@@ -1664,6 +1672,7 @@ function buildRotationGrid() {
     }
     html += '</div></div>';
   });
+  html += '</div>';
   grid.innerHTML = html;
 }
 
