@@ -236,11 +236,12 @@ function renderComp(comp, mediaMap) {
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
-    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%">
-      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div class="card" style="max-height:270px;overflow:hidden;display:flex;flex-direction:column">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
+      <div style="flex:1"></div>
       ${orderHtml}
     </div>
     <div>
