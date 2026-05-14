@@ -39,7 +39,7 @@ export async function handleAdmin(request, env) {
     const [cr, er, compr, imgr, charr] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
-      env.DB.prepare('SELECT * FROM compositions ORDER BY tier ASC').all(),
+      env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
     ]);
@@ -61,7 +61,9 @@ export async function handleAdmin(request, env) {
     + '</div>'
   ).join('') : '<p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p>';
 
-  const compsListHtml = comps.map(c => {
+  const atkComps = comps.filter(c => (c.type||'ATK').toUpperCase() === 'ATK');
+  const defComps = comps.filter(c => (c.type||'ATK').toUpperCase() === 'DEF');
+  const compRowHtml = (c) => {
     const isAtk = (c.type || '').toUpperCase() === 'ATK';
     const badgeStyle = isAtk
       ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
@@ -69,14 +71,28 @@ export async function handleAdmin(request, env) {
     const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
     const color = c.color || '#c9a84c';
     return '<div class="admin-item" id="comp-' + c.id + '">'
-      + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem">'
+      + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
       + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
       + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
       + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
       + '</div>'
+      + '<div style="display:flex;gap:0.3rem;align-items:center">'
+      + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-up" data-id="' + c.id + '" title="Move up">&#9650;</button>'
+      + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-down" data-id="' + c.id + '" title="Move down">&#9660;</button>'
       + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
+      + '</div>'
       + '</div>';
-  }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
+  };
+  let compsListHtml = '';
+  if (atkComps.length) {
+    compsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">&#9876; Attacking</div>';
+    compsListHtml += atkComps.map(compRowHtml).join('');
+  }
+  if (defComps.length) {
+    compsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.5rem;border-top:1px solid var(--border2);padding-top:0.5rem">&#128737; Defence</div>';
+    compsListHtml += defComps.map(compRowHtml).join('');
+  }
+  if (!compsListHtml) compsListHtml = '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
@@ -297,12 +313,12 @@ export async function handleAdmin(request, env) {
         <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
         <div class="form-row">
           <div class="form-group">
-            <label>Tier</label>
-            <select id="new-comp-tier">${tierOptions}</select>
+            <label>Tier Label <span style="color:var(--text3);font-size:0.7rem">(e.g. T1 for ATK, D1 for DEF)</span></label>
+            <input type="text" id="new-comp-tier" placeholder="T1" maxlength="8" style="width:100%">
           </div>
           <div class="form-group">
             <label>Type</label>
-            <select id="new-comp-type"><option value="ATK">ATK</option><option value="DEF">DEF</option></select>
+            <select id="new-comp-type"><option value="ATK">&#9876; ATK (Attacking)</option><option value="DEF">&#128737; DEF (Defence)</option></select>
           </div>
         </div>
         <div class="form-group"><label>Name</label><input type="text" id="new-comp-name" placeholder="Team Name"></div>
@@ -487,8 +503,11 @@ export async function handleAdmin(request, env) {
           ${charsListHtml}
         </div>
         <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">+ Add Character</button>
-        <button class="btn" style="width:100%;padding:6px;margin-top:0.4rem;background:var(--bg4);color:var(--gold2);border:1px solid var(--border2);font-size:0.78rem" onclick="migratePortraits()">↻ Migrate Existing Portraits</button>
-        <div id="migrate-portraits-alert"></div>
+        <div style="border-top:1px solid rgba(192,57,43,0.3);margin-top:0.75rem;padding-top:0.75rem">
+          <div style="font-size:0.68rem;color:#e74c3c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem">&#9888; Danger Zone</div>
+          <button class="btn-danger" style="width:100%;padding:6px;font-size:0.78rem" onclick="resetAllChars()">Reset All Characters &amp; Images</button>
+          <div id="reset-chars-alert"></div>
+        </div>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
           <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
@@ -924,7 +943,7 @@ async function loadCompMedia(tier) {
 }
 
 async function addComp() {
-  var tier  = (document.getElementById('new-comp-tier')  || {}).value || 'T1';
+  var tier  = ((document.getElementById('new-comp-tier')  || {}).value || '').trim().toUpperCase() || 'T1';
   var name  = ((document.getElementById('new-comp-name') || {}).value || '').trim();
   var type  = (document.getElementById('new-comp-type')  || {}).value || 'ATK';
   var desc  = ((document.getElementById('new-comp-desc') || {}).value || '').trim();
@@ -1426,10 +1445,18 @@ async function addChar() {
   }
 }
 
-async function migratePortraits() {
-  showAlert('migrate-portraits-alert', true, 'Scanning…');
-  var r = await apiPost('/api/admin/chars/migrate-portraits', {});
-  showAlert('migrate-portraits-alert', r.success, r.message);
+async function moveComp(id, direction) {
+  var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
+  if (r.success) window.location.reload();
+  else alert(r.message || 'Reorder failed');
+}
+
+async function resetAllChars() {
+  if (!confirm('DELETE all characters, costumes, skills, bonds, portraits and gear images?\n\nThis cannot be undone.')) return;
+  showAlert('reset-chars-alert', true, 'Deleting…');
+  var r = await apiPost('/api/admin/chars/reset', {});
+  showAlert('reset-chars-alert', r.success, r.message);
+  if (r.success) { loadChars(); loadCompChars && loadCompChars(); }
 }
 
 async function deleteChar(id) {
@@ -1896,6 +1923,8 @@ document.addEventListener('click', function(e) {
   var key    = b.dataset.key;
   if (action === 'coupon-delete')   deleteCoupon(id);
   if (action === 'comp-delete')     deleteComp(id);
+  if (action === 'comp-move-up')    moveComp(id, 'up');
+  if (action === 'comp-move-down')  moveComp(id, 'down');
   if (action === 'emote-delete')    deleteEmote(id);
   if (action === 'image-delete')    deleteImage(key);
   if (action === 'char-delete')     deleteChar(id);
