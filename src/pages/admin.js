@@ -182,6 +182,12 @@ export async function handleAdmin(request, env) {
               <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
               <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
               <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+              <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
+              <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
+              <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
+              <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
+              <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
+              <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
             </div>
           </div>
           <div class="form-group">
@@ -210,13 +216,20 @@ export async function handleAdmin(request, env) {
           <div id="comp-order-alert"></div>
         </div>
 
-        <!-- Board image -->
+        <!-- Board images (front / back) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label id="comp-board-label">Board Image</label>
+          <label>Board Image — Front</label>
           <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
           <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="uploadCompBoard()">Upload Board Image</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
           <div id="comp-board-preview" style="margin-top:0.5rem"></div>
+        </div>
+        <div class="form-group">
+          <label>Board Image — Back</label>
+          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas-back" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
+          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
         </div>
 
         <!-- Video URL -->
@@ -227,6 +240,24 @@ export async function handleAdmin(request, env) {
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
           </div>
           <div id="comp-video-alert"></div>
+        </div>
+
+        <!-- How and When to Play -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>HOW AND WHEN TO PLAY</label>
+          <textarea id="comp-how-to-play" rows="4" placeholder="One tip per line — when to use, matchup notes, timing..."></textarea>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.4rem" data-action="save-how-to-play">Save How To Play</button>
+          <div id="comp-howtoplay-alert"></div>
+        </div>
+
+        <!-- Preemptive Skills -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>PREEMPTIVE SKILLS</label>
+          <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;min-height:48px"></div>
+          <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+          <canvas id="preemptive-canvas" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="add-preemptive">Add Preemptive Image</button>
+          <div id="comp-preemptive-alert"></div>
         </div>
 
         <!-- Character Bonds -->
@@ -300,9 +331,14 @@ export async function handleAdmin(request, env) {
       <div id="emote-alert"></div>
       <div class="form-row">
         <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Happy Sylvia"></div>
-        <div class="form-group"><label>Image URL</label><input type="text" id="e-url" placeholder="https://..."></div>
+        <div class="form-group"><label>Image URL <span style="color:var(--text3);font-weight:400">(or upload below)</span></label><input type="text" id="e-url" placeholder="https://..."></div>
       </div>
-      <button class="btn" style="width:auto;padding:10px 24px" onclick="addEmote()">Add Emote</button>
+      <div class="form-group">
+        <label>Upload Image File <span style="color:var(--text3);font-weight:400">(optional — replaces URL)</span></label>
+        <input type="file" id="e-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+        <canvas id="emote-canvas" style="display:none"></canvas>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="add-emote">Add Emote</button>
     </div>
     <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${emotes.map(e =>
@@ -735,25 +771,85 @@ function selectComp() {
   loadCompChars();
   loadCompMedia(_compTier);
   loadCompRotation();
+  loadHowToPlay(_compTier);
+  loadPreemptive(_compTier);
 }
 
-async function uploadCompBoard() {
-  var fileEl = document.getElementById('comp-board-file');
+async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
+  suffix    = suffix    || '';
+  fileInputId = fileInputId || 'comp-board-file';
+  canvasId  = canvasId  || 'comp-canvas';
+  previewId = previewId || 'comp-board-preview';
+  var fileEl = document.getElementById(fileInputId);
   var file = fileEl && fileEl.files[0];
   if (!file) { showAlert('comp-editor-alert', false, 'Select an image file'); return; }
-  if (!_compBoardKey) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
+  if (!_compTier) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
   showAlert('comp-editor-alert', true, 'Compressing…');
-  var data = await compressToDataUrl(file, 'comp-canvas', 340, 0.85);
-  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data });
-  _compBoardKey = r.key || _compBoardKey;
+  var data = await compressToDataUrl(file, canvasId, 340, 0.85);
+  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data, suffix: suffix });
   showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
-    var preview = document.getElementById('comp-board-preview');
+    var preview = document.getElementById(previewId);
     if (preview) {
       preview.innerHTML = '<img src="' + escH(data) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
     if (fileEl) fileEl.value = '';
   }
+}
+
+async function saveHowToPlay() {
+  if (!_compTier) { showAlert('comp-howtoplay-alert', false, 'Select a composition first'); return; }
+  var content = ((document.getElementById('comp-how-to-play')||{}).value||'').trim();
+  var r = await apiPost('/api/admin/comp/howtoplay/save', { tier: _compTier, content: content });
+  showAlert('comp-howtoplay-alert', r.success, r.message);
+}
+
+async function loadHowToPlay(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/howtoplay/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    var el = document.getElementById('comp-how-to-play');
+    if (el) el.value = data.content || '';
+  } catch(e) {}
+}
+
+async function loadPreemptive(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/preemptive/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    renderPreemptiveList(data.items || []);
+  } catch(e) {}
+}
+
+function renderPreemptiveList(items) {
+  var list = document.getElementById('preemptive-list');
+  if (!list) return;
+  if (!items.length) { list.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No images yet.</span>'; return; }
+  list.innerHTML = items.map(function(src, i) {
+    return '<div style="position:relative;display:inline-block">'
+      + '<img src="' + escH(src) + '" style="height:48px;width:auto;object-fit:contain;border-radius:4px;border:1px solid var(--border2)">'
+      + '<button class="btn-danger" data-action="preemptive-delete" data-index="' + i + '" style="position:absolute;top:-4px;right:-4px;font-size:0.65rem;padding:1px 4px;border-radius:50%;line-height:1">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function addPreemptive() {
+  if (!_compTier) { showAlert('comp-preemptive-alert', false, 'Select a composition first'); return; }
+  var fileEl = document.getElementById('preemptive-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('comp-preemptive-alert', false, 'Select an image file'); return; }
+  showAlert('comp-preemptive-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'preemptive-canvas', 200, 0.85);
+  var r = await apiPost('/api/admin/comp/preemptive/add', { tier: _compTier, data: data });
+  showAlert('comp-preemptive-alert', r.success, r.message || (r.success ? 'Added!' : 'Error'));
+  if (r.success) { if (fileEl) fileEl.value = ''; loadPreemptive(_compTier); }
+}
+
+async function deletePreemptive(index) {
+  if (!_compTier) return;
+  var r = await apiPost('/api/admin/comp/preemptive/delete', { tier: _compTier, index: index });
+  showAlert('comp-preemptive-alert', r.success, r.message);
+  if (r.success) loadPreemptive(_compTier);
 }
 
 async function saveCompVideo() {
@@ -770,10 +866,16 @@ async function loadCompMedia(tier) {
     var data = await res.json();
     var urlEl = document.getElementById('comp-video-url');
     if (urlEl) urlEl.value = data.video || '';
+    var tierLow = tier.toLowerCase();
+    var frontKey = 'comp_' + tierLow + '_board';
+    var backKey  = 'comp_' + tierLow + '_board_back';
     var preview = document.getElementById('comp-board-preview');
-    var boardKey = data.board_key || _compBoardKey;
-    if (preview && boardKey) {
-      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    if (preview) {
+      preview.innerHTML = '<img src="/img/' + escH(frontKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    }
+    var backPreview = document.getElementById('comp-board-back-preview');
+    if (backPreview) {
+      backPreview.innerHTML = '<img src="/img/' + escH(backKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
   } catch(e) {}
 }
@@ -871,8 +973,11 @@ async function saveCompMeta() {
   var cby      = opt ? opt.dataset.cby   || '' : '';
   var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success) {
+    apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
+    if (opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
+  }
   showAlert('comp-meta-alert', r.success, r.message);
-  if (r.success && opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
 }
 
 async function saveCompUnitOrder() {
@@ -992,15 +1097,17 @@ async function saveCompBonds() {
 }
 
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
-async function addEmote() {
-  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
-  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
-  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and URL required'); return; }
+async function addEmoteWithData(name, image_url) {
+  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and image required'); return; }
   var r = await apiPost('/api/admin/emote/add', { name: name, image_url: image_url });
   showAlert('emote-alert', r.success, r.message);
   if (r.success) {
-    document.getElementById('e-name').value = '';
-    document.getElementById('e-url').value  = '';
+    var nameEl = document.getElementById('e-name');
+    var urlEl  = document.getElementById('e-url');
+    var fileEl = document.getElementById('e-file');
+    if (nameEl) nameEl.value = '';
+    if (urlEl)  urlEl.value  = '';
+    if (fileEl) fileEl.value = '';
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
@@ -1010,6 +1117,23 @@ async function addEmote() {
       + '<button class="btn-danger" data-action="emote-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('emote-list');
     if (list) list.prepend(div);
+  }
+}
+
+async function addEmote() {
+  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
+  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
+  var fileEl    = document.getElementById('e-file');
+  var file      = fileEl && fileEl.files[0];
+  if (!name) { showAlert('emote-alert', false, 'Name required'); return; }
+  if (file) {
+    showAlert('emote-alert', true, 'Compressing…');
+    var data = await compressToDataUrl(file, 'emote-canvas', 200, 0.85);
+    await addEmoteWithData(name, data);
+  } else if (image_url) {
+    await addEmoteWithData(name, image_url);
+  } else {
+    showAlert('emote-alert', false, 'Provide an image URL or upload a file');
   }
 }
 
@@ -1556,9 +1680,15 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
-  if (action === 'preset-color')    { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
-  if (action === 'home-note-save')  saveHomeNote(parseInt(b.dataset.slot, 10));
-  if (action === 'save-comp-bonds') saveCompBonds();
+  if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
+  if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'save-comp-bonds')  saveCompBonds();
+  if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
+  if (action === 'upload-board-back')  uploadCompBoard('_back', 'comp-board-back-file', 'comp-canvas-back', 'comp-board-back-preview');
+  if (action === 'save-how-to-play') saveHowToPlay();
+  if (action === 'add-preemptive')   addPreemptive();
+  if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
+  if (action === 'add-emote')        addEmote();
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
