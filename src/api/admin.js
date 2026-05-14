@@ -214,6 +214,11 @@ export async function handleAdminApi(request, env) {
       });
       return json({ success:true, message:'Rotation saved.' });
     }
+    if (path === '/api/admin/comp/rotation/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const r = await env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind(tier).all();
+      return json({ rotation: r.results || [] });
+    }
     if (path === '/api/admin/comp/rotation/delete' && method === 'POST') {
       if (!body.tier || !body.char_name || body.slot === undefined)
         return json({ success:false, message:'tier, char_name, slot required' }, 400);

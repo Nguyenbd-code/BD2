@@ -192,13 +192,13 @@ function renderComp(comp, mediaMap) {
   const arrow = isAtk
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
-  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
-  const videoBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
+  const imageBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
+  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
     video
       ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
       : '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
   }</div>`;
-  const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;min-height:200px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
+  const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;height:220px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
   // How and When to Play
   const howToPlayHtml = `<div class="card" style="padding:1.25rem;margin-top:0.75rem">
