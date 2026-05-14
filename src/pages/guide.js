@@ -93,6 +93,7 @@ function charStrip(chars, compId, bondsData) {
 function renderComp(comp, mediaMap) {
   const tier    = comp.tier;
   const color   = comp.color || '#c9a84c';
+  const video   = (mediaMap[tier] && mediaMap[tier].video) ? mediaMap[tier].video : '';
   const tierCls = tier.toLowerCase().replace(/[^a-z0-9]/g, '');
   const anchorId = comp.anchorId || tierCls;
   const typeLabel = comp.type === 'ATK' ? '⚔ Attack Composition' : '🛡 Defence Composition';
@@ -145,9 +146,9 @@ function renderComp(comp, mediaMap) {
       }).join('');
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
-    rotHtml = rows ? `<div class="rot-table">${rows}</div>` : `<div style="display:flex;align-items:center;justify-content:center;min-height:220px">${NA}</div>`;
+    rotHtml = rows ? `<div class="rot-table">${rows}</div>` : `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0">${NA}</div>`;
   } else {
-    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;min-height:220px">${NA}</div>`;
+    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0">${NA}</div>`;
   }
 
   // Unit order
@@ -162,12 +163,12 @@ function renderComp(comp, mediaMap) {
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
     }).join('');
-    orderHtml = `<div class="card" style="margin-top:1rem;min-height:140px">
+    orderHtml = `<div class="card" style="margin-top:0.75rem">
   <div class="card-title">Unit Order</div>
   <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${pills}</div>
 </div>`;
   } else {
-    orderHtml = `<div class="card" style="margin-top:1rem;min-height:140px">
+    orderHtml = `<div class="card" style="margin-top:0.75rem">
   <div class="card-title">Unit Order</div>
   ${NA}
 </div>`;
@@ -229,7 +230,7 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:start">
     <div>
-      <div class="card" style="min-height:280px;display:flex;flex-direction:column">
+      <div class="card" style="min-height:140px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column">
         <div class="card-title">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -239,6 +240,7 @@ function renderComp(comp, mediaMap) {
       <div class="card" style="padding:1rem">
         <div class="card-title">Board Positioning</div>
         ${boardHtml}
+        ${video ? `<div style="margin-top:0.75rem;text-align:center"><a href="${esc(video)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:5px 14px;border-radius:4px;font-size:0.8rem;text-decoration:none;font-weight:600">▶ Watch Battle Video</a></div>` : ''}
       </div>
       ${howToPlayHtml}
     </div>
