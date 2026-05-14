@@ -206,9 +206,8 @@ function renderComp(comp, mediaMap) {
 
   // Preemptive skills
   const preemptive = comp.preemptive || [];
-  const preemptImgH = preemptive.length <= 2 ? '120px' : '70px';
   const preemptiveHtml = preemptive.length
-    ? preemptive.map(src => `<img src="${esc(src)}" style="flex:1;min-width:0;height:${preemptImgH};object-fit:contain;border-radius:4px;border:1px solid var(--border2)" class="img-err-hide">`).join('')
+    ? preemptive.slice(0, 3).map(src => `<img src="${esc(src)}" style="width:100%;height:auto;max-height:110px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);display:block" class="img-err-hide">`).join('')
     : '<span style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.8rem">N/A</span>';
 
   // Matchups
@@ -256,7 +255,7 @@ function renderComp(comp, mediaMap) {
       </div>
       <div class="card" style="padding:1rem;">
         <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;gap:0.4rem;align-items:stretch;min-height:${preemptImgH};">${preemptiveHtml}</div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">${preemptiveHtml}</div>
       </div>
       <div class="card" style="padding:1rem;min-height:120px;display:flex;flex-direction:column">
         <div class="card-title">Matchups</div>

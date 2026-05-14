@@ -382,8 +382,10 @@ export async function handleAdmin(request, env) {
         </div>
         <div id="img-costume-sel-wrap" style="display:none">
           <div class="form-group">
-            <label>Costume Slug</label>
-            <input type="text" id="img-costume-slug-input" placeholder="costume_slug" oninput="updateImgKey()">
+            <label>Costume</label>
+            <select id="img-costume-slug-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:100%" onchange="updateImgKey()">
+              <option value="">— Select Costume —</option>
+            </select>
           </div>
         </div>
       </div>
@@ -481,8 +483,8 @@ export async function handleAdmin(request, env) {
         </div>
         <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">+ Add Character</button>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
-          <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou"></div>
-          <div class="form-group"><label>Slug</label><input id="new-char-slug" placeholder="rou"></div>
+          <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
+          <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
           <div class="form-group"><label>Element</label>
             <select id="new-char-element">
               <option value="Dark">Dark</option>
@@ -518,8 +520,8 @@ export async function handleAdmin(request, env) {
           <div id="char-subtab-costumes">
             <div style="margin-bottom:1rem">
               <div class="form-row">
-                <div class="form-group"><label>Costume Name</label><input id="cost-name" placeholder="Red Riding Hood"></div>
-                <div class="form-group"><label>Costume Slug</label><input id="cost-slug" placeholder="red_riding_hood"></div>
+                <div class="form-group"><label>Costume Name</label><input id="cost-name" placeholder="Red Riding Hood" oninput="autoCostumeSlug()"></div>
+                <div class="form-group"><label>Costume Slug <span style="color:var(--text3);font-size:0.7rem">(auto)</span></label><input id="cost-slug" placeholder="red_riding_hood" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
               </div>
               <div class="form-group"><label>Bond Stats</label><textarea id="cost-stats" rows="2" placeholder="HP: +62.40%, DEF: +13.40%"></textarea></div>
               <div id="cost-alert"></div>
@@ -1151,6 +1153,31 @@ function setImgCat(cat) {
   updateImgKey();
 }
 
+var _imgCostumeCache = {};
+async function loadImgCostumeOptions(charSlug) {
+  var sel = document.getElementById('img-costume-slug-sel');
+  if (!sel || !charSlug) return;
+  if (_imgCostumeCache[charSlug]) {
+    var curVal = sel.value;
+    sel.innerHTML = '<option value="">— Select Costume —</option>'
+      + _imgCostumeCache[charSlug].map(function(c) {
+        return '<option value="' + escH(c.costume_slug) + '"' + (c.costume_slug === curVal ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
+      }).join('');
+    updateImgKey();
+    return;
+  }
+  try {
+    var res  = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    _imgCostumeCache[charSlug] = data.costumes || [];
+    sel.innerHTML = '<option value="">— Select Costume —</option>'
+      + _imgCostumeCache[charSlug].map(function(c) {
+        return '<option value="' + escH(c.costume_slug) + '">' + escH(c.costume_name) + '</option>';
+      }).join('');
+  } catch(e) {}
+  updateImgKey();
+}
+
 function updateImgKey() {
   var key = '';
   if (_imgCat === 'chars') {
@@ -1167,9 +1194,12 @@ function updateImgKey() {
       key = 'char_' + slug + '_gear';
       if (costumeWrap) costumeWrap.style.display = 'none';
     } else {
-      var cs = ((document.getElementById('img-costume-slug-input') || {}).value || '').trim();
+      var cs = ((document.getElementById('img-costume-slug-sel') || {}).value || '').trim();
       key = 'char_' + slug + '_' + (cs || 'costume') + '_icon';
-      if (costumeWrap) costumeWrap.style.display = 'block';
+      if (costumeWrap) {
+        costumeWrap.style.display = 'block';
+        loadImgCostumeOptions(slug);
+      }
     }
   } else if (_imgCat === 'comps') {
     var t = (document.getElementById('img-comp-tier') || {}).value || 'T1';
@@ -1258,6 +1288,20 @@ function toggleAddCharForm() {
   var f = document.getElementById('add-char-form');
   if (!f) return;
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function autoCharSlug() {
+  var nameEl = document.getElementById('new-char-name');
+  var slugEl = document.getElementById('new-char-slug');
+  if (!nameEl || !slugEl) return;
+  slugEl.value = (nameEl.value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function autoCostumeSlug() {
+  var nameEl = document.getElementById('cost-name');
+  var slugEl = document.getElementById('cost-slug');
+  if (!nameEl || !slugEl) return;
+  slugEl.value = (nameEl.value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
 async function loadChars() {
