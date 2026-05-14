@@ -235,13 +235,12 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
-    <div style="display:flex;flex-direction:column;height:100%">
+  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
       <div class="card" style="max-height:270px;overflow:hidden;display:flex;flex-direction:column">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
-      <div style="flex:1"></div>
       ${orderHtml}
     </div>
     <div>
