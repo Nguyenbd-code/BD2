@@ -1,5 +1,30 @@
 import { json } from '../layout/layout.js';
 
+async function renameTierCascade(env, oldTier, newTier) {
+  if (oldTier === newTier) return;
+  const ol = oldTier.toLowerCase();
+  const nl = newTier.toLowerCase();
+  await env.DB.prepare('UPDATE comp_rotations SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  await env.DB.prepare('UPDATE comp_media SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  await env.DB.prepare('UPDATE comp_chars SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  const imgPatterns = [
+    [`comp_${ol}_board`, `comp_${nl}_board`],
+    [`comp_${ol}_board_back`, `comp_${nl}_board_back`],
+    [`comp_${ol}_video`, `comp_${nl}_video`],
+    [`preemptive_${ol}`, `preemptive_${nl}`],
+    [`how_to_play_${ol}`, `how_to_play_${nl}`],
+    [`notes_${ol}`, `notes_${nl}`],
+  ];
+  for (const [ok, nk] of imgPatterns) {
+    if (ok === nk) continue;
+    const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(ok).first().catch(()=>null);
+    if (row) {
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(nk, row.data).run().catch(()=>{});
+      await env.DB.prepare('DELETE FROM images WHERE key=?').bind(ok).run().catch(()=>{});
+    }
+  }
+}
+
 function isAuthed(request) {
   const cookie = request.headers.get('Cookie') || '';
   return cookie.split(';').some(c => c.trim() === 'admin=true');
@@ -36,14 +61,101 @@ export async function handleAdminApi(request, env) {
     // ── Compositions ─────────────────────────────────────────
     if (path === '/api/admin/comp/add' && method === 'POST') {
       if (!body.name) return json({ success:false, message:'Name required' }, 400);
+      // Assign sort_order = max(sort_order)+10 within same type
+      const mx = await env.DB.prepare('SELECT MAX(sort_order) as m FROM compositions WHERE type=?').bind(body.type||'ATK').first().catch(() => null);
+      const nextOrder = ((mx && mx.m) || 0) + 10;
       const r = await env.DB.prepare(
-        'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated) VALUES (?,?,?,?,?,?)'
-      ).bind(body.tier||'T2', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
+        'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated,sort_order) VALUES (?,?,?,?,?,?,?)'
+      ).bind(body.tier||'T1', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'', nextOrder).run().catch(async () => {
+        return env.DB.prepare(
+          'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated) VALUES (?,?,?,?,?,?)'
+        ).bind(body.tier||'T1', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
+      });
       return json({ success:true, message:'Composition added!', id: r.meta.last_row_id });
     }
     if (path === '/api/admin/comp/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM compositions WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
+    }
+    if (path === '/api/admin/comp/reorder' && method === 'POST') {
+      await env.DB.prepare('ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0').run().catch(() => {});
+      const comp = await env.DB.prepare('SELECT id, type, sort_order FROM compositions WHERE id=?').bind(body.id).first();
+      if (!comp) return json({ success:false, message:'Not found' }, 404);
+      const allOfType = await env.DB.prepare(
+        'SELECT id, tier, sort_order, name, color FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).bind(comp.type).all().catch(() => ({results:[]}));
+      const list = allOfType.results || [];
+      const idx  = list.findIndex(r => r.id === comp.id);
+      const swapIdx = body.direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= list.length) {
+        return json({ success:true, message:'Already at edge.', comps: list.map(c=>({...c,type:comp.type})) });
+      }
+      const a = list[idx], b = list[swapIdx];
+      const aOrder = a.sort_order || (idx + 1) * 10;
+      const bOrder = b.sort_order || (swapIdx + 1) * 10;
+      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(bOrder, a.id).run().catch(() => {});
+      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(aOrder, b.id).run().catch(() => {});
+      // Re-read in new order and renumber tiers
+      const newOrder = await env.DB.prepare(
+        'SELECT id, tier, name, color FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).bind(comp.type).all().catch(() => ({results:[]}));
+      const ordered = newOrder.results || [];
+      const prefix = comp.type === 'DEF' ? 'D' : 'A';
+      // Build map of id→newTier
+      const newTierMap = {};
+      ordered.forEach((c, i) => { newTierMap[c.id] = `${prefix}${i + 1}`; });
+      // Two-pass rename via temp names to avoid conflicts
+      for (const c of ordered) {
+        const nt = newTierMap[c.id];
+        if (c.tier !== nt) {
+          const tmp = `_TMP_${c.id}`;
+          await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(tmp, c.id).run().catch(()=>{});
+          await renameTierCascade(env, c.tier, tmp);
+        }
+      }
+      for (const c of ordered) {
+        const nt = newTierMap[c.id];
+        if (c.tier !== nt) {
+          const tmp = `_TMP_${c.id}`;
+          await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(nt, c.id).run().catch(()=>{});
+          await renameTierCascade(env, tmp, nt);
+        }
+      }
+      // Return all comps of both types so client can refresh
+      const allComps = await env.DB.prepare(
+        'SELECT id, tier, name, type, color, short_description, description, countered_by, unit_order FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).all().catch(() => ({results:[]}));
+      return json({ success:true, comps: allComps.results || [] });
+    }
+
+    if (path === '/api/admin/comp/normalize-tiers' && method === 'POST') {
+      // Renumber all ATK comps to A1,A2,... and DEF comps to D1,D2,...
+      for (const type of ['ATK','DEF']) {
+        const prefix = type === 'DEF' ? 'D' : 'A';
+        const res = await env.DB.prepare(
+          'SELECT id, tier FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+        ).bind(type).all().catch(() => ({results:[]}));
+        const comps = res.results || [];
+        const newTierMap = {};
+        comps.forEach((c, i) => { newTierMap[c.id] = `${prefix}${i + 1}`; });
+        for (const c of comps) {
+          const nt = newTierMap[c.id];
+          if (c.tier !== nt) {
+            const tmp = `_TMP_${c.id}`;
+            await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(tmp, c.id).run().catch(()=>{});
+            await renameTierCascade(env, c.tier, tmp);
+          }
+        }
+        for (const c of comps) {
+          const nt = newTierMap[c.id];
+          if (c.tier !== nt) {
+            const tmp = `_TMP_${c.id}`;
+            await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(nt, c.id).run().catch(()=>{});
+            await renameTierCascade(env, tmp, nt);
+          }
+        }
+      }
+      return json({ success:true, message:'All tiers normalized.' });
     }
 
     // ── Emotes ───────────────────────────────────────────────
@@ -162,8 +274,25 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare('DELETE FROM char_costumes WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
     }
+    if (path === '/api/admin/costumes/update' && method === 'POST') {
+      if (!body.char_slug || !body.costume_slug) return json({ success:false, message:'char_slug and costume_slug required' }, 400);
+      await env.DB.prepare(
+        'UPDATE char_costumes SET bond_stats=? WHERE char_slug=? AND costume_slug=?'
+      ).bind(body.bond_stats||'', body.char_slug, body.costume_slug).run();
+      return json({ success:true, message:'Bond stats saved.' });
+    }
 
-    // ── Skills ────────────────────────────────────────────────
+    // ── Character reset (danger zone) ────────────────────────
+    if (path === '/api/admin/chars/reset' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM char_registry').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM char_costumes').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM char_skills').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM comp_chars').run().catch(() => {});
+      await env.DB.prepare("DELETE FROM images WHERE key LIKE 'char_%'").run().catch(() => {});
+      return json({ success:true, message:'All characters, costumes, skills, bonds, portraits and gear deleted.' });
+    }
+
+    // ── Skills ─────────────────────────────────────────────────
     if (path === '/api/admin/skills/list' && method === 'GET') {
       const slug = url.searchParams.get('costume_slug') || '';
       const r = await env.DB.prepare('SELECT * FROM char_skills WHERE costume_slug=? ORDER BY id').bind(slug).all();
@@ -214,6 +343,11 @@ export async function handleAdminApi(request, env) {
       });
       return json({ success:true, message:'Rotation saved.' });
     }
+    if (path === '/api/admin/comp/rotation/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const r = await env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind(tier).all();
+      return json({ rotation: r.results || [] });
+    }
     if (path === '/api/admin/comp/rotation/delete' && method === 'POST') {
       if (!body.tier || !body.char_name || body.slot === undefined)
         return json({ success:false, message:'tier, char_name, slot required' }, 400);
@@ -233,9 +367,68 @@ export async function handleAdminApi(request, env) {
     // ── Comp Board Image (tier-keyed) ─────────────────────────
     if (path === '/api/admin/comp/board/save' && method === 'POST') {
       if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
-      const key = 'comp_' + body.tier.toLowerCase() + '_board';
+      const suffix = body.suffix || '';
+      const key = 'comp_' + body.tier.toLowerCase() + '_board' + suffix;
       await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.data).run();
       return json({ success:true, message:'Board saved.', key });
+    }
+
+    // ── Comp Preemptive Skills ────────────────────────────────
+    if (path === '/api/admin/comp/preemptive/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('preemptive_' + tier.toLowerCase()).first();
+      const items = row ? JSON.parse(row.data) : [];
+      return json({ items });
+    }
+    if (path === '/api/admin/comp/preemptive/add' && method === 'POST') {
+      if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
+      const key  = 'preemptive_' + body.tier.toLowerCase();
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
+      const items = row ? JSON.parse(row.data) : [];
+      items.push(body.data);
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
+      return json({ success:true, message:'Added.', count: items.length });
+    }
+    if (path === '/api/admin/comp/preemptive/delete' && method === 'POST') {
+      if (!body.tier || body.index === undefined) return json({ success:false, message:'tier and index required' }, 400);
+      const key  = 'preemptive_' + body.tier.toLowerCase();
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
+      const items = row ? JSON.parse(row.data) : [];
+      items.splice(body.index, 1);
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Rotations Reset ──────────────────────────────────────
+    if (path === '/api/admin/rotations/reset' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM comp_rotations').run().catch(() => {});
+      return json({ success:true, message:'All skill rotations deleted.' });
+    }
+
+    // ── Comp How To Play ──────────────────────────────────────
+    if (path === '/api/admin/comp/howtoplay/save' && method === 'POST') {
+      if (!body.tier) return json({ success:false, message:'tier required' }, 400);
+      const key = 'how_to_play_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.content || '').run();
+      return json({ success:true, message:'Saved.' });
+    }
+    if (path === '/api/admin/comp/howtoplay/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('how_to_play_' + tier.toLowerCase()).first();
+      return json({ content: row ? row.data : '' });
+    }
+
+    // ── Comp Build Notes (images key) ─────────────────────────
+    if (path === '/api/admin/comp/notes/save' && method === 'POST') {
+      if (!body.tier) return json({ success:false, message:'tier required' }, 400);
+      const key = 'notes_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.content || '').run();
+      return json({ success:true, message:'Build notes saved.' });
+    }
+    if (path === '/api/admin/comp/notes/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('notes_' + tier.toLowerCase()).first();
+      return json({ content: row ? row.data : '' });
     }
 
     // ── Comp Chars ────────────────────────────────────────────
@@ -255,6 +448,15 @@ export async function handleAdminApi(request, env) {
       return json({ chars: r.results || [] });
     }
 
+    // ── Secret Code ───────────────────────────────────────────
+    if (path === '/api/admin/secret/save' && method === 'POST') {
+      if (!body.code || body.code.length < 4)
+        return json({ success:false, message:'Secret code must be at least 4 characters.' });
+      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('secret_code',?)")
+        .bind(body.code).run();
+      return json({ success:true, message:'Secret code updated.' });
+    }
+
     // ── Home Notes ────────────────────────────────────────────
     if (path === '/api/admin/home/notes/save' && method === 'POST') {
       if (!body.slot) return json({ success:false, message:'slot required' }, 400);
@@ -264,9 +466,15 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Saved.' });
     }
     if (path === '/api/admin/home/notes/get' && method === 'GET') {
-      const slot = url.searchParams.get('slot') || '';
+      const slot = parseInt(url.searchParams.get('slot') || '0', 10);
+      const defaults = {
+        1: { title: 'Tier Usage', content: 'Use T2 for general attacking and climbing\nUse T4 for general defence\nOnly use T1 going for Rank 1 — last hour only\nT5 only counters Michaela, loses to most Double Taunt\nT6 counters T3 and Double Taunt — loses to T2 and T1' },
+        2: { title: 'Targeting Top 10', content: 'Hit 3 hours before end and sit in Top 10\nDefend until 2–1.5 hours remain\nThen spam attack' },
+        3: { title: 'Targeting Rank 1', content: 'Sit Top 1–3 at the 3-hour mark\nUse T6 as blocker to feed one player into R1\nThe R1 player uses T1 or T2' },
+        4: { title: 'Building PvP Characters', content: 'Tanks: target 105% Magic Resist, Defence at 90%\nDamage carries: 50% Crit Rate with buffer, 100% without\nJustia & Alec: HP ring with ATK substats + Magic Resist Armor\nAll compositions can swap lanes' },
+      };
       const row  = await env.DB.prepare("SELECT data FROM images WHERE key=?").bind('home_strategy_' + slot).first();
-      const data = row ? JSON.parse(row.data) : null;
+      const data = row ? JSON.parse(row.data) : (defaults[slot] || { title: '', content: '' });
       return json({ data });
     }
 

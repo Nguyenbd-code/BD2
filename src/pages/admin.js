@@ -7,9 +7,18 @@ function isAuthed(request) {
   return cookie.split(';').some(c => c.trim() === 'admin=true');
 }
 
+async function getAdminPassword(env) {
+  try {
+    const row = await env.DB.prepare("SELECT data FROM images WHERE key='admin_password'").first();
+    if (row && row.data) return row.data;
+  } catch {}
+  return ADMIN_PASSWORD;
+}
+
 export async function handleAdminLogin(request, env) {
   const form = await request.formData();
-  if (form.get('password') === ADMIN_PASSWORD) {
+  const correctPassword = await getAdminPassword(env);
+  if (form.get('password') === correctPassword) {
     return new Response('', {
       status: 302,
       headers: {
@@ -39,7 +48,7 @@ export async function handleAdmin(request, env) {
     const [cr, er, compr, imgr, charr] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
-      env.DB.prepare('SELECT * FROM compositions ORDER BY tier ASC').all(),
+      env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
     ]);
@@ -61,7 +70,9 @@ export async function handleAdmin(request, env) {
     + '</div>'
   ).join('') : '<p style="color:var(--text3);font-size:0.83rem">No images uploaded yet.</p>';
 
-  const compsListHtml = comps.map(c => {
+  const atkComps = comps.filter(c => (c.type||'ATK').toUpperCase() === 'ATK');
+  const defComps = comps.filter(c => (c.type||'ATK').toUpperCase() === 'DEF');
+  const compRowHtml = (c) => {
     const isAtk = (c.type || '').toUpperCase() === 'ATK';
     const badgeStyle = isAtk
       ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
@@ -69,14 +80,28 @@ export async function handleAdmin(request, env) {
     const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
     const color = c.color || '#c9a84c';
     return '<div class="admin-item" id="comp-' + c.id + '">'
-      + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem">'
+      + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
       + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
       + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
       + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
       + '</div>'
+      + '<div style="display:flex;gap:0.3rem;align-items:center">'
+      + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-up" data-id="' + c.id + '" title="Move up">&#9650;</button>'
+      + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-down" data-id="' + c.id + '" title="Move down">&#9660;</button>'
       + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
+      + '</div>'
       + '</div>';
-  }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
+  };
+  let compsListHtml = '';
+  if (atkComps.length) {
+    compsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">&#9876; Attacking</div>';
+    compsListHtml += atkComps.map(compRowHtml).join('');
+  }
+  if (defComps.length) {
+    compsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.5rem;border-top:1px solid var(--border2);padding-top:0.5rem">&#128737; Defence</div>';
+    compsListHtml += defComps.map(compRowHtml).join('');
+  }
+  if (!compsListHtml) compsListHtml = '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
@@ -121,6 +146,7 @@ export async function handleAdmin(request, env) {
     <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
@@ -167,6 +193,12 @@ export async function handleAdmin(request, env) {
       <div id="comp-editor" style="display:none;margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
 
+        <!-- Team Name -->
+        <div class="form-group">
+          <label>TEAM NAME</label>
+          <input type="text" id="comp-name" placeholder="Team name...">
+        </div>
+
         <!-- Color + Short Desc row -->
         <div class="form-row">
           <div class="form-group">
@@ -182,11 +214,17 @@ export async function handleAdmin(request, env) {
               <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
               <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
               <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+              <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
+              <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
+              <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
+              <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
+              <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
+              <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
             </div>
           </div>
           <div class="form-group">
-            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home card — max 80 chars)</span></label>
-            <input type="text" id="comp-short-desc" maxlength="80" placeholder="Brief summary for home page card...">
+            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home page card tagline — max 80 chars)</span></label>
+            <input type="text" id="comp-short-desc" maxlength="80" placeholder="e.g. Best in slot carry composition...">
           </div>
         </div>
 
@@ -203,90 +241,78 @@ export async function handleAdmin(request, env) {
         <!-- Unit Order (all tiers) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>UNIT ORDER</label>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-            ${[1,2,3,4,5].map(i =>
-              '<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">'
-              + '<span style="font-size:0.65rem;color:var(--text3)">' + i + '</span>'
-              + '<input type="text" id="uorder-' + i + '" placeholder="Name" style="width:90px">'
-              + '</div>'
-            ).join('')}
+          <div id="unit-order-slots" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
+            <span style="color:var(--text3);font-size:0.82rem">Select a composition to load unit order</span>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0" onclick="saveCompUnitOrder()">Save Unit Order</button>
           <div id="comp-order-alert"></div>
         </div>
 
-        <!-- Board image -->
+        <!-- Board images (front / back) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label id="comp-board-label">Board Image</label>
+          <label>Board Image — Front</label>
           <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
           <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="uploadCompBoard()">Upload Board Image</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
           <div id="comp-board-preview" style="margin-top:0.5rem"></div>
+        </div>
+        <div class="form-group">
+          <label>Board Image — Back</label>
+          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas-back" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
+          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
         </div>
 
         <!-- Video URL -->
         <div class="form-group">
           <label>Battle Video URL</label>
           <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://..." style="flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
+            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
           </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
           <div id="comp-video-alert"></div>
+        </div>
+
+        <!-- How and When to Play -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>HOW AND WHEN TO PLAY</label>
+          <textarea id="comp-how-to-play" rows="4" placeholder="One tip per line — when to use, matchup notes, timing..."></textarea>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.4rem" data-action="save-how-to-play">Save How To Play</button>
+          <div id="comp-howtoplay-alert"></div>
+        </div>
+
+        <!-- Preemptive Skills -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>PREEMPTIVE SKILLS</label>
+          <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;min-height:48px"></div>
+          <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+          <canvas id="preemptive-canvas" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="add-preemptive">Add Preemptive Image</button>
+          <div id="comp-preemptive-alert"></div>
+        </div>
+
+        <!-- Character Bonds -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Character Bonds</h4>
+          <div id="comp-bonds-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:0.75rem">
+            <span style="color:var(--text3);font-size:0.82rem;grid-column:1/-1">Select a composition to edit character bonds</span>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Character Bonds</button>
+          <div id="comp-bonds-alert"></div>
         </div>
 
         <!-- Skill Rotation (all tiers) -->
         <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
           <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
-          <div class="form-row">
-            <div class="form-group"><label>Character Name</label><input id="rot-char-name" placeholder="Rou"></div>
-            <div class="form-group"><label>Slot #</label><input type="number" id="rot-slot" value="1" min="1" max="10" style="width:70px"></div>
-          </div>
-          <div class="form-group"><label>Skill Name</label><input id="rot-skill-name" placeholder="Half Moon Kick"></div>
-          <div class="form-row">
-            <div class="form-group"><label>SP Cost</label><input type="number" id="rot-sp" value="3" min="1" max="10"></div>
-            <div class="form-group"><label>Cooldown</label><input type="number" id="rot-cd" value="5" min="1" max="10"></div>
-            <div class="form-group"><label>Tile Type</label>
-              <select id="rot-tile"><option>FRONT</option><option>SELF</option><option>ALL</option><option>SKIP</option></select>
-            </div>
-          </div>
-          <div class="form-group"><label>Description</label><textarea id="rot-desc" rows="2" placeholder="Skill effect..."></textarea></div>
-          <div id="rot-alert"></div>
-          <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompRotationSlot()">Save Slot</button>
-          <div id="rot-list" style="margin-top:0.75rem"></div>
-        </div>
-
-        <!-- T1 extras: per-char notes + order dropdowns (kept for backwards compat) -->
-        <div id="comp-t1-extras" style="display:none">
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
-            <div class="form-group">
-              <label>Character</label>
-              <select id="notes-char-comp" onchange="loadCompNotes()">
-                <option value="Rou">Rou</option>
-                <option value="Seir">Seir</option>
-                <option value="Lecliss">Lecliss</option>
-                <option value="Scheherazade">Scheherazade</option>
-                <option value="Sylvia">Sylvia</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Build Notes</label>
-              <textarea id="notes-text-comp" rows="5" placeholder="Build notes for this character..."></textarea>
-            </div>
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompNotes()">Save Notes</button>
-          </div>
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Unit Order</h4>
-            ${[1,2,3,4,5].map(i =>
-              '<div class="form-group">'
-              + '<label>Position ' + i + '</label>'
-              + '<select id="order-comp-' + i + '">'
-              + ['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('')
-              + '</select>'
-              + '</div>'
-            ).join('')}
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompOrder()">Save Unit Order</button>
-          </div>
+          <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
+          <div id="rot-alert" style="margin-bottom:0.5rem"></div>
+          <div id="rot-grid"></div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -297,12 +323,12 @@ export async function handleAdmin(request, env) {
         <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
         <div class="form-row">
           <div class="form-group">
-            <label>Tier</label>
-            <select id="new-comp-tier">${tierOptions}</select>
+            <label>Tier Label <span style="color:var(--text3);font-size:0.7rem">(e.g. T1 for ATK, D1 for DEF)</span></label>
+            <input type="text" id="new-comp-tier" placeholder="T1" maxlength="8" style="width:100%">
           </div>
           <div class="form-group">
             <label>Type</label>
-            <select id="new-comp-type"><option value="ATK">ATK</option><option value="DEF">DEF</option></select>
+            <select id="new-comp-type"><option value="ATK">&#9876; ATK (Attacking)</option><option value="DEF">&#128737; DEF (Defence)</option></select>
           </div>
         </div>
         <div class="form-group"><label>Name</label><input type="text" id="new-comp-name" placeholder="Team Name"></div>
@@ -316,6 +342,11 @@ export async function handleAdmin(request, env) {
     <!-- Comp list -->
     <div class="admin-form">
       <h3>Compositions (DB)</h3>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap">
+        <span style="font-size:0.75rem;color:var(--text3)">ATK → A1, A2… &nbsp; DEF → D1, D2…</span>
+        <button class="btn" style="width:auto;padding:4px 12px;font-size:0.75rem" data-action="normalize-tiers">Normalize Tier Labels</button>
+        <div id="normalize-alert" style="font-size:0.75rem"></div>
+      </div>
       <div id="comp-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
         ${compsListHtml}
       </div>
@@ -329,9 +360,14 @@ export async function handleAdmin(request, env) {
       <div id="emote-alert"></div>
       <div class="form-row">
         <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Happy Sylvia"></div>
-        <div class="form-group"><label>Image URL</label><input type="text" id="e-url" placeholder="https://..."></div>
+        <div class="form-group"><label>Image URL <span style="color:var(--text3);font-weight:400">(or upload below)</span></label><input type="text" id="e-url" placeholder="https://..."></div>
       </div>
-      <button class="btn" style="width:auto;padding:10px 24px" onclick="addEmote()">Add Emote</button>
+      <div class="form-group">
+        <label>Upload Image File <span style="color:var(--text3);font-weight:400">(optional — replaces URL)</span></label>
+        <input type="file" id="e-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+        <canvas id="emote-canvas" style="display:none"></canvas>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="add-emote">Add Emote</button>
     </div>
     <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${emotes.map(e =>
@@ -382,8 +418,10 @@ export async function handleAdmin(request, env) {
         </div>
         <div id="img-costume-sel-wrap" style="display:none">
           <div class="form-group">
-            <label>Costume Slug</label>
-            <input type="text" id="img-costume-slug-input" placeholder="costume_slug" oninput="updateImgKey()">
+            <label>Costume</label>
+            <select id="img-costume-slug-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:100%" onchange="updateImgKey()">
+              <option value="">— Select Costume —</option>
+            </select>
           </div>
         </div>
       </div>
@@ -480,9 +518,16 @@ export async function handleAdmin(request, env) {
           ${charsListHtml}
         </div>
         <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">+ Add Character</button>
+        <div style="border-top:1px solid rgba(192,57,43,0.3);margin-top:0.75rem;padding-top:0.75rem">
+          <div style="font-size:0.68rem;color:#e74c3c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem">&#9888; Danger Zone</div>
+          <button class="btn-danger" style="width:100%;padding:6px;font-size:0.78rem" onclick="resetAllChars()">Reset All Characters &amp; Images</button>
+          <div id="reset-chars-alert"></div>
+          <button class="btn-danger" style="width:100%;padding:6px;font-size:0.78rem;margin-top:0.35rem" onclick="resetAllRotations()">Clear All Skill Rotations</button>
+          <div id="reset-rotations-alert"></div>
+        </div>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
-          <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou"></div>
-          <div class="form-group"><label>Slug</label><input id="new-char-slug" placeholder="rou"></div>
+          <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
+          <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
           <div class="form-group"><label>Element</label>
             <select id="new-char-element">
               <option value="Dark">Dark</option>
@@ -497,6 +542,11 @@ export async function handleAdmin(request, env) {
               <option value="active">Active</option>
               <option value="upcoming">Upcoming</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>Portrait Image <span style="color:var(--text3);font-size:0.7rem">(base character image)</span></label>
+            <input type="file" id="new-char-portrait" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="new-char-canvas" style="display:none"></canvas>
           </div>
           <button class="btn" onclick="addChar()">Add Character</button>
         </div>
@@ -518,10 +568,14 @@ export async function handleAdmin(request, env) {
           <div id="char-subtab-costumes">
             <div style="margin-bottom:1rem">
               <div class="form-row">
-                <div class="form-group"><label>Costume Name</label><input id="cost-name" placeholder="Red Riding Hood"></div>
-                <div class="form-group"><label>Costume Slug</label><input id="cost-slug" placeholder="red_riding_hood"></div>
+                <div class="form-group"><label>Costume Name</label><input id="cost-name" placeholder="Red Riding Hood" oninput="autoCostumeSlug()"></div>
+                <div class="form-group"><label>Costume Slug <span style="color:var(--text3);font-size:0.7rem">(auto)</span></label><input id="cost-slug" placeholder="red_riding_hood" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
               </div>
-              <div class="form-group"><label>Bond Stats</label><textarea id="cost-stats" rows="2" placeholder="HP: +62.40%, DEF: +13.40%"></textarea></div>
+              <div class="form-group">
+                <label>Costume Image <span style="color:var(--text3);font-size:0.7rem">(optional — overrides portrait when this costume is picked)</span></label>
+                <input type="file" id="cost-img" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <canvas id="cost-img-canvas" style="display:none"></canvas>
+              </div>
               <div id="cost-alert"></div>
               <button class="btn" onclick="addCostume()">Add Costume</button>
             </div>
@@ -533,6 +587,12 @@ export async function handleAdmin(request, env) {
             <div class="form-group" style="margin-bottom:0.75rem">
               <label>Select Costume</label>
               <select id="skills-costume-sel" onchange="loadSkillsForCostume()"></select>
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;border:1px solid var(--border2);border-radius:6px;padding:0.75rem;background:var(--bg4)">
+              <label>Bond Stats <span style="color:var(--text3);font-size:0.7rem">(for selected costume)</span></label>
+              <textarea id="skill-bond-stats" rows="2" placeholder="HP: +62.40%, DEF: +13.40%" style="margin-bottom:0.5rem"></textarea>
+              <button class="btn" style="width:auto;padding:6px 16px" onclick="saveBondStats()">Save Bond Stats</button>
+              <div id="bond-stats-alert"></div>
             </div>
             <div style="margin-bottom:1rem">
               <div class="form-row">
@@ -609,6 +669,20 @@ export async function handleAdmin(request, env) {
     <div class="admin-form">
       <h3>Overview Cards</h3>
       <p style="font-size:0.8rem;color:var(--text3)">Edit short descriptions and colors via the Compositions tab → select each comp.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
+  <div class="admin-section" id="tab-settings">
+    <div class="admin-form">
+      <h3>Home Page Secret Code</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Change the secret code visitors enter on the home page to unlock the secret emotes section.</p>
+      <div id="secret-code-alert"></div>
+      <div class="form-group">
+        <label>New Secret Code <span style="color:var(--text3);font-size:0.7rem">(min 4 characters)</span></label>
+        <input type="text" id="new-secret-code" placeholder="e.g. Seji404" autocomplete="off">
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
   </div>
 </div>
@@ -736,7 +810,6 @@ function selectComp() {
   var val       = sel ? sel.value : '';
   var editorEl  = document.getElementById('comp-editor');
   var addFormEl = document.getElementById('comp-add-form');
-  var t1extras  = document.getElementById('comp-t1-extras');
   var labelEl   = document.getElementById('comp-editor-tier-label');
   var boardLbl  = document.getElementById('comp-board-label');
 
@@ -760,26 +833,30 @@ function selectComp() {
 
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
-  if (t1extras) t1extras.style.display = _compTier === 'T1' ? 'block' : 'none';
 
   loadCompData(_compId);
-  if (_compTier === 'T1') { loadCompNotes(); loadCompOrder(); }
+  loadCompChars();
   loadCompMedia(_compTier);
   loadCompRotation();
+  loadHowToPlay(_compTier);
+  loadPreemptive(_compTier);
 }
 
-async function uploadCompBoard() {
-  var fileEl = document.getElementById('comp-board-file');
+async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
+  suffix    = suffix    || '';
+  fileInputId = fileInputId || 'comp-board-file';
+  canvasId  = canvasId  || 'comp-canvas';
+  previewId = previewId || 'comp-board-preview';
+  var fileEl = document.getElementById(fileInputId);
   var file = fileEl && fileEl.files[0];
   if (!file) { showAlert('comp-editor-alert', false, 'Select an image file'); return; }
-  if (!_compBoardKey) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
+  if (!_compTier) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
   showAlert('comp-editor-alert', true, 'Compressing…');
-  var data = await compressToDataUrl(file, 'comp-canvas', 340, 0.85);
-  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data });
-  _compBoardKey = r.key || _compBoardKey;
+  var data = await compressToDataUrl(file, canvasId, 340, 0.85);
+  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data, suffix: suffix });
   showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
-    var preview = document.getElementById('comp-board-preview');
+    var preview = document.getElementById(previewId);
     if (preview) {
       preview.innerHTML = '<img src="' + escH(data) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
@@ -787,12 +864,93 @@ async function uploadCompBoard() {
   }
 }
 
+async function saveHowToPlay() {
+  if (!_compTier) { showAlert('comp-howtoplay-alert', false, 'Select a composition first'); return; }
+  var content = ((document.getElementById('comp-how-to-play')||{}).value||'').trim();
+  var r = await apiPost('/api/admin/comp/howtoplay/save', { tier: _compTier, content: content });
+  showAlert('comp-howtoplay-alert', r.success, r.message);
+}
+
+async function loadHowToPlay(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/howtoplay/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    var el = document.getElementById('comp-how-to-play');
+    if (el) el.value = data.content || '';
+  } catch(e) {}
+}
+
+async function loadPreemptive(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/preemptive/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    renderPreemptiveList(data.items || []);
+  } catch(e) {}
+}
+
+function renderPreemptiveList(items) {
+  var list = document.getElementById('preemptive-list');
+  if (!list) return;
+  if (!items.length) { list.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No images yet.</span>'; return; }
+  list.innerHTML = items.map(function(src, i) {
+    return '<div style="position:relative;display:inline-block">'
+      + '<img src="' + escH(src) + '" style="height:48px;width:auto;object-fit:contain;border-radius:4px;border:1px solid var(--border2)">'
+      + '<button class="btn-danger" data-action="preemptive-delete" data-index="' + i + '" style="position:absolute;top:-4px;right:-4px;font-size:0.65rem;padding:1px 4px;border-radius:50%;line-height:1">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function addPreemptive() {
+  if (!_compTier) { showAlert('comp-preemptive-alert', false, 'Select a composition first'); return; }
+  var fileEl = document.getElementById('preemptive-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('comp-preemptive-alert', false, 'Select an image file'); return; }
+  showAlert('comp-preemptive-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'preemptive-canvas', 200, 0.85);
+  var r = await apiPost('/api/admin/comp/preemptive/add', { tier: _compTier, data: data });
+  showAlert('comp-preemptive-alert', r.success, r.message || (r.success ? 'Added!' : 'Error'));
+  if (r.success) { if (fileEl) fileEl.value = ''; loadPreemptive(_compTier); }
+}
+
+async function deletePreemptive(index) {
+  if (!_compTier) return;
+  var r = await apiPost('/api/admin/comp/preemptive/delete', { tier: _compTier, index: index });
+  showAlert('comp-preemptive-alert', r.success, r.message);
+  if (r.success) loadPreemptive(_compTier);
+}
+
 async function saveCompVideo() {
   var urlEl = document.getElementById('comp-video-url');
   var url = urlEl ? urlEl.value.trim() : '';
-  if (!_compTier) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
   var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: url });
-  showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+  showAlert('comp-video-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+}
+
+async function uploadCompVideoFile() {
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
+  var fileEl = document.getElementById('comp-video-file');
+  var file   = fileEl && fileEl.files && fileEl.files[0];
+  if (!file) { showAlert('comp-video-alert', false, 'Select a video file'); return; }
+  if (file.size > 12 * 1024 * 1024) { showAlert('comp-video-alert', false, 'Video too large (' + (file.size/1024/1024).toFixed(1) + ' MB). Keep under ~12 MB.'); return; }
+  showAlert('comp-video-alert', true, 'Reading video…');
+  var dataUrl = await new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload  = function() { resolve(reader.result); };
+    reader.onerror = function() { reject(reader.error); };
+    reader.readAsDataURL(file);
+  }).catch(function() { return ''; });
+  if (!dataUrl) { showAlert('comp-video-alert', false, 'Could not read file'); return; }
+  var key = 'comp_' + _compTier.toLowerCase() + '_video';
+  showAlert('comp-video-alert', true, 'Uploading…');
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: dataUrl });
+  if (!r.success) { showAlert('comp-video-alert', false, r.message); return; }
+  var videoUrl = '/img/' + key;
+  var urlEl = document.getElementById('comp-video-url');
+  if (urlEl) urlEl.value = videoUrl;
+  var r2 = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: videoUrl });
+  showAlert('comp-video-alert', r2.success, r2.success ? 'Video uploaded and saved.' : r2.message);
+  if (r2.success && fileEl) fileEl.value = '';
 }
 
 async function loadCompMedia(tier) {
@@ -801,16 +959,22 @@ async function loadCompMedia(tier) {
     var data = await res.json();
     var urlEl = document.getElementById('comp-video-url');
     if (urlEl) urlEl.value = data.video || '';
+    var tierLow = tier.toLowerCase();
+    var frontKey = 'comp_' + tierLow + '_board';
+    var backKey  = 'comp_' + tierLow + '_board_back';
     var preview = document.getElementById('comp-board-preview');
-    var boardKey = data.board_key || _compBoardKey;
-    if (preview && boardKey) {
-      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    if (preview) {
+      preview.innerHTML = '<img src="/img/' + escH(frontKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    }
+    var backPreview = document.getElementById('comp-board-back-preview');
+    if (backPreview) {
+      backPreview.innerHTML = '<img src="/img/' + escH(backKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
   } catch(e) {}
 }
 
 async function addComp() {
-  var tier  = (document.getElementById('new-comp-tier')  || {}).value || 'T1';
+  var tier  = ((document.getElementById('new-comp-tier')  || {}).value || '').trim().toUpperCase() || 'T1';
   var name  = ((document.getElementById('new-comp-name') || {}).value || '').trim();
   var type  = (document.getElementById('new-comp-type')  || {}).value || 'ATK';
   var desc  = ((document.getElementById('new-comp-desc') || {}).value || '').trim();
@@ -856,28 +1020,39 @@ async function deleteComp(id) {
 async function loadCompData(id) {
   if (!id) return;
   try {
-    var res  = await fetch('/api/admin/chars/list'); // reuse existing endpoint to avoid extra call
-    // Load comp data from the select option's data attributes instead
-    var sel  = document.getElementById('comp-select');
-    var opt  = sel ? sel.options[sel.selectedIndex] : null;
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+
+    var sel = document.getElementById('comp-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
     if (!opt) return;
-    // Color
+
+    var nameEl = document.getElementById('comp-name');
+    if (nameEl && opt.dataset.name !== undefined) nameEl.value = opt.dataset.name;
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
-    // Short desc
     var sdEl = document.getElementById('comp-short-desc');
     if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
-    // Build notes
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
-    // Unit order
-    try {
-      var order = JSON.parse(opt.dataset.unitOrder || '[]');
-      for (var i = 0; i < 5; i++) {
-        var uEl = document.getElementById('uorder-' + (i+1));
-        if (uEl) uEl.value = order[i] || '';
-      }
-    } catch(e) {}
+
+    var currentOrder = [];
+    try { currentOrder = JSON.parse(opt.dataset.unitOrder || '[]'); } catch(e) {}
+
+    var slotsEl = document.getElementById('unit-order-slots');
+    if (slotsEl) {
+      slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
+        var cur = currentOrder[n-1] || '';
+        var opts = '<option value="">— Select —</option>' + allChars.map(function(c) {
+          return '<option value="' + escH(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+        }).join('');
+        return '<div style="text-align:center">'
+          + '<div style="font-size:0.65rem;color:var(--text3);margin-bottom:3px">' + n + '</div>'
+          + '<select id="uorder-sel-' + n + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:120px;font-size:0.82rem">'
+          + opts + '</select></div>';
+      }).join('');
+    }
   } catch(e) {}
 }
 
@@ -886,22 +1061,26 @@ async function saveCompMeta() {
   var color    = (document.getElementById('comp-color')      || {}).value || '#c9a84c';
   var shortDesc= ((document.getElementById('comp-short-desc')|| {}).value || '').trim();
   var notes    = ((document.getElementById('comp-build-notes')|| {}).value || '').trim();
+  var name     = ((document.getElementById('comp-name') || {}).value || '').trim();
   var sel      = document.getElementById('comp-select');
   var opt      = sel ? sel.options[sel.selectedIndex] : null;
-  var name     = opt ? opt.dataset.name  || '' : '';
+  if (!name && opt) name = opt.dataset.name || '';
   var type     = opt ? opt.dataset.type  || 'ATK' : 'ATK';
   var cby      = opt ? opt.dataset.cby   || '' : '';
   var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success) {
+    apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
+    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
+  }
   showAlert('comp-meta-alert', r.success, r.message);
-  if (r.success && opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
 }
 
 async function saveCompUnitOrder() {
   if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
   var order = [];
   for (var i = 1; i <= 5; i++) {
-    var v = ((document.getElementById('uorder-' + i)||{}).value||'').trim();
+    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
     if (v) order.push(v);
   }
   var sel  = document.getElementById('comp-select');
@@ -918,57 +1097,128 @@ async function saveCompUnitOrder() {
   if (r.success && opt) opt.dataset.unitOrder = uorderStr;
 }
 
-async function saveCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  var textEl = document.getElementById('notes-text-comp');
-  if (!charEl || !textEl) return;
-  var r = await apiPost('/api/admin/t1/notes/save', { char: charEl.value, notes: textEl.value });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
-
-async function loadCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  if (!charEl) return;
+/* ══════════════════════════════════════════════════ COMP CHAR BONDS ══ */
+async function loadCompChars() {
+  if (!_compTier) return;
+  var grid = document.getElementById('comp-bonds-grid');
+  if (!grid) return;
   try {
-    var res  = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
-    var data = await res.json();
-    var textEl = document.getElementById('notes-text-comp');
-    if (textEl) textEl.value = data.notes || '';
-  } catch(e) {}
-}
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+    var existingRes = await fetch('/api/admin/comp/chars/get?tier=' + encodeURIComponent(_compTier));
+    var existingData = await existingRes.json();
+    var existingChars = existingData.chars || [];
 
-async function saveCompOrder() {
-  var order = [];
-  for (var i = 1; i <= 5; i++) {
-    var sel = document.getElementById('order-comp-' + i);
-    if (sel) order.push(sel.value);
-  }
-  var r = await apiPost('/api/admin/t1/order/save', { order: order });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
+    var charOptions = '<option value="">— None —</option>' + allChars.map(function(c) {
+      return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
+    }).join('');
 
-async function loadCompOrder() {
-  try {
-    var res   = await fetch('/api/admin/t1/order/get');
-    var data  = await res.json();
-    var order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-    for (var i = 0; i < order.length; i++) {
-      var sel = document.getElementById('order-comp-' + (i + 1));
-      if (sel) sel.value = order[i];
+    grid.innerHTML = [1,2,3,4,5].map(function(n) {
+      var ex = existingChars.find(function(c) { return c.position === n; }) || {};
+      var charOpts = '<option value="">— None —</option>' + allChars.map(function(c) {
+        return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '"' + (c.name === (ex.char_name||'') ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+      }).join('');
+      var portraitSrc = ex.char_slug ? '/img/char_' + ex.char_slug + '_portrait' : '';
+      return '<div style="border:1px solid var(--border2);border-radius:8px;padding:0.75rem;background:var(--bg4)">'
+        + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.4rem;font-family:Cinzel,serif">SLOT ' + n + '</div>'
+        + '<select id="bond-char-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + charOpts + '</select>'
+        + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + '<option value="">— Costume —</option></select>'
+        + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
+        + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
+        + '</div></div>';
+    }).join('');
+
+    for (var n = 1; n <= 5; n++) {
+      (function(slot) {
+        var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
+        var charSel = document.getElementById('bond-char-' + slot);
+        var costSel = document.getElementById('bond-cost-' + slot);
+        function refreshPortrait() {
+          var img = document.getElementById('bond-portrait-' + slot);
+          if (!img) return;
+          var charOpt = charSel ? charSel.options[charSel.selectedIndex] : null;
+          var slug = charOpt ? (charOpt.dataset.slug || '') : '';
+          if (!slug) { img.src = ''; img.style.display = 'none'; return; }
+          var costName = costSel ? costSel.value : '';
+          var cosSlug  = (costName||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+          var url = cosSlug
+            ? '/img/char_' + slug + '_' + cosSlug + '_icon'
+            : '/img/char_' + slug + '_portrait';
+          img.onerror = function() {
+            img.onerror = null;
+            img.src = '/img/char_' + slug + '_portrait?t=' + Date.now();
+          };
+          img.src = url + '?t=' + Date.now();
+          img.style.display = 'block';
+        }
+        if (charSel) {
+          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '', refreshPortrait);
+          charSel.addEventListener('change', function() {
+            var opt = charSel.options[charSel.selectedIndex];
+            var slug = opt ? (opt.dataset.slug || '') : '';
+            loadBondCostumes(slot, slug, '', refreshPortrait);
+            refreshPortrait();
+          });
+        }
+        if (costSel) costSel.addEventListener('change', refreshPortrait);
+      })(n);
     }
   } catch(e) {}
 }
 
+async function loadBondCostumes(slot, charSlug, selectedCostume, done) {
+  var sel = document.getElementById('bond-cost-' + slot);
+  if (!sel || !charSlug) { if (done) done(); return; }
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    sel.innerHTML = '<option value="">— Costume —</option>' + (data.costumes||[]).map(function(c) {
+      return '<option value="' + escH(c.costume_name) + '"' + (c.costume_name === selectedCostume ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
+    }).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">— No costumes —</option>';
+  }
+  if (done) done();
+}
+
+async function saveCompBonds() {
+  if (!_compTier) { showAlert('comp-bonds-alert', false, 'Select a composition first'); return; }
+  var charsRes = await fetch('/api/admin/chars/list').then(function(r) { return r.json(); }).catch(function() { return { chars: [] }; });
+  var allChars = charsRes.chars || [];
+  var chars = [];
+  for (var n = 1; n <= 5; n++) {
+    var charSel = document.getElementById('bond-char-' + n);
+    var costSel = document.getElementById('bond-cost-' + n);
+    var charName = charSel ? charSel.value : '';
+    if (!charName) continue;
+    var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
+    chars.push({
+      position: n,
+      char_name: charName,
+      char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      costume_name: costSel ? costSel.value : '',
+      bond_stats: '',
+    });
+  }
+  var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
+  showAlert('comp-bonds-alert', r.success, r.message);
+}
+
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
-async function addEmote() {
-  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
-  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
-  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and URL required'); return; }
+async function addEmoteWithData(name, image_url) {
+  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and image required'); return; }
   var r = await apiPost('/api/admin/emote/add', { name: name, image_url: image_url });
   showAlert('emote-alert', r.success, r.message);
   if (r.success) {
-    document.getElementById('e-name').value = '';
-    document.getElementById('e-url').value  = '';
+    var nameEl = document.getElementById('e-name');
+    var urlEl  = document.getElementById('e-url');
+    var fileEl = document.getElementById('e-file');
+    if (nameEl) nameEl.value = '';
+    if (urlEl)  urlEl.value  = '';
+    if (fileEl) fileEl.value = '';
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
@@ -978,6 +1228,23 @@ async function addEmote() {
       + '<button class="btn-danger" data-action="emote-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('emote-list');
     if (list) list.prepend(div);
+  }
+}
+
+async function addEmote() {
+  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
+  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
+  var fileEl    = document.getElementById('e-file');
+  var file      = fileEl && fileEl.files[0];
+  if (!name) { showAlert('emote-alert', false, 'Name required'); return; }
+  if (file) {
+    showAlert('emote-alert', true, 'Compressing…');
+    var data = await compressToDataUrl(file, 'emote-canvas', 200, 0.85);
+    await addEmoteWithData(name, data);
+  } else if (image_url) {
+    await addEmoteWithData(name, image_url);
+  } else {
+    showAlert('emote-alert', false, 'Provide an image URL or upload a file');
   }
 }
 
@@ -1001,6 +1268,31 @@ function setImgCat(cat) {
   updateImgKey();
 }
 
+var _imgCostumeCache = {};
+async function loadImgCostumeOptions(charSlug) {
+  var sel = document.getElementById('img-costume-slug-sel');
+  if (!sel || !charSlug) return;
+  if (_imgCostumeCache[charSlug]) {
+    var curVal = sel.value;
+    sel.innerHTML = '<option value="">— Select Costume —</option>'
+      + _imgCostumeCache[charSlug].map(function(c) {
+        return '<option value="' + escH(c.costume_slug) + '"' + (c.costume_slug === curVal ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
+      }).join('');
+    updateImgKey();
+    return;
+  }
+  try {
+    var res  = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    _imgCostumeCache[charSlug] = data.costumes || [];
+    sel.innerHTML = '<option value="">— Select Costume —</option>'
+      + _imgCostumeCache[charSlug].map(function(c) {
+        return '<option value="' + escH(c.costume_slug) + '">' + escH(c.costume_name) + '</option>';
+      }).join('');
+  } catch(e) {}
+  updateImgKey();
+}
+
 function updateImgKey() {
   var key = '';
   if (_imgCat === 'chars') {
@@ -1008,7 +1300,7 @@ function updateImgKey() {
     var slotSel = document.getElementById('img-slot-type');
     var ch  = charSel ? charSel.value : 'rou';
     var sl  = slotSel ? slotSel.value : 'portrait';
-    var slug = ch.toLowerCase().replace('scheherazade','schera');
+    var slug = ch.toLowerCase();
     var costumeWrap = document.getElementById('img-costume-sel-wrap');
     if (sl === 'portrait') {
       key = 'char_' + slug + '_portrait';
@@ -1017,9 +1309,12 @@ function updateImgKey() {
       key = 'char_' + slug + '_gear';
       if (costumeWrap) costumeWrap.style.display = 'none';
     } else {
-      var cs = ((document.getElementById('img-costume-slug-input') || {}).value || '').trim();
+      var cs = ((document.getElementById('img-costume-slug-sel') || {}).value || '').trim();
       key = 'char_' + slug + '_' + (cs || 'costume') + '_icon';
-      if (costumeWrap) costumeWrap.style.display = 'block';
+      if (costumeWrap) {
+        costumeWrap.style.display = 'block';
+        loadImgCostumeOptions(slug);
+      }
     }
   } else if (_imgCat === 'comps') {
     var t = (document.getElementById('img-comp-tier') || {}).value || 'T1';
@@ -1027,7 +1322,7 @@ function updateImgKey() {
   } else if (_imgCat === 'tiles') {
     var tch  = (document.getElementById('img-tile-char') || {}).value || 'Rou';
     var tsl  = (document.getElementById('img-tile-slot') || {}).value || '1';
-    var tslug = tch.toLowerCase().replace('scheherazade','schera');
+    var tslug = tch.toLowerCase();
     key = 'tile_' + tslug + '_' + tsl;
   } else if (_imgCat === 'other') {
     key = ((document.getElementById('img-other-key') || {}).value || '').trim();
@@ -1110,6 +1405,20 @@ function toggleAddCharForm() {
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
 }
 
+function autoCharSlug() {
+  var nameEl = document.getElementById('new-char-name');
+  var slugEl = document.getElementById('new-char-slug');
+  if (!nameEl || !slugEl) return;
+  slugEl.value = (nameEl.value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function autoCostumeSlug() {
+  var nameEl = document.getElementById('cost-name');
+  var slugEl = document.getElementById('cost-slug');
+  if (!nameEl || !slugEl) return;
+  slugEl.value = (nameEl.value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
 async function loadChars() {
   try {
     var res  = await fetch('/api/admin/chars/list');
@@ -1147,14 +1456,137 @@ async function addChar() {
   var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
   var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
   var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
+  var portraitEl = document.getElementById('new-char-portrait');
+  var portraitFile = portraitEl && portraitEl.files && portraitEl.files[0];
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
+  if (r.success && portraitFile) {
+    showAlert('char-alert', true, 'Uploading portrait…');
+    try {
+      var data = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: data });
+    } catch(e) {}
+  }
   showAlert('char-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('new-char-name').value = '';
     document.getElementById('new-char-slug').value = '';
+    if (portraitEl) portraitEl.value = '';
     loadChars();
   }
+}
+
+async function moveComp(id, direction) {
+  var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
+  if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
+  if (r.comps) updateCompListInPlace(r.comps);
+}
+
+function compRowHtmlJs(c) {
+  var isAtk = (c.type || 'ATK') === 'ATK';
+  var badgeStyle = isAtk
+    ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
+    : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
+  var badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
+  var color = c.color || '#c9a84c';
+  return '<div class="admin-item" id="comp-' + c.id + '">'
+    + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
+    + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
+    + '<strong>' + escH(c.tier) + ' &mdash; ' + escH(c.name) + '</strong>'
+    + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:0.3rem;align-items:center">'
+    + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-up" data-id="' + c.id + '" title="Move up">&#9650;</button>'
+    + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-down" data-id="' + c.id + '" title="Move down">&#9660;</button>'
+    + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function updateCompListInPlace(comps) {
+  // Update comp-select dropdown
+  var sel = document.getElementById('comp-select');
+  if (sel) {
+    var curVal = sel.value;
+    var newOpt = sel.querySelector('option[value="new"]');
+    Array.from(sel.options).forEach(function(o) { if (o.value && o.value !== 'new') o.remove(); });
+    comps.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.id;
+      opt.dataset.tier      = c.tier;
+      opt.dataset.name      = c.name || '';
+      opt.dataset.type      = c.type || 'ATK';
+      opt.dataset.color     = c.color || '#c9a84c';
+      opt.dataset.shortDesc = c.short_description || '';
+      opt.dataset.notes     = c.description || '';
+      opt.dataset.unitOrder = c.unit_order || '[]';
+      opt.dataset.cby       = c.countered_by || '';
+      opt.text = c.tier + ' — ' + c.name + ' (' + (c.type || 'ATK') + ')';
+      if (newOpt) sel.insertBefore(opt, newOpt);
+      else sel.appendChild(opt);
+    });
+    // Restore selection; update _compTier if selected comp was renamed
+    if (curVal && curVal !== 'new') {
+      sel.value = curVal;
+      var cur = comps.find(function(c) { return String(c.id) === String(curVal); });
+      if (cur) {
+        _compTier = cur.tier;
+        var label = document.getElementById('comp-editor-tier-label');
+        if (label) label.textContent = cur.tier + ' — Editing content';
+      }
+    }
+  }
+  // Update comp list panel
+  var list = document.getElementById('comp-list');
+  if (!list) return;
+  var atkComps = comps.filter(function(c) { return (c.type || 'ATK') === 'ATK'; });
+  var defComps = comps.filter(function(c) { return (c.type || 'ATK') === 'DEF'; });
+  var html = '';
+  if (atkComps.length) {
+    html += '<div style="font-size:0.7rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">&#9876; Attacking</div>';
+    html += atkComps.map(compRowHtmlJs).join('');
+  }
+  if (defComps.length) {
+    html += '<div style="font-size:0.7rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.5rem;border-top:1px solid var(--border2);padding-top:0.5rem">&#128737; Defence</div>';
+    html += defComps.map(compRowHtmlJs).join('');
+  }
+  list.innerHTML = html || '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
+}
+
+async function normalizeCompTiers() {
+  showAlert('normalize-alert', true, 'Normalizing…');
+  var r = await apiPost('/api/admin/comp/normalize-tiers', {});
+  showAlert('normalize-alert', r.success, r.message);
+  if (r.success) {
+    // Reload comps from server
+    try {
+      var res = await fetch('/api/admin/chars/list'); // reuse pattern: fetch comps fresh
+    } catch(e) {}
+    window.location.reload();
+  }
+}
+
+async function resetAllChars() {
+  if (!confirm('DELETE all characters, costumes, skills, bonds, portraits and gear images?\\n\\nThis cannot be undone.')) return;
+  showAlert('reset-chars-alert', true, 'Deleting…');
+  var r = await apiPost('/api/admin/chars/reset', {});
+  showAlert('reset-chars-alert', r.success, r.message);
+  if (r.success) { loadChars(); loadCompChars && loadCompChars(); }
+}
+
+async function resetAllRotations() {
+  if (!confirm('DELETE all skill rotation data?\\n\\nThis cannot be undone.')) return;
+  showAlert('reset-rotations-alert', true, 'Deleting…');
+  var r = await apiPost('/api/admin/rotations/reset', {});
+  showAlert('reset-rotations-alert', r.success, r.message);
+}
+
+async function saveSecretCode() {
+  var code = ((document.getElementById('new-secret-code') || {}).value || '').trim();
+  if (!code || code.length < 4) { showAlert('secret-code-alert', false, 'Code must be at least 4 characters'); return; }
+  var r = await apiPost('/api/admin/secret/save', { code: code });
+  showAlert('secret-code-alert', r.success, r.message);
+  if (r.success) document.getElementById('new-secret-code').value = '';
 }
 
 async function deleteChar(id) {
@@ -1231,15 +1663,44 @@ async function loadCostumes(charSlug) {
 async function addCostume() {
   var name  = ((document.getElementById('cost-name')  || {}).value || '').trim();
   var slug  = ((document.getElementById('cost-slug')  || {}).value || '').trim();
-  var stats = ((document.getElementById('cost-stats') || {}).value || '').trim();
+  var imgEl = document.getElementById('cost-img');
+  var imgFile = imgEl && imgEl.files && imgEl.files[0];
   if (!name || !slug) { showAlert('cost-alert', false, 'Name and slug required'); return; }
-  var r = await apiPost('/api/admin/costumes/add', { char_slug: _selectedCharSlug, costume_name: name, costume_slug: slug, bond_stats: stats });
+  var r = await apiPost('/api/admin/costumes/add', { char_slug: _selectedCharSlug, costume_name: name, costume_slug: slug, bond_stats: '' });
+  if (r.success && imgFile && _selectedCharSlug) {
+    showAlert('cost-alert', true, 'Uploading costume image…');
+    try {
+      var data = await compressToDataUrl(imgFile, 'cost-img-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + _selectedCharSlug.toLowerCase() + '_' + slug + '_icon', data: data });
+    } catch(e) {}
+  }
   showAlert('cost-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('cost-name').value  = '';
     document.getElementById('cost-slug').value  = '';
+    if (imgEl) imgEl.value = '';
     loadCostumes(_selectedCharSlug);
   }
+}
+
+async function saveBondStats() {
+  var sel = document.getElementById('skills-costume-sel');
+  var slug = sel ? sel.value : _selectedCostumeSlug;
+  if (!slug) { showAlert('bond-stats-alert', false, 'Select a costume first'); return; }
+  var stats = ((document.getElementById('skill-bond-stats') || {}).value || '').trim();
+  var r = await apiPost('/api/admin/costumes/update', { char_slug: _selectedCharSlug, costume_slug: slug, bond_stats: stats });
+  showAlert('bond-stats-alert', r.success, r.message);
+}
+
+async function loadBondStatsForCostume(slug) {
+  if (!_selectedCharSlug || !slug) return;
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(_selectedCharSlug));
+    var data = await res.json();
+    var match = (data.costumes||[]).find(function(c) { return c.costume_slug === slug; });
+    var ta = document.getElementById('skill-bond-stats');
+    if (ta) ta.value = match ? (match.bond_stats || '') : '';
+  } catch(e) {}
 }
 
 async function deleteCostume(id) {
@@ -1253,6 +1714,7 @@ function selectCostume(id, name, slug) {
   var skillsSel = document.getElementById('skills-costume-sel');
   if (skillsSel) skillsSel.value = slug;
   loadSkills(slug);
+  loadBondStatsForCostume(slug);
 }
 
 function loadSkillsForCostume() {
@@ -1260,6 +1722,7 @@ function loadSkillsForCostume() {
   if (!sel || !sel.value) return;
   _selectedCostumeSlug = sel.value;
   loadSkills(sel.value);
+  loadBondStatsForCostume(sel.value);
 }
 
 async function loadSkills(costumeSlug) {
@@ -1312,7 +1775,7 @@ async function deleteSkill(id) {
 function updateCharImgKey() {
   var slotSel = document.getElementById('char-img-slot');
   var slot    = slotSel ? slotSel.value : 'portrait';
-  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   var wrap    = document.getElementById('char-img-costume-wrap');
   var display = document.getElementById('char-img-computed-key');
   var key     = '';
@@ -1347,7 +1810,7 @@ function previewCharImage(input) {
 }
 
 async function uploadCharImage(slot, file) {
-  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   if (!slug) { showAlert('char-img-alert', false, 'Select a character first'); return; }
   if (!file) {
     var fileEl = document.getElementById('char-img-file');
@@ -1398,7 +1861,7 @@ function triggerCharUpload(slot) {
 async function loadCharImgGrid() {
   var grid = document.getElementById('char-img-grid');
   if (!grid || !_selectedCharSlug) return;
-  var slug = _selectedCharSlug.toLowerCase().replace('scheherazade','schera');
+  var slug = _selectedCharSlug.toLowerCase();
   var slots = [
     { key: 'char_' + slug + '_portrait', label: 'Portrait',  slot: 'portrait' },
     { key: 'char_' + slug + '_gear',     label: 'Gear',      slot: 'gear' },
@@ -1417,58 +1880,137 @@ async function loadCharImgGrid() {
 }
 
 /* ══════════════════════════════════════════ COMP ROTATION ══ */
+var _rotSaved   = {};   // { char_name: { slot: costume_name } }
+var _rotCostMap = {};   // { char_name: [costume_name, ...] }
+
 async function loadCompRotation() {
-  var list = document.getElementById('rot-list');
-  if (!list || !_compTier) return;
+  if (!_compTier) return;
+  // Load saved rotation rows
   try {
     var res  = await fetch('/api/admin/comp/rotation/get?tier=' + encodeURIComponent(_compTier));
     var data = await res.json();
-    buildRotationDisplay(data.rotation || []);
+    _rotSaved = {};
+    (data.rotation || []).forEach(function(r) {
+      if (!_rotSaved[r.char_name]) _rotSaved[r.char_name] = {};
+      _rotSaved[r.char_name][r.slot] = r.costume || r.skill_name || '';
+    });
   } catch(e) {}
+  // Load comp chars to pre-fill selectors
+  var chars = [];
+  try {
+    var cres  = await fetch('/api/admin/chars/list');
+    var cdata = await cres.json();
+    chars = cdata.chars || [];
+  } catch(e) {}
+  buildRotationSelectors(chars);
 }
 
-function buildRotationDisplay(rows) {
-  var list = document.getElementById('rot-list');
-  if (!list) return;
-  if (!rows.length) { list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No rotation saved yet.</p>'; return; }
-  var byChar = {};
-  rows.forEach(function(r) { if (!byChar[r.char_name]) byChar[r.char_name]=[]; byChar[r.char_name].push(r); });
-  var html = '';
-  Object.keys(byChar).forEach(function(charName) {
-    html += '<div style="margin-bottom:0.6rem"><div style="font-weight:700;font-size:0.82rem;color:var(--text2);margin-bottom:0.3rem">' + escH(charName) + '</div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem">';
-    byChar[charName].forEach(function(r) {
-      html += '<div class="admin-item" style="flex:none;padding:0.4rem 0.6rem;gap:0.5rem;align-items:flex-start">'
-        + '<div><div style="font-size:0.65rem;color:var(--text3)">Slot ' + r.slot + '</div>'
-        + '<strong style="font-size:0.8rem">' + escH(r.skill_name || '') + '</strong>'
-        + '<div style="font-size:0.7rem;color:var(--text3)">SP' + r.sp_cost + ' \xb7 CD' + r.cooldown + ' \xb7 ' + escH(r.tile_type || 'FRONT') + '</div></div>'
-        + '<button class="btn-danger" style="font-size:0.7rem;padding:2px 6px;flex-shrink:0" data-action="rot-delete" data-char="' + escH(charName) + '" data-slot="' + r.slot + '">&#x2715;</button>'
-        + '</div>';
-    });
+function buildRotationSelectors(allChars) {
+  var box = document.getElementById('rot-char-selectors');
+  if (!box) return;
+  var opts = '<option value="">— None —</option>' + allChars.map(function(c) {
+    return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
+  }).join('');
+  // Pre-fill from existing saved chars
+  var savedChars = Object.keys(_rotSaved);
+  box.innerHTML = [1,2,3,4,5].map(function(i) {
+    var preselect = savedChars[i-1] || '';
+    var selOpts = opts.replace(
+      'value="' + escH(preselect) + '"',
+      'value="' + escH(preselect) + '" selected'
+    );
+    return '<div>'
+      + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:2px">Char ' + i + '</div>'
+      + '<select class="rot-char-sel" data-pos="' + i + '" style="width:100%;font-size:0.8rem;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px;border-radius:4px" data-action="rot-char-change">' + selOpts + '</select>'
+      + '</div>';
+  }).join('');
+  buildRotationGrid();
+}
+
+async function onRotCharChange(sel) {
+  var charName = sel.value;
+  if (charName && !_rotCostMap[charName]) {
+    var slug = sel.options[sel.selectedIndex] ? (sel.options[sel.selectedIndex].dataset.slug || '') : '';
+    await loadRotCostumes(charName, slug);
+  }
+  buildRotationGrid();
+}
+
+async function loadRotCostumes(charName, charSlug) {
+  if (!charSlug) charSlug = charName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  try {
+    var res  = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    _rotCostMap[charName] = (data.costumes || []).map(function(c) { return c.costume_name || c.name || ''; }).filter(Boolean);
+  } catch(e) { _rotCostMap[charName] = []; }
+}
+
+function buildRotationGrid() {
+  var grid = document.getElementById('rot-grid');
+  if (!grid) return;
+  // Collect selected chars from selectors
+  var sels = document.querySelectorAll('.rot-char-sel');
+  var selected = [];
+  sels.forEach(function(s) { if (s.value) selected.push(s.value); });
+  if (!selected.length) { grid.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">Select characters above to build the rotation grid.</p>'; return; }
+
+  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.75rem;padding:2px 4px;width:100%';
+  var html = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(selected.length, 5) + ',1fr);gap:0.75rem">';
+  selected.forEach(function(charName) {
+    var costumes  = _rotCostMap[charName] || [];
+    var saved     = _rotSaved[charName]   || {};
+    var costOpts  = '<option value="">— None —</option>' + costumes.map(function(cn) {
+      return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
+    }).join('');
+    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem">';
+    html += '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);margin-bottom:0.4rem;text-align:center">' + escH(charName) + '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem">';
+    for (var slot = 1; slot <= 10; slot++) {
+      var cur = saved[slot] || '';
+      var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
+      html += '<div style="display:flex;align-items:center;gap:0.2rem">';
+      html += '<span style="font-size:0.65rem;color:var(--text3);width:12px;flex-shrink:0;text-align:right">' + slot + '</span>';
+      html += '<select style="' + selStyle + '"'
+            + ' data-action="rot-slot-change"'
+            + ' data-char="' + escH(charName) + '"'
+            + ' data-slot="' + slot + '">'
+            + selOpts + '</select>';
+      if (cur) {
+        html += '<button class="btn-danger" style="font-size:0.65rem;padding:1px 4px;flex-shrink:0;line-height:1"'
+              + ' data-action="rot-delete"'
+              + ' data-char="' + escH(charName) + '"'
+              + ' data-slot="' + slot + '">×</button>';
+      }
+      html += '</div>';
+    }
     html += '</div></div>';
   });
-  list.innerHTML = html;
+  html += '</div>';
+  grid.innerHTML = html;
 }
 
-async function saveCompRotationSlot() {
-  if (!_compTier) { showAlert('rot-alert', false, 'Select a composition first'); return; }
-  var charName  = ((document.getElementById('rot-char-name')  || {}).value || '').trim();
-  var slot      = +((document.getElementById('rot-slot')       || {}).value || 1);
-  var skillName = ((document.getElementById('rot-skill-name')  || {}).value || '').trim();
-  var sp        = +((document.getElementById('rot-sp')          || {}).value || 3);
-  var cd        = +((document.getElementById('rot-cd')          || {}).value || 5);
-  var tile      = (document.getElementById('rot-tile')          || {}).value || 'FRONT';
-  var desc      = ((document.getElementById('rot-desc')         || {}).value || '').trim();
-  if (!charName || !skillName) { showAlert('rot-alert', false, 'Character name and skill name required'); return; }
-  var r = await apiPost('/api/admin/comp/rotation/save', { tier: _compTier, char_name: charName, slot: slot, skill_name: skillName, sp_cost: sp, cooldown: cd, tile_type: tile, description: desc });
-  showAlert('rot-alert', r.success, r.message);
-  if (r.success) loadCompRotation();
+async function saveRotationSlot(charName, slot, costumeName) {
+  if (!_compTier || !charName || !slot) return;
+  if (!costumeName) { await deleteCompRotationSlot(charName, slot); return; }
+  var r = await apiPost('/api/admin/comp/rotation/save', {
+    tier: _compTier, char_name: charName, slot: +slot,
+    skill_name: costumeName, costume: costumeName,
+    sp_cost: 1, cooldown: 5, tile_type: 'FRONT', description: ''
+  });
+  if (r.success) {
+    if (!_rotSaved[charName]) _rotSaved[charName] = {};
+    _rotSaved[charName][slot] = costumeName;
+    buildRotationGrid();
+  } else showAlert('rot-alert', false, r.message);
 }
 
 async function deleteCompRotationSlot(charName, slot) {
-  var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: slot });
-  if (r.success) loadCompRotation();
-  else showAlert('rot-alert', false, r.message);
+  if (!_compTier) return;
+  var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: +slot });
+  if (r.success) {
+    if (_rotSaved[charName]) delete _rotSaved[charName][slot];
+    buildRotationGrid();
+  } else showAlert('rot-alert', false, r.message);
 }
 
 /* ════════════════════════════════════════════ HOME NOTES ══ */
@@ -1511,6 +2053,8 @@ document.addEventListener('click', function(e) {
   var key    = b.dataset.key;
   if (action === 'coupon-delete')   deleteCoupon(id);
   if (action === 'comp-delete')     deleteComp(id);
+  if (action === 'comp-move-up')    moveComp(id, 'up');
+  if (action === 'comp-move-down')  moveComp(id, 'down');
   if (action === 'emote-delete')    deleteEmote(id);
   if (action === 'image-delete')    deleteImage(key);
   if (action === 'char-delete')     deleteChar(id);
@@ -1523,9 +2067,20 @@ document.addEventListener('click', function(e) {
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
-  if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
-  if (action === 'preset-color')    { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
-  if (action === 'home-note-save')  saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-char-change')  onRotCharChange(b);
+  if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
+  if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
+  if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'save-secret-code') saveSecretCode();
+  if (action === 'normalize-tiers')  normalizeCompTiers();
+  if (action === 'save-comp-bonds')  saveCompBonds();
+  if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
+  if (action === 'upload-board-back')  uploadCompBoard('_back', 'comp-board-back-file', 'comp-canvas-back', 'comp-board-back-preview');
+  if (action === 'save-how-to-play') saveHowToPlay();
+  if (action === 'add-preemptive')   addPreemptive();
+  if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
+  if (action === 'add-emote')        addEmote();
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */

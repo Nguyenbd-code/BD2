@@ -1,4 +1,5 @@
 import { handleHome }                              from './pages/home.js';
+import { handleCharacters }                        from './pages/characters.js';
 import { handleGuide }                             from './pages/guide.js';
 import { handleCoupons }                           from './pages/coupons.js';
 import { handleEmotes }                            from './pages/emotes.js';
@@ -36,6 +37,19 @@ export default {
       // Image serving
       if (path.startsWith('/img/')) return handleImage(request, env);
 
+      // Secret code check (public, no auth)
+      if (path === '/api/secret/check' && method === 'POST') {
+        let b = {};
+        try { b = await request.json(); } catch {}
+        const submitted = b.code || '';
+        const DEFAULT_SECRET = 'Seji404';
+        const row = await env.DB.prepare("SELECT data FROM images WHERE key='secret_code'").first().catch(()=>null);
+        const correct = (row && row.data) ? row.data : DEFAULT_SECRET;
+        return new Response(JSON.stringify({ success: submitted === correct }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       // Redeem API
       if (path === '/api/redeem' && method === 'POST') return handleRedeem(request);
 
@@ -52,6 +66,7 @@ export default {
       if (path === '/guide')           return handleGuide(request, env);
       if (path === '/coupons')         return handleCoupons(request, env);
       if (path === '/emotes')          return handleEmotes(request, env);
+      if (path === '/characters')      return handleCharacters(request, env);
 
       return new Response('Not Found', { status: 404 });
     } catch(err) {

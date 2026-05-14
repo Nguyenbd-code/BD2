@@ -12,14 +12,13 @@ export async function handleCoupons(request, env) {
 <div class="code-card">
   <div class="code-value">
     ${esc(c.code)}
-    <button class="copy-btn" onclick="copyCode('${esc(c.code)}',this)">Copy</button>
+    <button class="copy-btn" data-action="copy-code" data-code="${esc(c.code)}">Copy</button>
   </div>
-  <div class="code-rewards">${esc(c.rewards || '')}</div>
   ${c.expiry ? `<div class="code-expiry">Expires: ${esc(c.expiry)}</div>` : ''}
 </div>`).join('')
     : '<p style="text-align:center;color:var(--text3);padding:2rem">No active codes right now — check back soon!</p>';
 
-  const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })));
+  const codesJson = JSON.stringify(codes.map(c => ({ code: c.code })));
 
   return layout('Coupons', `
 <div class="hero" style="padding-bottom:2rem">
@@ -75,13 +74,28 @@ async function tryRedeemDirect(nickname, code) {
 
 function setManualFallback(row, code) {
   var badge = row.querySelector('.result-badge');
-  badge.className = 'result-badge rb-failed';
-  badge.style.display = 'none';
+  if (badge) { badge.className = 'result-badge rb-failed'; badge.style.display = 'none'; }
   var extra = document.createElement('span');
   extra.style.cssText = 'display:inline-flex;gap:0.4rem;align-items:center;flex-wrap:wrap';
-  extra.innerHTML = '<span class="result-badge rb-failed" style="font-size:0.7rem">Manual</span>'
-    + '<button class="copy-btn" onclick="navigator.clipboard.writeText(\\'' + escH(code) + '\\').then(function(){this.textContent=\\'Copied!\\';setTimeout(function(){document.querySelector(\\'[data-copy=\\"' + escH(code) + '\\"]\\')||0},1500)}.bind(this))" style="font-size:0.72rem">Copy Code</button>'
-    + '<a href="' + BD2_PAGE + '" target="_blank" class="copy-btn" style="font-size:0.72rem;text-decoration:none">Open BD2 Page</a>';
+  var manualBadge = document.createElement('span');
+  manualBadge.className = 'result-badge rb-failed';
+  manualBadge.style.fontSize = '0.7rem';
+  manualBadge.textContent = 'Manual';
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.style.fontSize = '0.72rem';
+  copyBtn.dataset.action = 'copy-code';
+  copyBtn.dataset.code = code;
+  copyBtn.textContent = 'Copy Code';
+  var link = document.createElement('a');
+  link.href = BD2_PAGE;
+  link.target = '_blank';
+  link.className = 'copy-btn';
+  link.style.cssText = 'font-size:0.72rem;text-decoration:none';
+  link.textContent = 'Open BD2 Page';
+  extra.appendChild(manualBadge);
+  extra.appendChild(copyBtn);
+  extra.appendChild(link);
   row.appendChild(extra);
 }
 
@@ -135,7 +149,10 @@ async function redeemAll() {
   btn.textContent = 'Redeem All Active Codes';
 }
 
-function copyCode(code, btn) {
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action="copy-code"]');
+  if (!btn) return;
+  var code = btn.dataset.code || '';
   navigator.clipboard.writeText(code).then(function() {
     var orig = btn.textContent;
     btn.textContent = 'Copied!';
@@ -144,7 +161,7 @@ function copyCode(code, btn) {
     btn.textContent = 'Error';
     setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
   });
-}
+});
 </script>
 `, 'coupons');
 }
