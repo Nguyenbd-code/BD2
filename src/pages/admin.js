@@ -273,22 +273,9 @@ export async function handleAdmin(request, env) {
         <!-- Skill Rotation (all tiers) -->
         <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
           <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
-          <div class="form-row">
-            <div class="form-group"><label>Character Name</label><input id="rot-char-name" placeholder="Rou"></div>
-            <div class="form-group"><label>Slot #</label><input type="number" id="rot-slot" value="1" min="1" max="10" style="width:70px"></div>
-          </div>
-          <div class="form-group"><label>Skill Name</label><input id="rot-skill-name" placeholder="Half Moon Kick"></div>
-          <div class="form-row">
-            <div class="form-group"><label>SP Cost</label><input type="number" id="rot-sp" value="3" min="1" max="10"></div>
-            <div class="form-group"><label>Cooldown</label><input type="number" id="rot-cd" value="5" min="1" max="10"></div>
-            <div class="form-group"><label>Tile Type</label>
-              <select id="rot-tile"><option>FRONT</option><option>SELF</option><option>ALL</option><option>SKIP</option></select>
-            </div>
-          </div>
-          <div class="form-group"><label>Description</label><textarea id="rot-desc" rows="2" placeholder="Skill effect..."></textarea></div>
-          <div id="rot-alert"></div>
-          <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompRotationSlot()">Save Slot</button>
-          <div id="rot-list" style="margin-top:0.75rem"></div>
+          <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
+          <div id="rot-alert" style="margin-bottom:0.5rem"></div>
+          <div id="rot-grid"></div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -1573,58 +1560,135 @@ async function loadCharImgGrid() {
 }
 
 /* ══════════════════════════════════════════ COMP ROTATION ══ */
+var _rotSaved   = {};   // { char_name: { slot: costume_name } }
+var _rotCostMap = {};   // { char_name: [costume_name, ...] }
+
 async function loadCompRotation() {
-  var list = document.getElementById('rot-list');
-  if (!list || !_compTier) return;
+  if (!_compTier) return;
+  // Load saved rotation rows
   try {
     var res  = await fetch('/api/admin/comp/rotation/get?tier=' + encodeURIComponent(_compTier));
     var data = await res.json();
-    buildRotationDisplay(data.rotation || []);
+    _rotSaved = {};
+    (data.rotation || []).forEach(function(r) {
+      if (!_rotSaved[r.char_name]) _rotSaved[r.char_name] = {};
+      _rotSaved[r.char_name][r.slot] = r.costume || r.skill_name || '';
+    });
   } catch(e) {}
+  // Load comp chars to pre-fill selectors
+  var chars = [];
+  try {
+    var cres  = await fetch('/api/admin/chars/list');
+    var cdata = await cres.json();
+    chars = cdata.chars || [];
+  } catch(e) {}
+  buildRotationSelectors(chars);
 }
 
-function buildRotationDisplay(rows) {
-  var list = document.getElementById('rot-list');
-  if (!list) return;
-  if (!rows.length) { list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No rotation saved yet.</p>'; return; }
-  var byChar = {};
-  rows.forEach(function(r) { if (!byChar[r.char_name]) byChar[r.char_name]=[]; byChar[r.char_name].push(r); });
+function buildRotationSelectors(allChars) {
+  var box = document.getElementById('rot-char-selectors');
+  if (!box) return;
+  var opts = '<option value="">— None —</option>' + allChars.map(function(c) {
+    return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
+  }).join('');
+  // Pre-fill from existing saved chars
+  var savedChars = Object.keys(_rotSaved);
+  box.innerHTML = [1,2,3,4,5].map(function(i) {
+    var preselect = savedChars[i-1] || '';
+    var selOpts = opts.replace(
+      'value="' + escH(preselect) + '"',
+      'value="' + escH(preselect) + '" selected'
+    );
+    return '<div>'
+      + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:2px">Char ' + i + '</div>'
+      + '<select class="rot-char-sel" data-pos="' + i + '" style="width:100%;font-size:0.8rem" data-action="rot-char-change">' + selOpts + '</select>'
+      + '</div>';
+  }).join('');
+  buildRotationGrid();
+}
+
+async function onRotCharChange(sel) {
+  var charName = sel.value;
+  if (charName && !_rotCostMap[charName]) {
+    var slug = sel.options[sel.selectedIndex] ? (sel.options[sel.selectedIndex].dataset.slug || '') : '';
+    await loadRotCostumes(charName, slug);
+  }
+  buildRotationGrid();
+}
+
+async function loadRotCostumes(charName, charSlug) {
+  if (!charSlug) charSlug = charName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  try {
+    var res  = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    _rotCostMap[charName] = (data.costumes || []).map(function(c) { return c.costume_name || c.name || ''; }).filter(Boolean);
+  } catch(e) { _rotCostMap[charName] = []; }
+}
+
+function buildRotationGrid() {
+  var grid = document.getElementById('rot-grid');
+  if (!grid) return;
+  // Collect selected chars from selectors
+  var sels = document.querySelectorAll('.rot-char-sel');
+  var selected = [];
+  sels.forEach(function(s) { if (s.value) selected.push(s.value); });
+  if (!selected.length) { grid.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">Select characters above to build the rotation grid.</p>'; return; }
+
   var html = '';
-  Object.keys(byChar).forEach(function(charName) {
-    html += '<div style="margin-bottom:0.6rem"><div style="font-weight:700;font-size:0.82rem;color:var(--text2);margin-bottom:0.3rem">' + escH(charName) + '</div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem">';
-    byChar[charName].forEach(function(r) {
-      html += '<div class="admin-item" style="flex:none;padding:0.4rem 0.6rem;gap:0.5rem;align-items:flex-start">'
-        + '<div><div style="font-size:0.65rem;color:var(--text3)">Slot ' + r.slot + '</div>'
-        + '<strong style="font-size:0.8rem">' + escH(r.skill_name || '') + '</strong>'
-        + '<div style="font-size:0.7rem;color:var(--text3)">SP' + r.sp_cost + ' \xb7 CD' + r.cooldown + ' \xb7 ' + escH(r.tile_type || 'FRONT') + '</div></div>'
-        + '<button class="btn-danger" style="font-size:0.7rem;padding:2px 6px;flex-shrink:0" data-action="rot-delete" data-char="' + escH(charName) + '" data-slot="' + r.slot + '">&#x2715;</button>'
-        + '</div>';
-    });
+  selected.forEach(function(charName) {
+    var costumes  = _rotCostMap[charName] || [];
+    var saved     = _rotSaved[charName]   || {};
+    var costOpts  = '<option value="">— None —</option>' + costumes.map(function(cn) {
+      return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
+    }).join('');
+    html += '<div style="margin-bottom:0.75rem">';
+    html += '<div style="font-weight:700;font-size:0.82rem;color:var(--gold2);margin-bottom:0.35rem">' + escH(charName) + '</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:0.2rem">';
+    for (var slot = 1; slot <= 10; slot++) {
+      var cur = saved[slot] || '';
+      var selOpts = costOpts.replace('value="' + escH(cur) + '"', 'value="' + escH(cur) + '" selected');
+      html += '<div style="display:flex;align-items:center;gap:0.4rem">';
+      html += '<span style="font-size:0.7rem;color:var(--text3);width:14px;text-align:right;flex-shrink:0">' + slot + '</span>';
+      html += '<select style="flex:1;font-size:0.78rem;padding:2px 4px"'
+            + ' data-action="rot-slot-change"'
+            + ' data-char="' + escH(charName) + '"'
+            + ' data-slot="' + slot + '">'
+            + selOpts + '</select>';
+      if (cur) {
+        html += '<button class="btn-danger" style="font-size:0.68rem;padding:1px 5px;flex-shrink:0"'
+              + ' data-action="rot-delete"'
+              + ' data-char="' + escH(charName) + '"'
+              + ' data-slot="' + slot + '">×</button>';
+      }
+      html += '</div>';
+    }
     html += '</div></div>';
   });
-  list.innerHTML = html;
+  grid.innerHTML = html;
 }
 
-async function saveCompRotationSlot() {
-  if (!_compTier) { showAlert('rot-alert', false, 'Select a composition first'); return; }
-  var charName  = ((document.getElementById('rot-char-name')  || {}).value || '').trim();
-  var slot      = +((document.getElementById('rot-slot')       || {}).value || 1);
-  var skillName = ((document.getElementById('rot-skill-name')  || {}).value || '').trim();
-  var sp        = +((document.getElementById('rot-sp')          || {}).value || 3);
-  var cd        = +((document.getElementById('rot-cd')          || {}).value || 5);
-  var tile      = (document.getElementById('rot-tile')          || {}).value || 'FRONT';
-  var desc      = ((document.getElementById('rot-desc')         || {}).value || '').trim();
-  if (!charName || !skillName) { showAlert('rot-alert', false, 'Character name and skill name required'); return; }
-  var r = await apiPost('/api/admin/comp/rotation/save', { tier: _compTier, char_name: charName, slot: slot, skill_name: skillName, sp_cost: sp, cooldown: cd, tile_type: tile, description: desc });
-  showAlert('rot-alert', r.success, r.message);
-  if (r.success) loadCompRotation();
+async function saveRotationSlot(charName, slot, costumeName) {
+  if (!_compTier || !charName || !slot) return;
+  if (!costumeName) { await deleteCompRotationSlot(charName, slot); return; }
+  var r = await apiPost('/api/admin/comp/rotation/save', {
+    tier: _compTier, char_name: charName, slot: +slot,
+    skill_name: costumeName, costume: costumeName,
+    sp_cost: 1, cooldown: 5, tile_type: 'FRONT', description: ''
+  });
+  if (r.success) {
+    if (!_rotSaved[charName]) _rotSaved[charName] = {};
+    _rotSaved[charName][slot] = costumeName;
+    buildRotationGrid();
+  } else showAlert('rot-alert', false, r.message);
 }
 
 async function deleteCompRotationSlot(charName, slot) {
-  var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: slot });
-  if (r.success) loadCompRotation();
-  else showAlert('rot-alert', false, r.message);
+  if (!_compTier) return;
+  var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: +slot });
+  if (r.success) {
+    if (_rotSaved[charName]) delete _rotSaved[charName][slot];
+    buildRotationGrid();
+  } else showAlert('rot-alert', false, r.message);
 }
 
 /* ════════════════════════════════════════════ HOME NOTES ══ */
@@ -1679,7 +1743,9 @@ document.addEventListener('click', function(e) {
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
-  if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-char-change')  onRotCharChange(b);
+  if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-comp-bonds')  saveCompBonds();
