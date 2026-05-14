@@ -100,7 +100,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
-.rot-table{display:flex;flex-direction:column;gap:0;overflow-x:auto;min-height:220px;}
+.rot-table{display:flex;flex-direction:column;gap:0;overflow-x:auto;}
 .rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:380px;}
 .rot-row:last-child{border-bottom:none;}
 .rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;}
