@@ -342,6 +342,11 @@ export async function handleAdmin(request, env) {
     <!-- Comp list -->
     <div class="admin-form">
       <h3>Compositions (DB)</h3>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap">
+        <span style="font-size:0.75rem;color:var(--text3)">ATK → A1, A2… &nbsp; DEF → D1, D2…</span>
+        <button class="btn" style="width:auto;padding:4px 12px;font-size:0.75rem" data-action="normalize-tiers">Normalize Tier Labels</button>
+        <div id="normalize-alert" style="font-size:0.75rem"></div>
+      </div>
       <div id="comp-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
         ${compsListHtml}
       </div>
@@ -670,18 +675,14 @@ export async function handleAdmin(request, env) {
   <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
   <div class="admin-section" id="tab-settings">
     <div class="admin-form">
-      <h3>Change Admin Password</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Update the password used to access this admin panel.</p>
-      <div id="password-alert"></div>
+      <h3>Home Page Secret Code</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Change the secret code visitors enter on the home page to unlock the secret emotes section.</p>
+      <div id="secret-code-alert"></div>
       <div class="form-group">
-        <label>New Password <span style="color:var(--text3);font-size:0.7rem">(min 8 characters)</span></label>
-        <input type="password" id="new-admin-password" placeholder="New password..." autocomplete="new-password">
+        <label>New Secret Code <span style="color:var(--text3);font-size:0.7rem">(min 4 characters)</span></label>
+        <input type="text" id="new-secret-code" placeholder="e.g. Seji404" autocomplete="off">
       </div>
-      <div class="form-group">
-        <label>Confirm Password</label>
-        <input type="password" id="confirm-admin-password" placeholder="Confirm new password..." autocomplete="new-password">
-      </div>
-      <button class="btn" style="width:auto;padding:10px 24px" data-action="change-password">Change Password</button>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
   </div>
 </div>
@@ -1477,8 +1478,92 @@ async function addChar() {
 
 async function moveComp(id, direction) {
   var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
-  if (r.success) window.location.reload();
-  else alert(r.message || 'Reorder failed');
+  if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
+  if (r.comps) updateCompListInPlace(r.comps);
+}
+
+function compRowHtmlJs(c) {
+  var isAtk = (c.type || 'ATK') === 'ATK';
+  var badgeStyle = isAtk
+    ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
+    : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
+  var badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
+  var color = c.color || '#c9a84c';
+  return '<div class="admin-item" id="comp-' + c.id + '">'
+    + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
+    + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
+    + '<strong>' + escH(c.tier) + ' &mdash; ' + escH(c.name) + '</strong>'
+    + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
+    + '</div>'
+    + '<div style="display:flex;gap:0.3rem;align-items:center">'
+    + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-up" data-id="' + c.id + '" title="Move up">&#9650;</button>'
+    + '<button class="btn" style="padding:2px 7px;font-size:0.75rem;min-width:0;background:var(--bg4);color:var(--text2)" data-action="comp-move-down" data-id="' + c.id + '" title="Move down">&#9660;</button>'
+    + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function updateCompListInPlace(comps) {
+  // Update comp-select dropdown
+  var sel = document.getElementById('comp-select');
+  if (sel) {
+    var curVal = sel.value;
+    var newOpt = sel.querySelector('option[value="new"]');
+    Array.from(sel.options).forEach(function(o) { if (o.value && o.value !== 'new') o.remove(); });
+    comps.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.id;
+      opt.dataset.tier      = c.tier;
+      opt.dataset.name      = c.name || '';
+      opt.dataset.type      = c.type || 'ATK';
+      opt.dataset.color     = c.color || '#c9a84c';
+      opt.dataset.shortDesc = c.short_description || '';
+      opt.dataset.notes     = c.description || '';
+      opt.dataset.unitOrder = c.unit_order || '[]';
+      opt.dataset.cby       = c.countered_by || '';
+      opt.text = c.tier + ' — ' + c.name + ' (' + (c.type || 'ATK') + ')';
+      if (newOpt) sel.insertBefore(opt, newOpt);
+      else sel.appendChild(opt);
+    });
+    // Restore selection; update _compTier if selected comp was renamed
+    if (curVal && curVal !== 'new') {
+      sel.value = curVal;
+      var cur = comps.find(function(c) { return String(c.id) === String(curVal); });
+      if (cur) {
+        _compTier = cur.tier;
+        var label = document.getElementById('comp-editor-tier-label');
+        if (label) label.textContent = cur.tier + ' — Editing content';
+      }
+    }
+  }
+  // Update comp list panel
+  var list = document.getElementById('comp-list');
+  if (!list) return;
+  var atkComps = comps.filter(function(c) { return (c.type || 'ATK') === 'ATK'; });
+  var defComps = comps.filter(function(c) { return (c.type || 'ATK') === 'DEF'; });
+  var html = '';
+  if (atkComps.length) {
+    html += '<div style="font-size:0.7rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">&#9876; Attacking</div>';
+    html += atkComps.map(compRowHtmlJs).join('');
+  }
+  if (defComps.length) {
+    html += '<div style="font-size:0.7rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.5rem;border-top:1px solid var(--border2);padding-top:0.5rem">&#128737; Defence</div>';
+    html += defComps.map(compRowHtmlJs).join('');
+  }
+  list.innerHTML = html || '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
+}
+
+async function normalizeCompTiers() {
+  showAlert('normalize-alert', true, 'Normalizing…');
+  var r = await apiPost('/api/admin/comp/normalize-tiers', {});
+  showAlert('normalize-alert', r.success, r.message);
+  if (r.success) {
+    // Reload comps from server
+    try {
+      var res = await fetch('/api/admin/chars/list'); // reuse pattern: fetch comps fresh
+    } catch(e) {}
+    window.location.reload();
+  }
 }
 
 async function resetAllChars() {
@@ -1496,17 +1581,12 @@ async function resetAllRotations() {
   showAlert('reset-rotations-alert', r.success, r.message);
 }
 
-async function changeAdminPassword() {
-  var np = ((document.getElementById('new-admin-password')     || {}).value || '');
-  var cp = ((document.getElementById('confirm-admin-password') || {}).value || '');
-  if (!np || np.length < 8) { showAlert('password-alert', false, 'Password must be at least 8 characters'); return; }
-  if (np !== cp) { showAlert('password-alert', false, 'Passwords do not match'); return; }
-  var r = await apiPost('/api/admin/password/change', { new_password: np });
-  showAlert('password-alert', r.success, r.message);
-  if (r.success) {
-    document.getElementById('new-admin-password').value = '';
-    document.getElementById('confirm-admin-password').value = '';
-  }
+async function saveSecretCode() {
+  var code = ((document.getElementById('new-secret-code') || {}).value || '').trim();
+  if (!code || code.length < 4) { showAlert('secret-code-alert', false, 'Code must be at least 4 characters'); return; }
+  var r = await apiPost('/api/admin/secret/save', { code: code });
+  showAlert('secret-code-alert', r.success, r.message);
+  if (r.success) document.getElementById('new-secret-code').value = '';
 }
 
 async function deleteChar(id) {
@@ -1992,7 +2072,8 @@ document.addEventListener('click', function(e) {
   if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
-  if (action === 'change-password')  changeAdminPassword();
+  if (action === 'save-secret-code') saveSecretCode();
+  if (action === 'normalize-tiers')  normalizeCompTiers();
   if (action === 'save-comp-bonds')  saveCompBonds();
   if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
   if (action === 'upload-board-back')  uploadCompBoard('_back', 'comp-board-back-file', 'comp-canvas-back', 'comp-board-back-preview');

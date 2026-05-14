@@ -123,24 +123,34 @@ export async function handleHome(request, env) {
     modal.style.display = 'none';
   };
 
-  window.checkEgg = function() {
+  window.checkEgg = async function() {
     var val = input.value;
-    if (val === 'Seji404') {
-      localStorage.setItem('kitsu_unlocked', 'true');
-      result.textContent = '✓ Access Granted';
-      result.style.color = '#d4af37';
-      input.style.borderColor = '#d4af37';
-      modal.style.transition = 'background 0.8s ease';
-      modal.style.background = 'rgba(201,168,76,0.15)';
-      setTimeout(function() { modal.style.background = 'rgba(0,0,0,0.88)'; }, 100);
-      setTimeout(closeEgg, 2000);
-    } else {
-      result.textContent = '✗ Invalid Code';
+    if (!val) return;
+    result.textContent = '…';
+    result.style.color = 'var(--text3)';
+    try {
+      var res  = await fetch('/api/secret/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: val }) });
+      var data = await res.json();
+      if (data.success) {
+        localStorage.setItem('kitsu_unlocked', 'true');
+        result.textContent = '✓ Access Granted';
+        result.style.color = '#d4af37';
+        input.style.borderColor = '#d4af37';
+        modal.style.transition = 'background 0.8s ease';
+        modal.style.background = 'rgba(201,168,76,0.15)';
+        setTimeout(function() { modal.style.background = 'rgba(0,0,0,0.88)'; }, 100);
+        setTimeout(closeEgg, 2000);
+      } else {
+        result.textContent = '✗ Invalid Code';
+        result.style.color = '#e74c3c';
+        input.style.borderColor = '#e74c3c';
+        input.classList.remove('egg-shake');
+        void input.offsetWidth;
+        input.classList.add('egg-shake');
+      }
+    } catch(e) {
+      result.textContent = '✗ Error';
       result.style.color = '#e74c3c';
-      input.style.borderColor = '#e74c3c';
-      input.classList.remove('egg-shake');
-      void input.offsetWidth;
-      input.classList.add('egg-shake');
     }
   };
 })();
