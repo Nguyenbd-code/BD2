@@ -1743,7 +1743,9 @@ document.addEventListener('click', function(e) {
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
-  if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-char-change')  onRotCharChange(b);
+  if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-comp-bonds')  saveCompBonds();
