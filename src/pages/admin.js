@@ -853,6 +853,71 @@ async function deleteComp(id) {
   else showAlert('comp-add-alert', false, r.message);
 }
 
+async function loadCompData(id) {
+  if (!id) return;
+  try {
+    var res  = await fetch('/api/admin/chars/list'); // reuse existing endpoint to avoid extra call
+    // Load comp data from the select option's data attributes instead
+    var sel  = document.getElementById('comp-select');
+    var opt  = sel ? sel.options[sel.selectedIndex] : null;
+    if (!opt) return;
+    // Color
+    var colorEl = document.getElementById('comp-color');
+    if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
+    // Short desc
+    var sdEl = document.getElementById('comp-short-desc');
+    if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
+    // Build notes
+    var notesEl = document.getElementById('comp-build-notes');
+    if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
+    // Unit order
+    try {
+      var order = JSON.parse(opt.dataset.unitOrder || '[]');
+      for (var i = 0; i < 5; i++) {
+        var uEl = document.getElementById('uorder-' + (i+1));
+        if (uEl) uEl.value = order[i] || '';
+      }
+    } catch(e) {}
+  } catch(e) {}
+}
+
+async function saveCompMeta() {
+  if (!_compId) { showAlert('comp-meta-alert', false, 'Select a composition first'); return; }
+  var color    = (document.getElementById('comp-color')      || {}).value || '#c9a84c';
+  var shortDesc= ((document.getElementById('comp-short-desc')|| {}).value || '').trim();
+  var notes    = ((document.getElementById('comp-build-notes')|| {}).value || '').trim();
+  var sel      = document.getElementById('comp-select');
+  var opt      = sel ? sel.options[sel.selectedIndex] : null;
+  var name     = opt ? opt.dataset.name  || '' : '';
+  var type     = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var cby      = opt ? opt.dataset.cby   || '' : '';
+  var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  showAlert('comp-meta-alert', r.success, r.message);
+  if (r.success && opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
+}
+
+async function saveCompUnitOrder() {
+  if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
+  var order = [];
+  for (var i = 1; i <= 5; i++) {
+    var v = ((document.getElementById('uorder-' + i)||{}).value||'').trim();
+    if (v) order.push(v);
+  }
+  var sel  = document.getElementById('comp-select');
+  var opt  = sel ? sel.options[sel.selectedIndex] : null;
+  var name = opt ? opt.dataset.name  || '' : '';
+  var type = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var cby  = opt ? opt.dataset.cby   || '' : '';
+  var color= opt ? opt.dataset.color || '#c9a84c' : '#c9a84c';
+  var sd   = opt ? opt.dataset.shortDesc || '' : '';
+  var notes= opt ? opt.dataset.notes || '' : '';
+  var uorderStr = JSON.stringify(order);
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorderStr });
+  showAlert('comp-order-alert', r.success, r.message);
+  if (r.success && opt) opt.dataset.unitOrder = uorderStr;
+}
+
 async function saveCompNotes() {
   var charEl = document.getElementById('notes-char-comp');
   var textEl = document.getElementById('notes-text-comp');
@@ -1406,6 +1471,28 @@ async function deleteCompRotationSlot(charName, slot) {
   else showAlert('rot-alert', false, r.message);
 }
 
+/* ════════════════════════════════════════════ HOME NOTES ══ */
+async function saveHomeNote(slot) {
+  var title   = ((document.getElementById('home-note-title-'   + slot)||{}).value||'').trim();
+  var content = ((document.getElementById('home-note-content-' + slot)||{}).value||'').trim();
+  var r = await apiPost('/api/admin/home/notes/save', { slot: slot, title: title, content: content });
+  showAlert('home-note-alert-' + slot, r.success, r.message);
+}
+
+async function loadHomeNotes() {
+  for (var i = 1; i <= 4; i++) {
+    (function(slot) {
+      fetch('/api/admin/home/notes/get?slot=' + slot).then(function(res) { return res.json(); }).then(function(data) {
+        if (!data.data) return;
+        var titleEl   = document.getElementById('home-note-title-'   + slot);
+        var contentEl = document.getElementById('home-note-content-' + slot);
+        if (titleEl)   titleEl.value   = data.data.title   || '';
+        if (contentEl) contentEl.value = data.data.content || '';
+      }).catch(function(){});
+    })(i);
+  }
+}
+
 /* ═════════════════════════════════════════ ADMIN LIGHTBOX ══ */
 /* (openAdminLightbox / closeAdminLightbox already defined above) */
 
@@ -1437,6 +1524,8 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'preset-color')    { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
+  if (action === 'home-note-save')  saveHomeNote(parseInt(b.dataset.slot, 10));
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
