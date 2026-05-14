@@ -162,6 +162,42 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare('DELETE FROM char_costumes WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
     }
+    if (path === '/api/admin/costumes/update' && method === 'POST') {
+      if (!body.char_slug || !body.costume_slug) return json({ success:false, message:'char_slug and costume_slug required' }, 400);
+      await env.DB.prepare(
+        'UPDATE char_costumes SET bond_stats=? WHERE char_slug=? AND costume_slug=?'
+      ).bind(body.bond_stats||'', body.char_slug, body.costume_slug).run();
+      return json({ success:true, message:'Bond stats saved.' });
+    }
+
+    // ── Portrait migration ───────────────────────────────────
+    if (path === '/api/admin/chars/migrate-portraits' && method === 'POST') {
+      // Goal: for every character in char_registry, make sure a 'char_{slug}_portrait' image exists.
+      // We scan existing image keys that look like portraits and try to match them by name/slug fuzzy matching,
+      // then copy the data row to the canonical key.
+      const slug = (s) => (s||'').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const charsRes = await env.DB.prepare('SELECT name, slug FROM char_registry').all().catch(() => ({results:[]}));
+      const imgsRes  = await env.DB.prepare("SELECT key FROM images WHERE key LIKE 'char\\_%\\_portrait' ESCAPE '\\'").all().catch(() => ({results:[]}));
+      const portraitKeys = (imgsRes.results||[]).map(r => r.key);
+      const remapped = [];
+      for (const c of (charsRes.results||[])) {
+        const canonKey = 'char_' + (c.slug || slug(c.name)) + '_portrait';
+        if (portraitKeys.includes(canonKey)) continue;
+        const targetSlug = slug(c.name);
+        let matchKey = portraitKeys.find(k => slug(k.replace(/^char_/, '').replace(/_portrait$/, '')) === targetSlug);
+        if (!matchKey) {
+          matchKey = portraitKeys.find(k => slug(k).includes(targetSlug));
+        }
+        if (matchKey) {
+          const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(matchKey).first();
+          if (row) {
+            await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(canonKey, row.data).run();
+            remapped.push({ from: matchKey, to: canonKey });
+          }
+        }
+      }
+      return json({ success:true, message: 'Migrated ' + remapped.length + ' portrait(s).', remapped });
+    }
 
     // ── Skills ────────────────────────────────────────────────
     if (path === '/api/admin/skills/list' && method === 'GET') {

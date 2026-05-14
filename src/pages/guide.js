@@ -54,11 +54,14 @@ function cSlug(name) {
 
 function charStrip(chars, compId, bondsData) {
   const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+  const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return chars.map((c, idx) => {
     const slug = c.slug || cSlug(c.name);
     const col  = colors[idx % colors.length];
     const cid  = `${slug}-${compId}`;
     const bond = bondsData && bondsData[c.name];
+    const cosSlug = costumeSlug(c.costume_name || (bond && bond.costume) || '');
+    const costumeIcon = cosSlug ? `<img src="/img/char_${slug}_${cosSlug}_icon" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2">` : '';
     const tooltip = bond ? `
       <div class="tt-popup">
         <div class="tt-name">${esc(c.name)} — ${esc(bond.costume)}</div>
@@ -70,7 +73,8 @@ function charStrip(chars, compId, bondsData) {
     <div class="char-face">
       <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
         <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
-        <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
+        ${costumeIcon}
       </div>
       <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
         <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>

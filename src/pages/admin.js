@@ -242,9 +242,14 @@ export async function handleAdmin(request, env) {
         <div class="form-group">
           <label>Battle Video URL</label>
           <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://..." style="flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
+            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
           </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
           <div id="comp-video-alert"></div>
         </div>
 
@@ -482,6 +487,8 @@ export async function handleAdmin(request, env) {
           ${charsListHtml}
         </div>
         <button class="btn" style="width:100%;padding:8px" onclick="toggleAddCharForm()">+ Add Character</button>
+        <button class="btn" style="width:100%;padding:6px;margin-top:0.4rem;background:var(--bg4);color:var(--gold2);border:1px solid var(--border2);font-size:0.78rem" onclick="migratePortraits()">↻ Migrate Existing Portraits</button>
+        <div id="migrate-portraits-alert"></div>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
           <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
@@ -499,6 +506,11 @@ export async function handleAdmin(request, env) {
               <option value="active">Active</option>
               <option value="upcoming">Upcoming</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>Portrait Image <span style="color:var(--text3);font-size:0.7rem">(base character image)</span></label>
+            <input type="file" id="new-char-portrait" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="new-char-canvas" style="display:none"></canvas>
           </div>
           <button class="btn" onclick="addChar()">Add Character</button>
         </div>
@@ -523,7 +535,11 @@ export async function handleAdmin(request, env) {
                 <div class="form-group"><label>Costume Name</label><input id="cost-name" placeholder="Red Riding Hood" oninput="autoCostumeSlug()"></div>
                 <div class="form-group"><label>Costume Slug <span style="color:var(--text3);font-size:0.7rem">(auto)</span></label><input id="cost-slug" placeholder="red_riding_hood" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
               </div>
-              <div class="form-group"><label>Bond Stats</label><textarea id="cost-stats" rows="2" placeholder="HP: +62.40%, DEF: +13.40%"></textarea></div>
+              <div class="form-group">
+                <label>Costume Image <span style="color:var(--text3);font-size:0.7rem">(optional — overrides portrait when this costume is picked)</span></label>
+                <input type="file" id="cost-img" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <canvas id="cost-img-canvas" style="display:none"></canvas>
+              </div>
               <div id="cost-alert"></div>
               <button class="btn" onclick="addCostume()">Add Costume</button>
             </div>
@@ -535,6 +551,12 @@ export async function handleAdmin(request, env) {
             <div class="form-group" style="margin-bottom:0.75rem">
               <label>Select Costume</label>
               <select id="skills-costume-sel" onchange="loadSkillsForCostume()"></select>
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;border:1px solid var(--border2);border-radius:6px;padding:0.75rem;background:var(--bg4)">
+              <label>Bond Stats <span style="color:var(--text3);font-size:0.7rem">(for selected costume)</span></label>
+              <textarea id="skill-bond-stats" rows="2" placeholder="HP: +62.40%, DEF: +13.40%" style="margin-bottom:0.5rem"></textarea>
+              <button class="btn" style="width:auto;padding:6px 16px" onclick="saveBondStats()">Save Bond Stats</button>
+              <div id="bond-stats-alert"></div>
             </div>
             <div style="margin-bottom:1rem">
               <div class="form-row">
@@ -850,9 +872,35 @@ async function deletePreemptive(index) {
 async function saveCompVideo() {
   var urlEl = document.getElementById('comp-video-url');
   var url = urlEl ? urlEl.value.trim() : '';
-  if (!_compTier) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
   var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: url });
-  showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+  showAlert('comp-video-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+}
+
+async function uploadCompVideoFile() {
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
+  var fileEl = document.getElementById('comp-video-file');
+  var file   = fileEl && fileEl.files && fileEl.files[0];
+  if (!file) { showAlert('comp-video-alert', false, 'Select a video file'); return; }
+  if (file.size > 12 * 1024 * 1024) { showAlert('comp-video-alert', false, 'Video too large (' + (file.size/1024/1024).toFixed(1) + ' MB). Keep under ~12 MB.'); return; }
+  showAlert('comp-video-alert', true, 'Reading video…');
+  var dataUrl = await new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload  = function() { resolve(reader.result); };
+    reader.onerror = function() { reject(reader.error); };
+    reader.readAsDataURL(file);
+  }).catch(function() { return ''; });
+  if (!dataUrl) { showAlert('comp-video-alert', false, 'Could not read file'); return; }
+  var key = 'comp_' + _compTier.toLowerCase() + '_video';
+  showAlert('comp-video-alert', true, 'Uploading…');
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: dataUrl });
+  if (!r.success) { showAlert('comp-video-alert', false, r.message); return; }
+  var videoUrl = '/img/' + key;
+  var urlEl = document.getElementById('comp-video-url');
+  if (urlEl) urlEl.value = videoUrl;
+  var r2 = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: videoUrl });
+  showAlert('comp-video-alert', r2.success, r2.success ? 'Video uploaded and saved.' : r2.message);
+  if (r2.success && fileEl) fileEl.value = '';
 }
 
 async function loadCompMedia(tier) {
@@ -1037,27 +1085,43 @@ async function loadCompChars() {
       (function(slot) {
         var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
         var charSel = document.getElementById('bond-char-' + slot);
+        var costSel = document.getElementById('bond-cost-' + slot);
+        function refreshPortrait() {
+          var img = document.getElementById('bond-portrait-' + slot);
+          if (!img) return;
+          var charOpt = charSel ? charSel.options[charSel.selectedIndex] : null;
+          var slug = charOpt ? (charOpt.dataset.slug || '') : '';
+          if (!slug) { img.src = ''; img.style.display = 'none'; return; }
+          var costName = costSel ? costSel.value : '';
+          var cosSlug  = (costName||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+          var url = cosSlug
+            ? '/img/char_' + slug + '_' + cosSlug + '_icon'
+            : '/img/char_' + slug + '_portrait';
+          img.onerror = function() {
+            img.onerror = null;
+            img.src = '/img/char_' + slug + '_portrait?t=' + Date.now();
+          };
+          img.src = url + '?t=' + Date.now();
+          img.style.display = 'block';
+        }
         if (charSel) {
-          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '');
+          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '', refreshPortrait);
           charSel.addEventListener('change', function() {
             var opt = charSel.options[charSel.selectedIndex];
             var slug = opt ? (opt.dataset.slug || '') : '';
-            loadBondCostumes(slot, slug, '');
-            var img = document.getElementById('bond-portrait-' + slot);
-            if (img) {
-              if (slug) { img.src = '/img/char_' + slug + '_portrait?t=' + Date.now(); img.style.display = 'block'; }
-              else { img.src = ''; img.style.display = 'none'; }
-            }
+            loadBondCostumes(slot, slug, '', refreshPortrait);
+            refreshPortrait();
           });
         }
+        if (costSel) costSel.addEventListener('change', refreshPortrait);
       })(n);
     }
   } catch(e) {}
 }
 
-async function loadBondCostumes(slot, charSlug, selectedCostume) {
+async function loadBondCostumes(slot, charSlug, selectedCostume, done) {
   var sel = document.getElementById('bond-cost-' + slot);
-  if (!sel || !charSlug) return;
+  if (!sel || !charSlug) { if (done) done(); return; }
   try {
     var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
     var data = await res.json();
@@ -1067,6 +1131,7 @@ async function loadBondCostumes(slot, charSlug, selectedCostume) {
   } catch(e) {
     sel.innerHTML = '<option value="">— No costumes —</option>';
   }
+  if (done) done();
 }
 
 async function saveCompBonds() {
@@ -1341,14 +1406,30 @@ async function addChar() {
   var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
   var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
   var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
+  var portraitEl = document.getElementById('new-char-portrait');
+  var portraitFile = portraitEl && portraitEl.files && portraitEl.files[0];
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
+  if (r.success && portraitFile) {
+    showAlert('char-alert', true, 'Uploading portrait…');
+    try {
+      var data = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: data });
+    } catch(e) {}
+  }
   showAlert('char-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('new-char-name').value = '';
     document.getElementById('new-char-slug').value = '';
+    if (portraitEl) portraitEl.value = '';
     loadChars();
   }
+}
+
+async function migratePortraits() {
+  showAlert('migrate-portraits-alert', true, 'Scanning…');
+  var r = await apiPost('/api/admin/chars/migrate-portraits', {});
+  showAlert('migrate-portraits-alert', r.success, r.message);
 }
 
 async function deleteChar(id) {
@@ -1425,15 +1506,44 @@ async function loadCostumes(charSlug) {
 async function addCostume() {
   var name  = ((document.getElementById('cost-name')  || {}).value || '').trim();
   var slug  = ((document.getElementById('cost-slug')  || {}).value || '').trim();
-  var stats = ((document.getElementById('cost-stats') || {}).value || '').trim();
+  var imgEl = document.getElementById('cost-img');
+  var imgFile = imgEl && imgEl.files && imgEl.files[0];
   if (!name || !slug) { showAlert('cost-alert', false, 'Name and slug required'); return; }
-  var r = await apiPost('/api/admin/costumes/add', { char_slug: _selectedCharSlug, costume_name: name, costume_slug: slug, bond_stats: stats });
+  var r = await apiPost('/api/admin/costumes/add', { char_slug: _selectedCharSlug, costume_name: name, costume_slug: slug, bond_stats: '' });
+  if (r.success && imgFile && _selectedCharSlug) {
+    showAlert('cost-alert', true, 'Uploading costume image…');
+    try {
+      var data = await compressToDataUrl(imgFile, 'cost-img-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + _selectedCharSlug.toLowerCase() + '_' + slug + '_icon', data: data });
+    } catch(e) {}
+  }
   showAlert('cost-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('cost-name').value  = '';
     document.getElementById('cost-slug').value  = '';
+    if (imgEl) imgEl.value = '';
     loadCostumes(_selectedCharSlug);
   }
+}
+
+async function saveBondStats() {
+  var sel = document.getElementById('skills-costume-sel');
+  var slug = sel ? sel.value : _selectedCostumeSlug;
+  if (!slug) { showAlert('bond-stats-alert', false, 'Select a costume first'); return; }
+  var stats = ((document.getElementById('skill-bond-stats') || {}).value || '').trim();
+  var r = await apiPost('/api/admin/costumes/update', { char_slug: _selectedCharSlug, costume_slug: slug, bond_stats: stats });
+  showAlert('bond-stats-alert', r.success, r.message);
+}
+
+async function loadBondStatsForCostume(slug) {
+  if (!_selectedCharSlug || !slug) return;
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(_selectedCharSlug));
+    var data = await res.json();
+    var match = (data.costumes||[]).find(function(c) { return c.costume_slug === slug; });
+    var ta = document.getElementById('skill-bond-stats');
+    if (ta) ta.value = match ? (match.bond_stats || '') : '';
+  } catch(e) {}
 }
 
 async function deleteCostume(id) {
@@ -1447,6 +1557,7 @@ function selectCostume(id, name, slug) {
   var skillsSel = document.getElementById('skills-costume-sel');
   if (skillsSel) skillsSel.value = slug;
   loadSkills(slug);
+  loadBondStatsForCostume(slug);
 }
 
 function loadSkillsForCostume() {
@@ -1454,6 +1565,7 @@ function loadSkillsForCostume() {
   if (!sel || !sel.value) return;
   _selectedCostumeSlug = sel.value;
   loadSkills(sel.value);
+  loadBondStatsForCostume(sel.value);
 }
 
 async function loadSkills(costumeSlug) {
