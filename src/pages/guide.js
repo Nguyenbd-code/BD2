@@ -151,7 +151,7 @@ function renderComp(comp, mediaMap) {
       return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div style="flex:1;overflow:hidden;position:relative;"><div class="rot-table" style="position:absolute;inset:0;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;">${rows}</div></div>`
+      ? `<div style="flex:1;overflow:hidden;position:relative;"><div class="rot-table" style="position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">${rows}</div></div>`
       : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
     rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
@@ -236,7 +236,7 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%;min-width:0;overflow:hidden;">
-      <div class="card" style="flex:1;min-height:200px;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="card" style="flex:1;min-height:340px;overflow:hidden;display:flex;flex-direction:column;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>

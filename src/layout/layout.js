@@ -17,6 +17,7 @@ export function layout(title, content, activePage = '') {
     <a href="/guide"${activePage === 'guide' ? ' style="color:var(--gold)"' : ''}>PvP Guide</a>
     <a href="/coupons"${activePage === 'coupons' ? ' style="color:var(--gold)"' : ''}>Coupons</a>
     <a href="/emotes"${activePage === 'emotes' ? ' style="color:var(--gold)"' : ''}>Kitsu's Emotes</a>
+    <a href="/characters"${activePage === 'characters' ? ' style="color:var(--gold)"' : ''}>Characters</a>
   </div>
   <div class="nav-admin"><a href="/admin">Admin</a></div>
 </nav>

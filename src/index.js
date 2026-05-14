@@ -1,4 +1,5 @@
 import { handleHome }                              from './pages/home.js';
+import { handleCharacters }                        from './pages/characters.js';
 import { handleGuide }                             from './pages/guide.js';
 import { handleCoupons }                           from './pages/coupons.js';
 import { handleEmotes }                            from './pages/emotes.js';
@@ -52,6 +53,7 @@ export default {
       if (path === '/guide')           return handleGuide(request, env);
       if (path === '/coupons')         return handleCoupons(request, env);
       if (path === '/emotes')          return handleEmotes(request, env);
+      if (path === '/characters')      return handleCharacters(request, env);
 
       return new Response('Not Found', { status: 404 });
     } catch(err) {

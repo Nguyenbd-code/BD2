@@ -53,6 +53,8 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Deleted.' });
     }
     if (path === '/api/admin/comp/reorder' && method === 'POST') {
+      // Auto-add sort_order if migration hasn't run yet
+      await env.DB.prepare('ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0').run().catch(() => {});
       // body: { id, direction:'up'|'down' }
       const comp = await env.DB.prepare('SELECT id, type, sort_order FROM compositions WHERE id=?').bind(body.id).first();
       if (!comp) return json({ success:false, message:'Not found' }, 404);
@@ -312,6 +314,12 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Deleted.' });
     }
 
+    // ── Rotations Reset ──────────────────────────────────────
+    if (path === '/api/admin/rotations/reset' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM comp_rotations').run().catch(() => {});
+      return json({ success:true, message:'All skill rotations deleted.' });
+    }
+
     // ── Comp How To Play ──────────────────────────────────────
     if (path === '/api/admin/comp/howtoplay/save' && method === 'POST') {
       if (!body.tier) return json({ success:false, message:'tier required' }, 400);
@@ -353,6 +361,15 @@ export async function handleAdminApi(request, env) {
       const tier = url.searchParams.get('tier') || '';
       const r = await env.DB.prepare('SELECT * FROM comp_chars WHERE tier=? ORDER BY position').bind(tier).all().catch(() => ({ results: [] }));
       return json({ chars: r.results || [] });
+    }
+
+    // ── Password Change ───────────────────────────────────────
+    if (path === '/api/admin/password/change' && method === 'POST') {
+      if (!body.new_password || body.new_password.length < 8)
+        return json({ success:false, message:'Password must be at least 8 characters.' });
+      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('admin_password',?)")
+        .bind(body.new_password).run();
+      return json({ success:true, message:'Password changed successfully.' });
     }
 
     // ── Home Notes ────────────────────────────────────────────

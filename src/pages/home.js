@@ -28,9 +28,9 @@ const DEFAULT_HOME_NOTES = {
 function strategyCard(note) {
   const lines = (note.content || '').split('\n').map(l => l.trim()).filter(Boolean);
   const items = lines.map(l => `<li>${esc(l)}</li>`).join('') || '<li style="list-style:none;color:var(--text3);font-size:0.85rem">No content.</li>';
-  return `<div class="card">
-      <div class="card-title">${esc(note.title || '')}</div>
-      <ul class="notes-list">${items}</ul>
+  return `<div class="card" style="height:100%;display:flex;flex-direction:column;min-height:160px">
+      <div class="card-title" style="flex-shrink:0">${esc(note.title || '')}</div>
+      <ul class="notes-list" style="flex:1">${items}</ul>
     </div>`;
 }
 
@@ -81,8 +81,8 @@ export async function handleHome(request, env) {
   }
 </section>
 
-<div style="text-align:center;padding:2rem 0 0.5rem;opacity:0.18">
-  <span id="egg-trigger" title="" style="cursor:pointer;font-size:0.9rem;user-select:none;transition:opacity 0.2s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.18'">⚔</span>
+<div id="egg-wrap" style="text-align:center;padding:2rem 0 0.5rem;opacity:0.05;transition:opacity 0.4s">
+  <span id="egg-trigger" title="" style="cursor:default;font-size:0.75rem;user-select:none" onmouseover="document.getElementById('egg-wrap').style.opacity='0.15'" onmouseout="document.getElementById('egg-wrap').style.opacity='0.05'">⚔</span>
 </div>
 
 <div id="egg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
