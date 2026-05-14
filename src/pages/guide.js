@@ -147,7 +147,7 @@ function renderComp(comp, mediaMap) {
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div class="rot-table" style="flex:1;overflow-x:auto;overflow-y:auto;min-height:0">${rows}</div>`
+      ? `<div class="rot-table" style="flex:1;overflow-x:auto;overflow-y:hidden;min-height:0">${rows}</div>`
       : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
     rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
@@ -171,16 +171,16 @@ function renderComp(comp, mediaMap) {
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
-  const boardHtml = `<div class="board-flip-wrap" style="position:relative;min-height:240px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
-  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;min-height:240px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="backface-visibility:hidden;position:relative;min-height:240px;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+  const boardHtml = `<div class="board-flip-wrap" style="position:relative;min-height:200px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;min-height:200px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
+    <div class="board-face" style="backface-visibility:hidden;position:relative;min-height:200px;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
       <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
-      <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button data-action="expand-img" data-src="/img/${esc(frontKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
     </div>
     <div class="board-face" style="backface-visibility:hidden;position:absolute;inset:0;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
       <span style="color:var(--text3);font-size:0.75rem">No back image yet</span>
-      <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+      <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button data-action="expand-img" data-src="/img/${esc(backKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
     </div>
   </div>
@@ -192,13 +192,13 @@ function renderComp(comp, mediaMap) {
   const arrow = isAtk
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
-  const imageBox = `<div style="flex:1;min-height:240px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center">${boardHtml}</div>`;
-  const videoBox = `<div style="flex:1;min-height:240px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
+  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center">${boardHtml}</div>`;
+  const videoBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
     video
       ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
       : '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
   }</div>`;
-  const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;min-height:240px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
+  const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;min-height:200px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
   // How and When to Play
   const howToPlayHtml = `<div class="card" style="padding:1rem;margin-top:0.75rem">
@@ -235,9 +235,9 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:start">
-    <div style="display:flex;flex-direction:column;gap:0.75rem">
-      <div class="card" style="max-height:270px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
+    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%">
+      <div class="card" style="flex:1;min-height:120px;overflow:hidden;display:flex;flex-direction:column">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>

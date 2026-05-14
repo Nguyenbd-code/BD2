@@ -113,7 +113,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
 .t1-char:hover{border-color:var(--border);}
-.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.35rem;margin:0;padding:0;overflow:hidden;}
+.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.35rem;margin:0;padding:0;}
 .notes-list li{font-size:0.82rem;color:var(--text2);padding-left:1rem;position:relative;line-height:1.5;word-break:break-word;}
 .notes-list li::before{content:'—';position:absolute;left:0;color:var(--gold3);}
 .counter-tag{display:inline-block;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
