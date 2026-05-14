@@ -220,8 +220,55 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare('DELETE FROM comp_rotations WHERE tier=? AND char_name=? AND slot=?').bind(body.tier, body.char_name, body.slot).run();
       return json({ success:true, message:'Deleted.' });
     }
-    if (path === '/api/admin/comp/rotation/get' && method === 'GET') {
+
+    // ── Comp Update ───────────────────────────────────────────
+    if (path === '/api/admin/comp/update' && method === 'POST') {
+      if (!body.id) return json({ success:false, message:'id required' }, 400);
+      await env.DB.prepare(
+        'UPDATE compositions SET name=?,type=?,color=?,short_description=?,description=?,countered_by=?,unit_order=? WHERE id=?'
+      ).bind(body.name||'', body.type||'ATK', body.color||'#c9a84c', body.short_description||'', body.description||'', body.countered_by||'', body.unit_order||'[]', body.id).run();
+      return json({ success:true, message:'Updated.' });
+    }
+
+    // ── Comp Board Image (tier-keyed) ─────────────────────────
+    if (path === '/api/admin/comp/board/save' && method === 'POST') {
+      if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
+      const key = 'comp_' + body.tier.toLowerCase() + '_board';
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.data).run();
+      return json({ success:true, message:'Board saved.', key });
+    }
+
+    // ── Comp Chars ────────────────────────────────────────────
+    if (path === '/api/admin/comp/chars/save' && method === 'POST') {
+      if (!body.tier || !Array.isArray(body.chars)) return json({ success:false, message:'tier and chars[] required' }, 400);
+      await env.DB.prepare('DELETE FROM comp_chars WHERE tier=?').bind(body.tier).run();
+      for (const c of body.chars) {
+        await env.DB.prepare(
+          'INSERT INTO comp_chars (tier,position,char_name,char_slug,costume_name,bond_stats) VALUES (?,?,?,?,?,?)'
+        ).bind(body.tier, c.position||0, c.char_name||'', c.char_slug||'', c.costume_name||'', c.bond_stats||'').run();
+      }
+      return json({ success:true, message:'Chars saved.' });
+    }
+    if (path === '/api/admin/comp/chars/get' && method === 'GET') {
       const tier = url.searchParams.get('tier') || '';
+      const r = await env.DB.prepare('SELECT * FROM comp_chars WHERE tier=? ORDER BY position').bind(tier).all().catch(() => ({ results: [] }));
+      return json({ chars: r.results || [] });
+    }
+
+    // ── Home Notes ────────────────────────────────────────────
+    if (path === '/api/admin/home/notes/save' && method === 'POST') {
+      if (!body.slot) return json({ success:false, message:'slot required' }, 400);
+      const key = 'home_strategy_' + body.slot;
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)')
+        .bind(key, JSON.stringify({ title: body.title||'', content: body.content||'' })).run();
+      return json({ success:true, message:'Saved.' });
+    }
+    if (path === '/api/admin/home/notes/get' && method === 'GET') {
+      const slot = url.searchParams.get('slot') || '';
+      const row  = await env.DB.prepare("SELECT data FROM images WHERE key=?").bind('home_strategy_' + slot).first();
+      const data = row ? JSON.parse(row.data) : null;
+      return json({ data });
+    }
       const r = await env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind(tier).all().catch(() => ({ results: [] }));
       return json({ rotation: r.results || [] });
     }

@@ -67,14 +67,16 @@ export async function handleAdmin(request, env) {
       ? 'background:rgba(41,128,185,0.2);color:#5dade2;border:1px solid rgba(41,128,185,0.35)'
       : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
     const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
+    const color = c.color || '#c9a84c';
     return '<div class="admin-item" id="comp-' + c.id + '">'
-      + '<div class="admin-item-info">'
+      + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem">'
+      + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
       + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
       + '<span style="display:inline-block;margin-left:0.5rem;font-size:0.72rem;padding:2px 8px;border-radius:3px;' + badgeStyle + '">' + badgeText + '</span>'
       + '</div>'
       + '<button class="btn-danger" data-action="comp-delete" data-id="' + c.id + '">Delete</button>'
       + '</div>';
-  }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No custom compositions yet.</p>';
+  }).join('') || '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
@@ -102,7 +104,7 @@ export async function handleAdmin(request, env) {
   ).join('');
 
   const dbCompOptions = comps.map(c =>
-    '<option value="db-' + c.id + '" data-tier="' + esc(c.tier) + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
+    '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
   return layout('Admin Panel', `
@@ -118,6 +120,7 @@ export async function handleAdmin(request, env) {
     <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
@@ -155,12 +158,6 @@ export async function handleAdmin(request, env) {
         <label>Select Composition</label>
         <select id="comp-select" onchange="selectComp()">
           <option value="">— Select Composition —</option>
-          <option value="T1">T1 — Sylvia Double Taunt (ATK)</option>
-          <option value="T2">T2 — Eleaneer+Roxy Dispel (ATK)</option>
-          <option value="T3">T3 — Justia Double Taunt (ATK)</option>
-          <option value="T4">T4 — Blade Counter (DEF)</option>
-          <option value="T5">T5 — Alec+Elise / Michaela Counter (DEF)</option>
-          <option value="T6">T6 — Alec+Justia Anti Taunt (DEF)</option>
           ${dbCompOptions}
           <option value="new">+ Add New Composition</option>
         </select>
@@ -170,8 +167,56 @@ export async function handleAdmin(request, env) {
       <div id="comp-editor" style="display:none;margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
 
-        <!-- Board image -->
+        <!-- Color + Short Desc row -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>TIER COLOR</label>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <input type="color" id="comp-color" value="#c9a84c" style="width:44px;height:36px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:2px">
+              <span style="font-size:0.75rem;color:var(--text3)">Badge color</span>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem">
+              <button data-action="preset-color" data-color="#e74c3c" style="width:22px;height:22px;border-radius:3px;background:#e74c3c;border:none;cursor:pointer" title="T1 Red"></button>
+              <button data-action="preset-color" data-color="#3498db" style="width:22px;height:22px;border-radius:3px;background:#3498db;border:none;cursor:pointer" title="T2 Blue"></button>
+              <button data-action="preset-color" data-color="#9b59b6" style="width:22px;height:22px;border-radius:3px;background:#9b59b6;border:none;cursor:pointer" title="T3 Purple"></button>
+              <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
+              <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
+              <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home card — max 80 chars)</span></label>
+            <input type="text" id="comp-short-desc" maxlength="80" placeholder="Brief summary for home page card...">
+          </div>
+        </div>
+
+        <!-- Build Notes (all tiers) -->
         <div class="form-group">
+          <label>BUILD NOTES</label>
+          <textarea id="comp-build-notes" rows="4" placeholder="One note per line..."></textarea>
+          <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompMeta()">Save Notes + Color + Short Desc</button>
+          </div>
+          <div id="comp-meta-alert"></div>
+        </div>
+
+        <!-- Unit Order (all tiers) -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>UNIT ORDER</label>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            ${[1,2,3,4,5].map(i =>
+              '<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">'
+              + '<span style="font-size:0.65rem;color:var(--text3)">' + i + '</span>'
+              + '<input type="text" id="uorder-' + i + '" placeholder="Name" style="width:90px">'
+              + '</div>'
+            ).join('')}
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+          <div id="comp-order-alert"></div>
+        </div>
+
+        <!-- Board image -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label id="comp-board-label">Board Image</label>
           <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
           <canvas id="comp-canvas" style="display:none"></canvas>
@@ -210,7 +255,7 @@ export async function handleAdmin(request, env) {
           <div id="rot-list" style="margin-top:0.75rem"></div>
         </div>
 
-        <!-- T1 extras: notes + unit order -->
+        <!-- T1 extras: per-char notes + order dropdowns (kept for backwards compat) -->
         <div id="comp-t1-extras" style="display:none">
           <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
             <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
@@ -544,6 +589,28 @@ export async function handleAdmin(request, env) {
 
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════════════════ HOME PAGE -->
+  <div class="admin-section" id="tab-homepage">
+    <div class="admin-form">
+      <h3>Home Page Strategy Notes</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the 4 strategy note cards shown on the home page.</p>
+      ${[1,2,3,4].map(i =>
+        '<div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;margin-bottom:1rem">'
+        + '<div class="form-row">'
+        + '<div class="form-group"><label>Title (Card ' + i + ')</label><input type="text" id="home-note-title-' + i + '" placeholder="Strategy note title"></div>'
+        + '</div>'
+        + '<div class="form-group"><label>Content</label><textarea id="home-note-content-' + i + '" rows="4" placeholder="• Note line 1\n• Note line 2"></textarea></div>'
+        + '<div id="home-note-alert-' + i + '"></div>'
+        + '<button class="btn" style="width:auto;padding:8px 20px" data-action="home-note-save" data-slot="' + i + '">Save Card ' + i + '</button>'
+        + '</div>'
+      ).join('')}
+    </div>
+    <div class="admin-form">
+      <h3>Overview Cards</h3>
+      <p style="font-size:0.8rem;color:var(--text3)">Edit short descriptions and colors via the Compositions tab → select each comp.</p>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -570,6 +637,7 @@ var _selectedCharSlug = '';
 var _selectedCharName = '';
 var _selectedCostumeSlug = '';
 var _compTier = '';
+var _compId = 0;
 var _compBoardKey = '';
 var _imgCat = 'all';
 
@@ -676,7 +744,6 @@ function selectComp() {
     if (addFormEl) addFormEl.style.display = 'none';
     return;
   }
-
   if (val === 'new') {
     if (editorEl)  editorEl.style.display  = 'none';
     if (addFormEl) addFormEl.style.display = 'block';
@@ -686,30 +753,18 @@ function selectComp() {
   if (addFormEl) addFormEl.style.display = 'none';
   if (editorEl)  editorEl.style.display  = 'block';
 
-  var staticTiers = { T1:true, T2:true, T3:true, T4:true, T5:true, T6:true };
-  var isStatic = !!staticTiers[val];
-  var isDbComp = val.indexOf('db-') === 0;
+  _compId   = parseInt(val, 10) || 0;
+  _compTier = sel.options[sel.selectedIndex] ? (sel.options[sel.selectedIndex].dataset.tier || '') : '';
+  _compBoardKey = _compTier === 'T1' ? 'board_pos' : 'comp_' + _compTier.toLowerCase() + '_board';
 
-  if (isStatic) {
-    _compTier = val;
-    _compBoardKey = val === 'T1' ? 'board_pos' : 'comp_' + val.toLowerCase() + '_board';
-    if (labelEl) labelEl.textContent = val + ' — Editing content';
-    if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
-    if (t1extras) t1extras.style.display = val === 'T1' ? 'block' : 'none';
-    if (val === 'T1') { loadCompNotes(); loadCompOrder(); }
-    loadCompMedia(val);
-    loadCompRotation();
-  } else if (isDbComp) {
-    var dbId = val.replace('db-', '');
-    var tierFromAttr = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].dataset.tier || '' : '';
-    _compTier = tierFromAttr || ('db-' + dbId);
-    _compBoardKey = 'comp_db' + dbId + '_board';
-    if (labelEl) labelEl.textContent = 'DB Comp #' + dbId + ' — Editing content';
-    if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
-    if (t1extras) t1extras.style.display = 'none';
-    loadCompMedia('db-' + dbId);
-    loadCompRotation();
-  }
+  if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
+  if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
+  if (t1extras) t1extras.style.display = _compTier === 'T1' ? 'block' : 'none';
+
+  loadCompData(_compId);
+  if (_compTier === 'T1') { loadCompNotes(); loadCompOrder(); }
+  loadCompMedia(_compTier);
+  loadCompRotation();
 }
 
 async function uploadCompBoard() {
