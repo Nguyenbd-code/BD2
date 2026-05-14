@@ -201,9 +201,9 @@ function renderComp(comp, mediaMap) {
   const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;min-height:200px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
   // How and When to Play
-  const howToPlayHtml = `<div class="card" style="padding:1rem;margin-top:0.75rem">
-  <div class="card-title" style="margin-bottom:0.5rem">How and When to Play</div>
-  <div style="color:var(--text3);font-size:0.82rem;min-height:40px;line-height:1.6;white-space:pre-wrap">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+  const howToPlayHtml = `<div class="card" style="padding:1.25rem;margin-top:0.75rem">
+  <div class="card-title" style="margin-bottom:0.75rem">How and When to Play</div>
+  <div style="color:var(--text3);font-size:0.82rem;min-height:70px;line-height:1.6;white-space:pre-wrap">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
 </div>`;
 
   // Build notes
@@ -212,7 +212,7 @@ function renderComp(comp, mediaMap) {
   // Preemptive skills
   const preemptive = comp.preemptive || [];
   const preemptiveHtml = preemptive.length
-    ? preemptive.map(src => `<img src="${esc(src)}" style="height:40px;width:auto;object-fit:contain;border-radius:4px;border:1px solid var(--border2)" class="img-err-hide">`).join('')
+    ? preemptive.map(src => `<img src="${esc(src)}" style="flex:1;min-width:0;height:70px;object-fit:contain;border-radius:4px;border:1px solid var(--border2)" class="img-err-hide">`).join('')
     : '<span style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.8rem">N/A</span>';
 
   // Matchups
@@ -235,9 +235,9 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.65fr 1.5fr 0.85fr;gap:1rem;align-items:stretch;min-width:0;">
+  <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%;min-width:0;overflow:hidden;">
-      <div class="card" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="card" style="flex:1;min-height:200px;overflow:hidden;display:flex;flex-direction:column;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -251,13 +251,13 @@ function renderComp(comp, mediaMap) {
       ${howToPlayHtml}
     </div>
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;">
-      <div class="card" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column">
+      <div class="card" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column">
         <div class="card-title">Build Notes</div>
         <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card" style="padding:1rem;min-height:60px;max-height:100px;overflow:hidden;">
+      <div class="card" style="padding:1rem;">
         <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start">${preemptiveHtml}</div>
+        <div style="display:flex;gap:0.4rem;align-items:stretch;min-height:70px;">${preemptiveHtml}</div>
       </div>
       <div class="card" style="padding:1rem;min-height:120px;display:flex;flex-direction:column">
         <div class="card-title">Matchups</div>
