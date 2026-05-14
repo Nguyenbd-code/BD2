@@ -18,11 +18,38 @@ function compCard(comp) {
   </a>`;
 }
 
+const DEFAULT_HOME_NOTES = {
+  1: { title: 'Tier Usage', content: 'Use T2 for general attacking and climbing\nUse T4 for general defence\nOnly use T1 going for Rank 1 — last hour only\nT5 only counters Michaela, loses to most Double Taunt\nT6 counters T3 and Double Taunt — loses to T2 and T1' },
+  2: { title: 'Targeting Top 10', content: 'Hit 3 hours before end and sit in Top 10\nDefend until 2–1.5 hours remain\nThen spam attack' },
+  3: { title: 'Targeting Rank 1', content: 'Sit Top 1–3 at the 3-hour mark\nUse T6 as blocker to feed one player into R1\nThe R1 player uses T1 or T2' },
+  4: { title: 'Building PvP Characters', content: 'Tanks: target 105% Magic Resist, Defence at 90%\nDamage carries: 50% Crit Rate with buffer, 100% without\nJustia & Alec: HP ring with ATK substats + Magic Resist Armor\nAll compositions can swap lanes' },
+};
+
+function strategyCard(note) {
+  const lines = (note.content || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const items = lines.map(l => `<li>${esc(l)}</li>`).join('') || '<li style="list-style:none;color:var(--text3);font-size:0.85rem">No content.</li>';
+  return `<div class="card">
+      <div class="card-title">${esc(note.title || '')}</div>
+      <ul class="notes-list">${items}</ul>
+    </div>`;
+}
+
 export async function handleHome(request, env) {
   let compRows = [];
+  let homeNotes = { 1: DEFAULT_HOME_NOTES[1], 2: DEFAULT_HOME_NOTES[2], 3: DEFAULT_HOME_NOTES[3], 4: DEFAULT_HOME_NOTES[4] };
   try {
     const res = await env.DB.prepare('SELECT * FROM compositions ORDER BY tier ASC').all();
     compRows = res.results || [];
+  } catch { /* ignore */ }
+
+  try {
+    const r = await env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'home_strategy_%'").all();
+    for (const row of (r.results || [])) {
+      const slot = parseInt(row.key.replace('home_strategy_', ''), 10);
+      if (slot >= 1 && slot <= 4) {
+        try { homeNotes[slot] = JSON.parse(row.data); } catch {}
+      }
+    }
   } catch { /* ignore */ }
 
   return layout('Home', `
@@ -37,41 +64,10 @@ export async function handleHome(request, env) {
   <div class="section-title">Strategy Notes</div>
   <div class="section-sub">Key rules for GrandMasters ranked play</div>
   <div class="comp-grid">
-    <div class="card">
-      <div class="card-title">Tier Usage</div>
-      <ul class="notes-list">
-        <li>Use T2 for general attacking and climbing</li>
-        <li>Use T4 for general defence</li>
-        <li>Only use T1 going for Rank 1 — last hour only</li>
-        <li>T5 only counters Michaela, loses to most Double Taunt</li>
-        <li>T6 counters T3 and Double Taunt — loses to T2 and T1</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-title">Targeting Top 10</div>
-      <ul class="notes-list">
-        <li>Hit 3 hours before end and sit in Top 10</li>
-        <li>Defend until 2–1.5 hours remain</li>
-        <li>Then spam attack</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-title">Targeting Rank 1</div>
-      <ul class="notes-list">
-        <li>Sit Top 1–3 at the 3-hour mark</li>
-        <li>Use T6 as blocker to feed one player into R1</li>
-        <li>The R1 player uses T1 or T2</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-title">Building PvP Characters</div>
-      <ul class="notes-list">
-        <li>Tanks: target 105% Magic Resist, Defence at 90%</li>
-        <li>Damage carries: 50% Crit Rate with buffer, 100% without</li>
-        <li>Justia &amp; Alec: HP ring with ATK substats + Magic Resist Armor</li>
-        <li>All compositions can swap lanes</li>
-      </ul>
-    </div>
+    ${strategyCard(homeNotes[1])}
+    ${strategyCard(homeNotes[2])}
+    ${strategyCard(homeNotes[3])}
+    ${strategyCard(homeNotes[4])}
   </div>
 </div>
 
