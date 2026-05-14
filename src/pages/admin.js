@@ -7,9 +7,18 @@ function isAuthed(request) {
   return cookie.split(';').some(c => c.trim() === 'admin=true');
 }
 
+async function getAdminPassword(env) {
+  try {
+    const row = await env.DB.prepare("SELECT data FROM images WHERE key='admin_password'").first();
+    if (row && row.data) return row.data;
+  } catch {}
+  return ADMIN_PASSWORD;
+}
+
 export async function handleAdminLogin(request, env) {
   const form = await request.formData();
-  if (form.get('password') === ADMIN_PASSWORD) {
+  const correctPassword = await getAdminPassword(env);
+  if (form.get('password') === correctPassword) {
     return new Response('', {
       status: 302,
       headers: {
@@ -137,6 +146,7 @@ export async function handleAdmin(request, env) {
     <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
@@ -507,6 +517,8 @@ export async function handleAdmin(request, env) {
           <div style="font-size:0.68rem;color:#e74c3c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem">&#9888; Danger Zone</div>
           <button class="btn-danger" style="width:100%;padding:6px;font-size:0.78rem" onclick="resetAllChars()">Reset All Characters &amp; Images</button>
           <div id="reset-chars-alert"></div>
+          <button class="btn-danger" style="width:100%;padding:6px;font-size:0.78rem;margin-top:0.35rem" onclick="resetAllRotations()">Clear All Skill Rotations</button>
+          <div id="reset-rotations-alert"></div>
         </div>
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
           <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
@@ -652,6 +664,24 @@ export async function handleAdmin(request, env) {
     <div class="admin-form">
       <h3>Overview Cards</h3>
       <p style="font-size:0.8rem;color:var(--text3)">Edit short descriptions and colors via the Compositions tab → select each comp.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
+  <div class="admin-section" id="tab-settings">
+    <div class="admin-form">
+      <h3>Change Admin Password</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Update the password used to access this admin panel.</p>
+      <div id="password-alert"></div>
+      <div class="form-group">
+        <label>New Password <span style="color:var(--text3);font-size:0.7rem">(min 8 characters)</span></label>
+        <input type="password" id="new-admin-password" placeholder="New password..." autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="confirm-admin-password" placeholder="Confirm new password..." autocomplete="new-password">
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="change-password">Change Password</button>
     </div>
   </div>
 </div>
@@ -1459,6 +1489,26 @@ async function resetAllChars() {
   if (r.success) { loadChars(); loadCompChars && loadCompChars(); }
 }
 
+async function resetAllRotations() {
+  if (!confirm('DELETE all skill rotation data?\\n\\nThis cannot be undone.')) return;
+  showAlert('reset-rotations-alert', true, 'Deleting…');
+  var r = await apiPost('/api/admin/rotations/reset', {});
+  showAlert('reset-rotations-alert', r.success, r.message);
+}
+
+async function changeAdminPassword() {
+  var np = ((document.getElementById('new-admin-password')     || {}).value || '');
+  var cp = ((document.getElementById('confirm-admin-password') || {}).value || '');
+  if (!np || np.length < 8) { showAlert('password-alert', false, 'Password must be at least 8 characters'); return; }
+  if (np !== cp) { showAlert('password-alert', false, 'Passwords do not match'); return; }
+  var r = await apiPost('/api/admin/password/change', { new_password: np });
+  showAlert('password-alert', r.success, r.message);
+  if (r.success) {
+    document.getElementById('new-admin-password').value = '';
+    document.getElementById('confirm-admin-password').value = '';
+  }
+}
+
 async function deleteChar(id) {
   var r = await apiPost('/api/admin/chars/delete', { id: id });
   if (r.success) { var el = document.getElementById('char-' + id); if (el) el.remove(); }
@@ -1942,6 +1992,7 @@ document.addEventListener('click', function(e) {
   if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'change-password')  changeAdminPassword();
   if (action === 'save-comp-bonds')  saveCompBonds();
   if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
   if (action === 'upload-board-back')  uploadCompBoard('_back', 'comp-board-back-file', 'comp-canvas-back', 'comp-board-back-preview');
