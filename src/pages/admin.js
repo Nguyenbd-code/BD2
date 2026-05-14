@@ -697,8 +697,9 @@ function showTab(name) {
   if (t) t.classList.add('active');
   var btn = document.querySelector('[data-tab="' + name + '"]');
   if (btn) btn.classList.add('active');
-  if (name === 'chars')  loadChars();
-  if (name === 'images') updateImgKey();
+  if (name === 'chars')    loadChars();
+  if (name === 'images')   updateImgKey();
+  if (name === 'homepage') loadHomeNotes();
 }
 
 /* ══════════════════════════════════════════════════════════ COUPONS ══ */
@@ -774,7 +775,8 @@ async function uploadCompBoard() {
   if (!_compBoardKey) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
   showAlert('comp-editor-alert', true, 'Compressing…');
   var data = await compressToDataUrl(file, 'comp-canvas', 340, 0.85);
-  var r = await apiPost('/api/admin/image/upload', { key: _compBoardKey, data: data });
+  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data });
+  _compBoardKey = r.key || _compBoardKey;
   showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
     var preview = document.getElementById('comp-board-preview');
