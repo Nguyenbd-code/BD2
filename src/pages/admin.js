@@ -203,15 +203,10 @@ export async function handleAdmin(request, env) {
         <!-- Unit Order (all tiers) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>UNIT ORDER</label>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-            ${[1,2,3,4,5].map(i =>
-              '<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">'
-              + '<span style="font-size:0.65rem;color:var(--text3)">' + i + '</span>'
-              + '<input type="text" id="uorder-' + i + '" placeholder="Name" style="width:90px">'
-              + '</div>'
-            ).join('')}
+          <div id="unit-order-slots" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
+            <span style="color:var(--text3);font-size:0.82rem">Select a composition to load unit order</span>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0" onclick="saveCompUnitOrder()">Save Unit Order</button>
           <div id="comp-order-alert"></div>
         </div>
 
@@ -234,6 +229,16 @@ export async function handleAdmin(request, env) {
           <div id="comp-video-alert"></div>
         </div>
 
+        <!-- Character Bonds -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Character Bonds</h4>
+          <div id="comp-bonds-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:0.75rem">
+            <span style="color:var(--text3);font-size:0.82rem;grid-column:1/-1">Select a composition to edit character bonds</span>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Character Bonds</button>
+          <div id="comp-bonds-alert"></div>
+        </div>
+
         <!-- Skill Rotation (all tiers) -->
         <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
           <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
@@ -253,40 +258,6 @@ export async function handleAdmin(request, env) {
           <div id="rot-alert"></div>
           <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompRotationSlot()">Save Slot</button>
           <div id="rot-list" style="margin-top:0.75rem"></div>
-        </div>
-
-        <!-- T1 extras: per-char notes + order dropdowns (kept for backwards compat) -->
-        <div id="comp-t1-extras" style="display:none">
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
-            <div class="form-group">
-              <label>Character</label>
-              <select id="notes-char-comp" onchange="loadCompNotes()">
-                <option value="Rou">Rou</option>
-                <option value="Seir">Seir</option>
-                <option value="Lecliss">Lecliss</option>
-                <option value="Scheherazade">Scheherazade</option>
-                <option value="Sylvia">Sylvia</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Build Notes</label>
-              <textarea id="notes-text-comp" rows="5" placeholder="Build notes for this character..."></textarea>
-            </div>
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompNotes()">Save Notes</button>
-          </div>
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Unit Order</h4>
-            ${[1,2,3,4,5].map(i =>
-              '<div class="form-group">'
-              + '<label>Position ' + i + '</label>'
-              + '<select id="order-comp-' + i + '">'
-              + ['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('')
-              + '</select>'
-              + '</div>'
-            ).join('')}
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompOrder()">Save Unit Order</button>
-          </div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -736,7 +707,6 @@ function selectComp() {
   var val       = sel ? sel.value : '';
   var editorEl  = document.getElementById('comp-editor');
   var addFormEl = document.getElementById('comp-add-form');
-  var t1extras  = document.getElementById('comp-t1-extras');
   var labelEl   = document.getElementById('comp-editor-tier-label');
   var boardLbl  = document.getElementById('comp-board-label');
 
@@ -760,10 +730,9 @@ function selectComp() {
 
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
-  if (t1extras) t1extras.style.display = _compTier === 'T1' ? 'block' : 'none';
 
   loadCompData(_compId);
-  if (_compTier === 'T1') { loadCompNotes(); loadCompOrder(); }
+  loadCompChars();
   loadCompMedia(_compTier);
   loadCompRotation();
 }
@@ -856,28 +825,37 @@ async function deleteComp(id) {
 async function loadCompData(id) {
   if (!id) return;
   try {
-    var res  = await fetch('/api/admin/chars/list'); // reuse existing endpoint to avoid extra call
-    // Load comp data from the select option's data attributes instead
-    var sel  = document.getElementById('comp-select');
-    var opt  = sel ? sel.options[sel.selectedIndex] : null;
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+
+    var sel = document.getElementById('comp-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
     if (!opt) return;
-    // Color
+
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
-    // Short desc
     var sdEl = document.getElementById('comp-short-desc');
     if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
-    // Build notes
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
-    // Unit order
-    try {
-      var order = JSON.parse(opt.dataset.unitOrder || '[]');
-      for (var i = 0; i < 5; i++) {
-        var uEl = document.getElementById('uorder-' + (i+1));
-        if (uEl) uEl.value = order[i] || '';
-      }
-    } catch(e) {}
+
+    var currentOrder = [];
+    try { currentOrder = JSON.parse(opt.dataset.unitOrder || '[]'); } catch(e) {}
+
+    var slotsEl = document.getElementById('unit-order-slots');
+    if (slotsEl) {
+      slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
+        var cur = currentOrder[n-1] || '';
+        var opts = '<option value="">— Select —</option>' + allChars.map(function(c) {
+          return '<option value="' + escH(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+        }).join('');
+        return '<div style="text-align:center">'
+          + '<div style="font-size:0.65rem;color:var(--text3);margin-bottom:3px">' + n + '</div>'
+          + '<select id="uorder-sel-' + n + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:120px;font-size:0.82rem">'
+          + opts + '</select></div>';
+      }).join('');
+    }
   } catch(e) {}
 }
 
@@ -901,7 +879,7 @@ async function saveCompUnitOrder() {
   if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
   var order = [];
   for (var i = 1; i <= 5; i++) {
-    var v = ((document.getElementById('uorder-' + i)||{}).value||'').trim();
+    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
     if (v) order.push(v);
   }
   var sel  = document.getElementById('comp-select');
@@ -918,45 +896,99 @@ async function saveCompUnitOrder() {
   if (r.success && opt) opt.dataset.unitOrder = uorderStr;
 }
 
-async function saveCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  var textEl = document.getElementById('notes-text-comp');
-  if (!charEl || !textEl) return;
-  var r = await apiPost('/api/admin/t1/notes/save', { char: charEl.value, notes: textEl.value });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
-
-async function loadCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  if (!charEl) return;
+/* ══════════════════════════════════════════════════ COMP CHAR BONDS ══ */
+async function loadCompChars() {
+  if (!_compTier) return;
+  var grid = document.getElementById('comp-bonds-grid');
+  if (!grid) return;
   try {
-    var res  = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
-    var data = await res.json();
-    var textEl = document.getElementById('notes-text-comp');
-    if (textEl) textEl.value = data.notes || '';
-  } catch(e) {}
-}
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+    var existingRes = await fetch('/api/admin/comp/chars/get?tier=' + encodeURIComponent(_compTier));
+    var existingData = await existingRes.json();
+    var existingChars = existingData.chars || [];
 
-async function saveCompOrder() {
-  var order = [];
-  for (var i = 1; i <= 5; i++) {
-    var sel = document.getElementById('order-comp-' + i);
-    if (sel) order.push(sel.value);
-  }
-  var r = await apiPost('/api/admin/t1/order/save', { order: order });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
+    var charOptions = '<option value="">— None —</option>' + allChars.map(function(c) {
+      return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
+    }).join('');
 
-async function loadCompOrder() {
-  try {
-    var res   = await fetch('/api/admin/t1/order/get');
-    var data  = await res.json();
-    var order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-    for (var i = 0; i < order.length; i++) {
-      var sel = document.getElementById('order-comp-' + (i + 1));
-      if (sel) sel.value = order[i];
+    grid.innerHTML = [1,2,3,4,5].map(function(n) {
+      var ex = existingChars.find(function(c) { return c.position === n; }) || {};
+      var charOpts = '<option value="">— None —</option>' + allChars.map(function(c) {
+        return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '"' + (c.name === (ex.char_name||'') ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+      }).join('');
+      var portraitSrc = ex.char_slug ? '/img/char_' + ex.char_slug + '_portrait' : '';
+      return '<div style="border:1px solid var(--border2);border-radius:8px;padding:0.75rem;background:var(--bg4)">'
+        + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.4rem;font-family:Cinzel,serif">SLOT ' + n + '</div>'
+        + '<select id="bond-char-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + charOpts + '</select>'
+        + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + '<option value="">— Costume —</option></select>'
+        + '<input type="text" id="bond-stats-' + n + '" value="' + escH(ex.bond_stats||'') + '" placeholder="Bond stats..." style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
+        + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
+        + '</div></div>';
+    }).join('');
+
+    for (var n = 1; n <= 5; n++) {
+      (function(slot) {
+        var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
+        var charSel = document.getElementById('bond-char-' + slot);
+        if (charSel) {
+          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '');
+          charSel.addEventListener('change', function() {
+            var opt = charSel.options[charSel.selectedIndex];
+            var slug = opt ? (opt.dataset.slug || '') : '';
+            loadBondCostumes(slot, slug, '');
+            var img = document.getElementById('bond-portrait-' + slot);
+            if (img) {
+              if (slug) { img.src = '/img/char_' + slug + '_portrait?t=' + Date.now(); img.style.display = 'block'; }
+              else { img.src = ''; img.style.display = 'none'; }
+            }
+          });
+        }
+      })(n);
     }
   } catch(e) {}
+}
+
+async function loadBondCostumes(slot, charSlug, selectedCostume) {
+  var sel = document.getElementById('bond-cost-' + slot);
+  if (!sel || !charSlug) return;
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    sel.innerHTML = '<option value="">— Costume —</option>' + (data.costumes||[]).map(function(c) {
+      return '<option value="' + escH(c.costume_name) + '"' + (c.costume_name === selectedCostume ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
+    }).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">— No costumes —</option>';
+  }
+}
+
+async function saveCompBonds() {
+  if (!_compTier) { showAlert('comp-bonds-alert', false, 'Select a composition first'); return; }
+  var charsRes = await fetch('/api/admin/chars/list').then(function(r) { return r.json(); }).catch(function() { return { chars: [] }; });
+  var allChars = charsRes.chars || [];
+  var chars = [];
+  for (var n = 1; n <= 5; n++) {
+    var charSel = document.getElementById('bond-char-' + n);
+    var costSel = document.getElementById('bond-cost-' + n);
+    var statsEl = document.getElementById('bond-stats-' + n);
+    var charName = charSel ? charSel.value : '';
+    if (!charName) continue;
+    var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
+    chars.push({
+      position: n,
+      char_name: charName,
+      char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      costume_name: costSel ? costSel.value : '',
+      bond_stats: statsEl ? statsEl.value : '',
+    });
+  }
+  var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
+  showAlert('comp-bonds-alert', r.success, r.message);
 }
 
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
@@ -1008,7 +1040,7 @@ function updateImgKey() {
     var slotSel = document.getElementById('img-slot-type');
     var ch  = charSel ? charSel.value : 'rou';
     var sl  = slotSel ? slotSel.value : 'portrait';
-    var slug = ch.toLowerCase().replace('scheherazade','schera');
+    var slug = ch.toLowerCase();
     var costumeWrap = document.getElementById('img-costume-sel-wrap');
     if (sl === 'portrait') {
       key = 'char_' + slug + '_portrait';
@@ -1027,7 +1059,7 @@ function updateImgKey() {
   } else if (_imgCat === 'tiles') {
     var tch  = (document.getElementById('img-tile-char') || {}).value || 'Rou';
     var tsl  = (document.getElementById('img-tile-slot') || {}).value || '1';
-    var tslug = tch.toLowerCase().replace('scheherazade','schera');
+    var tslug = tch.toLowerCase();
     key = 'tile_' + tslug + '_' + tsl;
   } else if (_imgCat === 'other') {
     key = ((document.getElementById('img-other-key') || {}).value || '').trim();
@@ -1312,7 +1344,7 @@ async function deleteSkill(id) {
 function updateCharImgKey() {
   var slotSel = document.getElementById('char-img-slot');
   var slot    = slotSel ? slotSel.value : 'portrait';
-  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   var wrap    = document.getElementById('char-img-costume-wrap');
   var display = document.getElementById('char-img-computed-key');
   var key     = '';
@@ -1347,7 +1379,7 @@ function previewCharImage(input) {
 }
 
 async function uploadCharImage(slot, file) {
-  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   if (!slug) { showAlert('char-img-alert', false, 'Select a character first'); return; }
   if (!file) {
     var fileEl = document.getElementById('char-img-file');
@@ -1398,7 +1430,7 @@ function triggerCharUpload(slot) {
 async function loadCharImgGrid() {
   var grid = document.getElementById('char-img-grid');
   if (!grid || !_selectedCharSlug) return;
-  var slug = _selectedCharSlug.toLowerCase().replace('scheherazade','schera');
+  var slug = _selectedCharSlug.toLowerCase();
   var slots = [
     { key: 'char_' + slug + '_portrait', label: 'Portrait',  slot: 'portrait' },
     { key: 'char_' + slug + '_gear',     label: 'Gear',      slot: 'gear' },
@@ -1526,6 +1558,7 @@ document.addEventListener('click', function(e) {
   if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
   if (action === 'preset-color')    { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')  saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'save-comp-bonds') saveCompBonds();
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */

@@ -52,7 +52,7 @@ function tileCls(type) {
 }
 
 function cSlug(name) {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function slugify(str) {
@@ -125,7 +125,20 @@ function renderComp(comp, mediaMap) {
   const typeLabel = comp.type === 'ATK' ? '⚔ Attack Composition' : '🛡 Defence Composition';
   const typeCls   = comp.type === 'ATK' ? 'atk' : 'def';
 
-  const stripHtml = (comp.chars||[]).length ? charStrip(comp.chars, anchorId, comp.bondsData||null) : '';
+  const stripHtml = (comp.chars||[]).length
+    ? charStrip(comp.chars, anchorId, comp.bondsData||null)
+    : [1,2,3,4,5].map(i => `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px">
+  <div class="char-card-inner">
+    <div class="char-face">
+      <div style="height:154px;background:var(--bg4);display:flex;align-items:center;justify-content:center">
+        <span style="font-size:1.5rem;color:var(--text3)">?</span>
+      </div>
+      <div style="height:66px;display:flex;align-items:center;justify-content:center;padding:0.5rem">
+        <div style="font-size:0.75rem;color:var(--text3);text-align:center">Not set</div>
+      </div>
+    </div>
+  </div>
+</div>`).join('');
 
   let rotHtml;
   const rot = comp.rotation;
@@ -169,7 +182,7 @@ function renderComp(comp, mediaMap) {
       const pos  = typeof u === 'object' ? (u.pos||i+1) : i+1;
       const name = typeof u === 'object' ? u.name : u;
       return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:${color};color:#fff;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${pos}</div>
+  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${pos}</div>
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
     }).join('');
@@ -233,13 +246,14 @@ function renderComp(comp, mediaMap) {
 }
 
 export async function handleGuide(request, env) {
-  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {};
+  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {};
   try {
-    const [compRes, mediaRes, rotRes, compCharsRes] = await Promise.all([
+    const [compRes, mediaRes, rotRes, compCharsRes, noteRes] = await Promise.all([
       env.DB.prepare('SELECT * FROM compositions ORDER BY tier, id').all(),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
     ]);
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
@@ -255,15 +269,17 @@ export async function handleGuide(request, env) {
       if (!compCharsMap[c.tier]) compCharsMap[c.tier] = [];
       compCharsMap[c.tier].push(c);
     }
+    for (const r of (noteRes.results||[])) {
+      dbNotes[r.key.replace('notes_', '')] = r.data;
+    }
   } catch { /* ignore */ }
 
   const KNOWN = new Set(['T1','T2','T3','T4','T5','T6']);
 
   const sidebarLinks = allComps.map(c => {
-    const tid = c.tier.toLowerCase().replace(/[^a-z0-9]/g,'');
-    const anchor = KNOWN.has(c.tier) ? c.tier.toLowerCase() : slugify(c.name);
+    const anchor = c.tier.toLowerCase();
     return `<a href="#${anchor}" class="sidebar-link">
-  <span class="sidebar-badge ${tid}" style="background:${c.color||'#c9a84c'}">${esc(c.tier)}</span>
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#ffffff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
   <span class="sidebar-name">${esc(c.name)}</span>
 </a>`;
   }).join('');
@@ -294,9 +310,18 @@ export async function handleGuide(request, env) {
       unitOrder = STATIC_UNIT_ORDER[tier] || [];
     }
 
-    const notes = isKnown
-      ? (STATIC_NOTES[tier] || [])
-      : (dbComp.description ? dbComp.description.split('\n').filter(Boolean) : []);
+    let notes;
+    if (tier === 'T1') {
+      notes = (STATIC_CHARS.T1 || []).map((c, idx) =>
+        dbNotes[c.name] || (STATIC_NOTES.T1||[])[idx] || ''
+      ).filter(Boolean);
+    } else if (isKnown) {
+      notes = dbComp.description
+        ? dbComp.description.split('\n').filter(Boolean)
+        : (STATIC_NOTES[tier] || []);
+    } else {
+      notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : [];
+    }
 
     const staticMatchup = STATIC_MATCHUPS[tier] || {counters:[],countered_by:[]};
     const counteredBy = dbComp.countered_by
@@ -308,7 +333,7 @@ export async function handleGuide(request, env) {
       name: dbComp.name,
       type: dbComp.type || 'ATK',
       color: dbComp.color || '#c9a84c',
-      anchorId: isKnown ? tier.toLowerCase() : slugify(dbComp.name),
+      anchorId: tier.toLowerCase(),
       chars,
       bondsData: tier === 'T1' ? T1_DATA.bonds : null,
       rotation,

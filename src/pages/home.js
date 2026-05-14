@@ -1,13 +1,13 @@
 import { layout, esc } from '../layout/layout.js';
 
 function compCard(comp) {
-  const color    = comp.color || '#c9a84c';
+  const color     = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
   const shortDesc = esc((comp.short_description || comp.description || '').substring(0, 80));
   const typeIcon  = comp.type === 'ATK' ? '⚔' : '🛡';
   const tier      = comp.tier || '';
   const anchor    = tier.toLowerCase().replace(/[^a-z0-9]/g,'');
   return `<a href="/guide#${anchor}" style="text-decoration:none">
-    <div style="background:var(--bg3);border:1px solid rgba(201,168,76,0.1);border-top:3px solid ${color};border-radius:8px;padding:1rem;transition:border-color 0.2s" onmouseenter="this.style.borderColor='${color}'" onmouseleave="this.style.borderColor='rgba(201,168,76,0.1)'">
+    <div class="comp-card" style="--comp-card-hover-color:${color};background:var(--bg3);border:1px solid rgba(201,168,76,0.1);border-top:3px solid ${color};border-radius:8px;padding:1rem;transition:border-color 0.2s">
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
         <span style="background:${color};color:#fff;font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:3px">${esc(tier)}</span>
         <span style="font-size:0.72rem;color:var(--text3)">${typeIcon} ${esc(comp.type||'')}</span>
@@ -133,6 +133,10 @@ export async function handleHome(request, env) {
       result.textContent = '✓ Access Granted';
       result.style.color = '#d4af37';
       input.style.borderColor = '#d4af37';
+      modal.style.transition = 'background 0.8s ease';
+      modal.style.background = 'rgba(201,168,76,0.15)';
+      setTimeout(function() { modal.style.background = 'rgba(0,0,0,0.88)'; }, 100);
+      setTimeout(closeEgg, 2000);
     } else {
       result.textContent = '✗ Invalid Code';
       result.style.color = '#e74c3c';
