@@ -236,8 +236,8 @@ function renderComp(comp, mediaMap) {
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
-    <div style="display:flex;flex-direction:column;gap:0.75rem">
-      <div class="card" style="max-height:145px;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%">
+      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -255,11 +255,11 @@ function renderComp(comp, mediaMap) {
         <div class="card-title">Build Notes</div>
         <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card" style="padding:1rem;min-height:80px;margin-bottom:1rem">
+      <div class="card" style="padding:1rem;min-height:140px;margin-bottom:1rem">
         <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;min-height:40px">${preemptiveHtml}</div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start;min-height:100px">${preemptiveHtml}</div>
       </div>
-      <div class="card" style="padding:1rem;min-height:140px;display:flex;flex-direction:column">
+      <div class="card" style="padding:1rem;min-height:220px;display:flex;flex-direction:column">
         <div class="card-title">Matchups</div>
         <div style="margin-bottom:0.5rem">
           <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
@@ -347,12 +347,10 @@ export async function handleGuide(request, env) {
       unitOrder = STATIC_UNIT_ORDER[tier] || [];
     }
 
-    // Build notes: T1 always uses per-char notes; others use DB tier key → DB desc → static
+    // Build notes: T1 always uses static (DB char-level keys may have corrupt data)
     let notes;
     if (tier === 'T1') {
-      notes = (STATIC_CHARS.T1 || []).map((c, idx) =>
-        dbNotes[c.name] || (STATIC_NOTES.T1||[])[idx] || ''
-      ).filter(Boolean);
+      notes = STATIC_NOTES.T1 || [];
     } else {
       const tierNoteKey = dbNotes[tier] || dbNotes[tier.toLowerCase()];
       if (tierNoteKey) {
