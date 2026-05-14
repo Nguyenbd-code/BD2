@@ -182,6 +182,12 @@ export async function handleAdmin(request, env) {
               <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
               <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
               <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+              <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
+              <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
+              <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
+              <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
+              <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
+              <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
             </div>
           </div>
           <div class="form-group">
@@ -203,25 +209,27 @@ export async function handleAdmin(request, env) {
         <!-- Unit Order (all tiers) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>UNIT ORDER</label>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-            ${[1,2,3,4,5].map(i =>
-              '<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">'
-              + '<span style="font-size:0.65rem;color:var(--text3)">' + i + '</span>'
-              + '<input type="text" id="uorder-' + i + '" placeholder="Name" style="width:90px">'
-              + '</div>'
-            ).join('')}
+          <div id="unit-order-slots" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
+            <span style="color:var(--text3);font-size:0.82rem">Select a composition to load unit order</span>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0" onclick="saveCompUnitOrder()">Save Unit Order</button>
           <div id="comp-order-alert"></div>
         </div>
 
-        <!-- Board image -->
+        <!-- Board images (front / back) -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label id="comp-board-label">Board Image</label>
+          <label>Board Image — Front</label>
           <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
           <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" onclick="uploadCompBoard()">Upload Board Image</button>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
           <div id="comp-board-preview" style="margin-top:0.5rem"></div>
+        </div>
+        <div class="form-group">
+          <label>Board Image — Back</label>
+          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas-back" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
+          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
         </div>
 
         <!-- Video URL -->
@@ -232,6 +240,34 @@ export async function handleAdmin(request, env) {
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save Video URL</button>
           </div>
           <div id="comp-video-alert"></div>
+        </div>
+
+        <!-- How and When to Play -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>HOW AND WHEN TO PLAY</label>
+          <textarea id="comp-how-to-play" rows="4" placeholder="One tip per line — when to use, matchup notes, timing..."></textarea>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.4rem" data-action="save-how-to-play">Save How To Play</button>
+          <div id="comp-howtoplay-alert"></div>
+        </div>
+
+        <!-- Preemptive Skills -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>PREEMPTIVE SKILLS</label>
+          <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;min-height:48px"></div>
+          <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+          <canvas id="preemptive-canvas" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="add-preemptive">Add Preemptive Image</button>
+          <div id="comp-preemptive-alert"></div>
+        </div>
+
+        <!-- Character Bonds -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Character Bonds</h4>
+          <div id="comp-bonds-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:0.75rem">
+            <span style="color:var(--text3);font-size:0.82rem;grid-column:1/-1">Select a composition to edit character bonds</span>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Character Bonds</button>
+          <div id="comp-bonds-alert"></div>
         </div>
 
         <!-- Skill Rotation (all tiers) -->
@@ -253,40 +289,6 @@ export async function handleAdmin(request, env) {
           <div id="rot-alert"></div>
           <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompRotationSlot()">Save Slot</button>
           <div id="rot-list" style="margin-top:0.75rem"></div>
-        </div>
-
-        <!-- T1 extras: per-char notes + order dropdowns (kept for backwards compat) -->
-        <div id="comp-t1-extras" style="display:none">
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Build Notes</h4>
-            <div class="form-group">
-              <label>Character</label>
-              <select id="notes-char-comp" onchange="loadCompNotes()">
-                <option value="Rou">Rou</option>
-                <option value="Seir">Seir</option>
-                <option value="Lecliss">Lecliss</option>
-                <option value="Scheherazade">Scheherazade</option>
-                <option value="Sylvia">Sylvia</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Build Notes</label>
-              <textarea id="notes-text-comp" rows="5" placeholder="Build notes for this character..."></textarea>
-            </div>
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompNotes()">Save Notes</button>
-          </div>
-          <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-            <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Unit Order</h4>
-            ${[1,2,3,4,5].map(i =>
-              '<div class="form-group">'
-              + '<label>Position ' + i + '</label>'
-              + '<select id="order-comp-' + i + '">'
-              + ['Rou','Seir','Lecliss','Scheherazade','Sylvia'].map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('')
-              + '</select>'
-              + '</div>'
-            ).join('')}
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompOrder()">Save Unit Order</button>
-          </div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -329,9 +331,14 @@ export async function handleAdmin(request, env) {
       <div id="emote-alert"></div>
       <div class="form-row">
         <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Happy Sylvia"></div>
-        <div class="form-group"><label>Image URL</label><input type="text" id="e-url" placeholder="https://..."></div>
+        <div class="form-group"><label>Image URL <span style="color:var(--text3);font-weight:400">(or upload below)</span></label><input type="text" id="e-url" placeholder="https://..."></div>
       </div>
-      <button class="btn" style="width:auto;padding:10px 24px" onclick="addEmote()">Add Emote</button>
+      <div class="form-group">
+        <label>Upload Image File <span style="color:var(--text3);font-weight:400">(optional — replaces URL)</span></label>
+        <input type="file" id="e-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+        <canvas id="emote-canvas" style="display:none"></canvas>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="add-emote">Add Emote</button>
     </div>
     <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
       ${emotes.map(e =>
@@ -736,7 +743,6 @@ function selectComp() {
   var val       = sel ? sel.value : '';
   var editorEl  = document.getElementById('comp-editor');
   var addFormEl = document.getElementById('comp-add-form');
-  var t1extras  = document.getElementById('comp-t1-extras');
   var labelEl   = document.getElementById('comp-editor-tier-label');
   var boardLbl  = document.getElementById('comp-board-label');
 
@@ -760,31 +766,90 @@ function selectComp() {
 
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
-  if (t1extras) t1extras.style.display = _compTier === 'T1' ? 'block' : 'none';
 
   loadCompData(_compId);
-  if (_compTier === 'T1') { loadCompNotes(); loadCompOrder(); }
+  loadCompChars();
   loadCompMedia(_compTier);
   loadCompRotation();
+  loadHowToPlay(_compTier);
+  loadPreemptive(_compTier);
 }
 
-async function uploadCompBoard() {
-  var fileEl = document.getElementById('comp-board-file');
+async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
+  suffix    = suffix    || '';
+  fileInputId = fileInputId || 'comp-board-file';
+  canvasId  = canvasId  || 'comp-canvas';
+  previewId = previewId || 'comp-board-preview';
+  var fileEl = document.getElementById(fileInputId);
   var file = fileEl && fileEl.files[0];
   if (!file) { showAlert('comp-editor-alert', false, 'Select an image file'); return; }
-  if (!_compBoardKey) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
+  if (!_compTier) { showAlert('comp-editor-alert', false, 'Select a composition first'); return; }
   showAlert('comp-editor-alert', true, 'Compressing…');
-  var data = await compressToDataUrl(file, 'comp-canvas', 340, 0.85);
-  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data });
-  _compBoardKey = r.key || _compBoardKey;
+  var data = await compressToDataUrl(file, canvasId, 340, 0.85);
+  var r = await apiPost('/api/admin/comp/board/save', { tier: _compTier, data: data, suffix: suffix });
   showAlert('comp-editor-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
   if (r.success) {
-    var preview = document.getElementById('comp-board-preview');
+    var preview = document.getElementById(previewId);
     if (preview) {
       preview.innerHTML = '<img src="' + escH(data) + '" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
     if (fileEl) fileEl.value = '';
   }
+}
+
+async function saveHowToPlay() {
+  if (!_compTier) { showAlert('comp-howtoplay-alert', false, 'Select a composition first'); return; }
+  var content = ((document.getElementById('comp-how-to-play')||{}).value||'').trim();
+  var r = await apiPost('/api/admin/comp/howtoplay/save', { tier: _compTier, content: content });
+  showAlert('comp-howtoplay-alert', r.success, r.message);
+}
+
+async function loadHowToPlay(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/howtoplay/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    var el = document.getElementById('comp-how-to-play');
+    if (el) el.value = data.content || '';
+  } catch(e) {}
+}
+
+async function loadPreemptive(tier) {
+  try {
+    var res  = await fetch('/api/admin/comp/preemptive/get?tier=' + encodeURIComponent(tier));
+    var data = await res.json();
+    renderPreemptiveList(data.items || []);
+  } catch(e) {}
+}
+
+function renderPreemptiveList(items) {
+  var list = document.getElementById('preemptive-list');
+  if (!list) return;
+  if (!items.length) { list.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No images yet.</span>'; return; }
+  list.innerHTML = items.map(function(src, i) {
+    return '<div style="position:relative;display:inline-block">'
+      + '<img src="' + escH(src) + '" style="height:48px;width:auto;object-fit:contain;border-radius:4px;border:1px solid var(--border2)">'
+      + '<button class="btn-danger" data-action="preemptive-delete" data-index="' + i + '" style="position:absolute;top:-4px;right:-4px;font-size:0.65rem;padding:1px 4px;border-radius:50%;line-height:1">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function addPreemptive() {
+  if (!_compTier) { showAlert('comp-preemptive-alert', false, 'Select a composition first'); return; }
+  var fileEl = document.getElementById('preemptive-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('comp-preemptive-alert', false, 'Select an image file'); return; }
+  showAlert('comp-preemptive-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'preemptive-canvas', 200, 0.85);
+  var r = await apiPost('/api/admin/comp/preemptive/add', { tier: _compTier, data: data });
+  showAlert('comp-preemptive-alert', r.success, r.message || (r.success ? 'Added!' : 'Error'));
+  if (r.success) { if (fileEl) fileEl.value = ''; loadPreemptive(_compTier); }
+}
+
+async function deletePreemptive(index) {
+  if (!_compTier) return;
+  var r = await apiPost('/api/admin/comp/preemptive/delete', { tier: _compTier, index: index });
+  showAlert('comp-preemptive-alert', r.success, r.message);
+  if (r.success) loadPreemptive(_compTier);
 }
 
 async function saveCompVideo() {
@@ -801,10 +866,16 @@ async function loadCompMedia(tier) {
     var data = await res.json();
     var urlEl = document.getElementById('comp-video-url');
     if (urlEl) urlEl.value = data.video || '';
+    var tierLow = tier.toLowerCase();
+    var frontKey = 'comp_' + tierLow + '_board';
+    var backKey  = 'comp_' + tierLow + '_board_back';
     var preview = document.getElementById('comp-board-preview');
-    var boardKey = data.board_key || _compBoardKey;
-    if (preview && boardKey) {
-      preview.innerHTML = '<img src="/img/' + escH(boardKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    if (preview) {
+      preview.innerHTML = '<img src="/img/' + escH(frontKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
+    }
+    var backPreview = document.getElementById('comp-board-back-preview');
+    if (backPreview) {
+      backPreview.innerHTML = '<img src="/img/' + escH(backKey) + '" class="img-err-hide" style="max-height:180px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);margin-top:0.25rem">';
     }
   } catch(e) {}
 }
@@ -856,28 +927,37 @@ async function deleteComp(id) {
 async function loadCompData(id) {
   if (!id) return;
   try {
-    var res  = await fetch('/api/admin/chars/list'); // reuse existing endpoint to avoid extra call
-    // Load comp data from the select option's data attributes instead
-    var sel  = document.getElementById('comp-select');
-    var opt  = sel ? sel.options[sel.selectedIndex] : null;
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+
+    var sel = document.getElementById('comp-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
     if (!opt) return;
-    // Color
+
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
-    // Short desc
     var sdEl = document.getElementById('comp-short-desc');
     if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
-    // Build notes
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
-    // Unit order
-    try {
-      var order = JSON.parse(opt.dataset.unitOrder || '[]');
-      for (var i = 0; i < 5; i++) {
-        var uEl = document.getElementById('uorder-' + (i+1));
-        if (uEl) uEl.value = order[i] || '';
-      }
-    } catch(e) {}
+
+    var currentOrder = [];
+    try { currentOrder = JSON.parse(opt.dataset.unitOrder || '[]'); } catch(e) {}
+
+    var slotsEl = document.getElementById('unit-order-slots');
+    if (slotsEl) {
+      slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
+        var cur = currentOrder[n-1] || '';
+        var opts = '<option value="">— Select —</option>' + allChars.map(function(c) {
+          return '<option value="' + escH(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+        }).join('');
+        return '<div style="text-align:center">'
+          + '<div style="font-size:0.65rem;color:var(--text3);margin-bottom:3px">' + n + '</div>'
+          + '<select id="uorder-sel-' + n + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:120px;font-size:0.82rem">'
+          + opts + '</select></div>';
+      }).join('');
+    }
   } catch(e) {}
 }
 
@@ -893,15 +973,18 @@ async function saveCompMeta() {
   var cby      = opt ? opt.dataset.cby   || '' : '';
   var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success) {
+    apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
+    if (opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
+  }
   showAlert('comp-meta-alert', r.success, r.message);
-  if (r.success && opt) { opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; }
 }
 
 async function saveCompUnitOrder() {
   if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
   var order = [];
   for (var i = 1; i <= 5; i++) {
-    var v = ((document.getElementById('uorder-' + i)||{}).value||'').trim();
+    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
     if (v) order.push(v);
   }
   var sel  = document.getElementById('comp-select');
@@ -918,57 +1001,113 @@ async function saveCompUnitOrder() {
   if (r.success && opt) opt.dataset.unitOrder = uorderStr;
 }
 
-async function saveCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  var textEl = document.getElementById('notes-text-comp');
-  if (!charEl || !textEl) return;
-  var r = await apiPost('/api/admin/t1/notes/save', { char: charEl.value, notes: textEl.value });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
-
-async function loadCompNotes() {
-  var charEl = document.getElementById('notes-char-comp');
-  if (!charEl) return;
+/* ══════════════════════════════════════════════════ COMP CHAR BONDS ══ */
+async function loadCompChars() {
+  if (!_compTier) return;
+  var grid = document.getElementById('comp-bonds-grid');
+  if (!grid) return;
   try {
-    var res  = await fetch('/api/admin/t1/notes/get?char=' + encodeURIComponent(charEl.value));
-    var data = await res.json();
-    var textEl = document.getElementById('notes-text-comp');
-    if (textEl) textEl.value = data.notes || '';
-  } catch(e) {}
-}
+    var charsRes = await fetch('/api/admin/chars/list');
+    var charsData = await charsRes.json();
+    var allChars = charsData.chars || [];
+    var existingRes = await fetch('/api/admin/comp/chars/get?tier=' + encodeURIComponent(_compTier));
+    var existingData = await existingRes.json();
+    var existingChars = existingData.chars || [];
 
-async function saveCompOrder() {
-  var order = [];
-  for (var i = 1; i <= 5; i++) {
-    var sel = document.getElementById('order-comp-' + i);
-    if (sel) order.push(sel.value);
-  }
-  var r = await apiPost('/api/admin/t1/order/save', { order: order });
-  showAlert('comp-editor-alert', r.success, r.message);
-}
+    var charOptions = '<option value="">— None —</option>' + allChars.map(function(c) {
+      return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
+    }).join('');
 
-async function loadCompOrder() {
-  try {
-    var res   = await fetch('/api/admin/t1/order/get');
-    var data  = await res.json();
-    var order = data.order || ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
-    for (var i = 0; i < order.length; i++) {
-      var sel = document.getElementById('order-comp-' + (i + 1));
-      if (sel) sel.value = order[i];
+    grid.innerHTML = [1,2,3,4,5].map(function(n) {
+      var ex = existingChars.find(function(c) { return c.position === n; }) || {};
+      var charOpts = '<option value="">— None —</option>' + allChars.map(function(c) {
+        return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '"' + (c.name === (ex.char_name||'') ? ' selected' : '') + '>' + escH(c.name) + '</option>';
+      }).join('');
+      var portraitSrc = ex.char_slug ? '/img/char_' + ex.char_slug + '_portrait' : '';
+      return '<div style="border:1px solid var(--border2);border-radius:8px;padding:0.75rem;background:var(--bg4)">'
+        + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.4rem;font-family:Cinzel,serif">SLOT ' + n + '</div>'
+        + '<select id="bond-char-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + charOpts + '</select>'
+        + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + '<option value="">— Costume —</option></select>'
+        + '<input type="text" id="bond-stats-' + n + '" value="' + escH(ex.bond_stats||'') + '" placeholder="Bond stats..." style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
+        + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
+        + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
+        + '</div></div>';
+    }).join('');
+
+    for (var n = 1; n <= 5; n++) {
+      (function(slot) {
+        var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
+        var charSel = document.getElementById('bond-char-' + slot);
+        if (charSel) {
+          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '');
+          charSel.addEventListener('change', function() {
+            var opt = charSel.options[charSel.selectedIndex];
+            var slug = opt ? (opt.dataset.slug || '') : '';
+            loadBondCostumes(slot, slug, '');
+            var img = document.getElementById('bond-portrait-' + slot);
+            if (img) {
+              if (slug) { img.src = '/img/char_' + slug + '_portrait?t=' + Date.now(); img.style.display = 'block'; }
+              else { img.src = ''; img.style.display = 'none'; }
+            }
+          });
+        }
+      })(n);
     }
   } catch(e) {}
 }
 
+async function loadBondCostumes(slot, charSlug, selectedCostume) {
+  var sel = document.getElementById('bond-cost-' + slot);
+  if (!sel || !charSlug) return;
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
+    var data = await res.json();
+    sel.innerHTML = '<option value="">— Costume —</option>' + (data.costumes||[]).map(function(c) {
+      return '<option value="' + escH(c.costume_name) + '"' + (c.costume_name === selectedCostume ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
+    }).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">— No costumes —</option>';
+  }
+}
+
+async function saveCompBonds() {
+  if (!_compTier) { showAlert('comp-bonds-alert', false, 'Select a composition first'); return; }
+  var charsRes = await fetch('/api/admin/chars/list').then(function(r) { return r.json(); }).catch(function() { return { chars: [] }; });
+  var allChars = charsRes.chars || [];
+  var chars = [];
+  for (var n = 1; n <= 5; n++) {
+    var charSel = document.getElementById('bond-char-' + n);
+    var costSel = document.getElementById('bond-cost-' + n);
+    var statsEl = document.getElementById('bond-stats-' + n);
+    var charName = charSel ? charSel.value : '';
+    if (!charName) continue;
+    var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
+    chars.push({
+      position: n,
+      char_name: charName,
+      char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      costume_name: costSel ? costSel.value : '',
+      bond_stats: statsEl ? statsEl.value : '',
+    });
+  }
+  var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
+  showAlert('comp-bonds-alert', r.success, r.message);
+}
+
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
-async function addEmote() {
-  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
-  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
-  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and URL required'); return; }
+async function addEmoteWithData(name, image_url) {
+  if (!name || !image_url) { showAlert('emote-alert', false, 'Name and image required'); return; }
   var r = await apiPost('/api/admin/emote/add', { name: name, image_url: image_url });
   showAlert('emote-alert', r.success, r.message);
   if (r.success) {
-    document.getElementById('e-name').value = '';
-    document.getElementById('e-url').value  = '';
+    var nameEl = document.getElementById('e-name');
+    var urlEl  = document.getElementById('e-url');
+    var fileEl = document.getElementById('e-file');
+    if (nameEl) nameEl.value = '';
+    if (urlEl)  urlEl.value  = '';
+    if (fileEl) fileEl.value = '';
     var div = document.createElement('div');
     div.className = 'admin-item';
     div.id = 'emote-' + r.id;
@@ -978,6 +1117,23 @@ async function addEmote() {
       + '<button class="btn-danger" data-action="emote-delete" data-id="' + r.id + '">Delete</button>';
     var list = document.getElementById('emote-list');
     if (list) list.prepend(div);
+  }
+}
+
+async function addEmote() {
+  var name      = ((document.getElementById('e-name') || {}).value || '').trim();
+  var image_url = ((document.getElementById('e-url')  || {}).value || '').trim();
+  var fileEl    = document.getElementById('e-file');
+  var file      = fileEl && fileEl.files[0];
+  if (!name) { showAlert('emote-alert', false, 'Name required'); return; }
+  if (file) {
+    showAlert('emote-alert', true, 'Compressing…');
+    var data = await compressToDataUrl(file, 'emote-canvas', 200, 0.85);
+    await addEmoteWithData(name, data);
+  } else if (image_url) {
+    await addEmoteWithData(name, image_url);
+  } else {
+    showAlert('emote-alert', false, 'Provide an image URL or upload a file');
   }
 }
 
@@ -1008,7 +1164,7 @@ function updateImgKey() {
     var slotSel = document.getElementById('img-slot-type');
     var ch  = charSel ? charSel.value : 'rou';
     var sl  = slotSel ? slotSel.value : 'portrait';
-    var slug = ch.toLowerCase().replace('scheherazade','schera');
+    var slug = ch.toLowerCase();
     var costumeWrap = document.getElementById('img-costume-sel-wrap');
     if (sl === 'portrait') {
       key = 'char_' + slug + '_portrait';
@@ -1027,7 +1183,7 @@ function updateImgKey() {
   } else if (_imgCat === 'tiles') {
     var tch  = (document.getElementById('img-tile-char') || {}).value || 'Rou';
     var tsl  = (document.getElementById('img-tile-slot') || {}).value || '1';
-    var tslug = tch.toLowerCase().replace('scheherazade','schera');
+    var tslug = tch.toLowerCase();
     key = 'tile_' + tslug + '_' + tsl;
   } else if (_imgCat === 'other') {
     key = ((document.getElementById('img-other-key') || {}).value || '').trim();
@@ -1312,7 +1468,7 @@ async function deleteSkill(id) {
 function updateCharImgKey() {
   var slotSel = document.getElementById('char-img-slot');
   var slot    = slotSel ? slotSel.value : 'portrait';
-  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug    = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   var wrap    = document.getElementById('char-img-costume-wrap');
   var display = document.getElementById('char-img-computed-key');
   var key     = '';
@@ -1347,7 +1503,7 @@ function previewCharImage(input) {
 }
 
 async function uploadCharImage(slot, file) {
-  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase().replace('scheherazade','schera') : '';
+  var slug = _selectedCharSlug ? _selectedCharSlug.toLowerCase() : '';
   if (!slug) { showAlert('char-img-alert', false, 'Select a character first'); return; }
   if (!file) {
     var fileEl = document.getElementById('char-img-file');
@@ -1398,7 +1554,7 @@ function triggerCharUpload(slot) {
 async function loadCharImgGrid() {
   var grid = document.getElementById('char-img-grid');
   if (!grid || !_selectedCharSlug) return;
-  var slug = _selectedCharSlug.toLowerCase().replace('scheherazade','schera');
+  var slug = _selectedCharSlug.toLowerCase();
   var slots = [
     { key: 'char_' + slug + '_portrait', label: 'Portrait',  slot: 'portrait' },
     { key: 'char_' + slug + '_gear',     label: 'Gear',      slot: 'gear' },
@@ -1524,8 +1680,15 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')      deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
-  if (action === 'preset-color')    { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
-  if (action === 'home-note-save')  saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
+  if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
+  if (action === 'save-comp-bonds')  saveCompBonds();
+  if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
+  if (action === 'upload-board-back')  uploadCompBoard('_back', 'comp-board-back-file', 'comp-canvas-back', 'comp-board-back-preview');
+  if (action === 'save-how-to-play') saveHowToPlay();
+  if (action === 'add-preemptive')   addPreemptive();
+  if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
+  if (action === 'add-emote')        addEmote();
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */

@@ -65,6 +65,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .char-card-wrap{perspective:1000px;cursor:pointer;position:relative;}
 .char-card-inner{position:relative;width:100%;height:220px;transform-style:preserve-3d;transition:transform 0.5s ease;}
 .char-card-inner.flipped{transform:rotateY(180deg);}
+.board-card-inner.flipped{transform:rotateY(180deg);}
 .char-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);overflow:hidden;}
 .char-face-back{transform:rotateY(180deg);border:2px solid var(--gold);border-radius:8px;}
 .card-zoom{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);font-size:0.72rem;cursor:pointer;padding:2px 5px;border-radius:3px;z-index:2;line-height:1;}
@@ -86,9 +87,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 /* TOOLTIPS */
 .tt-parent{position:relative;}
 .tt-popup{display:none;position:absolute;z-index:9999;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.8);pointer-events:none;white-space:normal;}
-.tt-parent:hover>.tt-popup{display:block;}
 .skill-wrap{position:relative;cursor:pointer;overflow:visible;}
-.skill-wrap:hover>.tt-popup{display:block;}
 .tt-name{font-family:'Cinzel',serif;font-size:0.85rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;}
 .tt-stats{display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;}
 .tt-stat{background:var(--bg3);border:1px solid var(--border2);padding:2px 8px;border-radius:3px;font-size:0.72rem;color:var(--text2);}
@@ -97,15 +96,15 @@ main{padding-top:60px;position:relative;z-index:1;}
 /* UNIT ORDER */
 .order-list{display:flex;flex-direction:column;gap:0.4rem;}
 .order-row{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;background:var(--bg4);border-radius:5px;}
-.order-num{width:22px;height:22px;border-radius:50%;background:var(--gold3);color:var(--bg);font-weight:700;font-size:0.75rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0;}
+.order-num{width:22px;height:22px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.75rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
-.rot-table{display:flex;flex-direction:column;gap:0;}
-.rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);}
+.rot-table{display:flex;flex-direction:column;gap:0;overflow-x:auto;min-height:220px;}
+.rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:380px;}
 .rot-row:last-child{border-bottom:none;}
 .rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;}
-.rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:hidden;}
+.rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:visible;}
 .skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}
 .skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}
@@ -179,6 +178,8 @@ main{padding-top:60px;position:relative;z-index:1;}
 .img-slot{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;text-align:center;font-size:0.7rem;color:var(--text3);}
 .img-slot img{width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--bg2);border-radius:4px;margin-bottom:0.25rem;cursor:pointer;}
 .img-slot-key{font-family:'Cinzel',serif;font-size:0.62rem;color:var(--gold3);word-break:break-all;}
+/* HOME COMP CARDS */
+.comp-card:hover{border-color:var(--comp-card-hover-color,var(--gold)) !important;}
 /* EASTER EGG */
 @keyframes egg-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .egg-shake{animation:egg-shake 0.35s ease;}

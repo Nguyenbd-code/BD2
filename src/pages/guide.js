@@ -42,21 +42,14 @@ const STATIC_WARNINGS = {
   T5: 'LOW WIN RATE — counters specific team comps only',
 };
 
-const DEFAULT_BOARD = {
-  d1:'Seir', d2:'', d3:'Lecliss', d4:'', d5:'', d6:'',
-  a1:'Rou',  a2:'Schera', a3:'', a4:'Sylvia', a5:'', a6:'',
-};
+const NA = '<div style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.85rem;text-align:center;padding:1.5rem 0">N/A</div>';
 
 function tileCls(type) {
   return { ALL:'tile-all', FRONT:'tile-front', SKIP:'tile-skip', SELF:'tile-self' }[type] || 'tile-front';
 }
 
 function cSlug(name) {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
-}
-
-function slugify(str) {
-  return (str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function charStrip(chars, compId, bondsData) {
@@ -90,31 +83,11 @@ function charStrip(chars, compId, bondsData) {
         <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
         <img src="/img/char_${slug}_gear" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)">
       </div>
-      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:2px 5px;font-size:0.65rem;z-index:5">⤢</button>
+      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:4px 9px;font-size:0.85rem;z-index:5">⤢</button>
     </div>
   </div>
 </div>`;
   }).join('');
-}
-
-function boardMediaBox(tier, type, mediaMap) {
-  const imageKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
-  const videoUrl = (mediaMap[tier] || {}).video || '';
-  const isAtk    = type !== 'DEF';
-  const arrow    = isAtk ? '⟶' : '⟵';
-  const boxStyle = 'flex:1;min-height:200px;border:1px solid rgba(201,168,76,0.25);border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:var(--bg4)';
-  const imgBox = `<div style="${boxStyle}">
-    <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
-    <img src="/img/${esc(imageKey)}" class="img-err-hide" data-action="expand-img" data-src="/img/${esc(imageKey)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;cursor:zoom-in">
-  </div>`;
-  const vidBox = videoUrl
-    ? `<div style="${boxStyle}"><video src="${esc(videoUrl)}" controls style="width:100%;height:100%;object-fit:contain"></video></div>`
-    : `<div style="${boxStyle}"><div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);font-size:0.85rem;font-weight:700">Video</div><div style="font-size:0.75rem;color:var(--text3);margin-top:0.2rem">Coming soon</div></div></div>`;
-  const arrowEl = `<div style="color:var(--gold);font-size:1.4rem;flex-shrink:0;padding:0 0.4rem;align-self:center">${arrow}</div>`;
-  return `<div style="border:2px solid var(--gold);border-radius:8px;padding:0.5rem">
-  <div style="display:flex;align-items:stretch;gap:0">
-    ${isAtk ? imgBox + arrowEl + vidBox : vidBox + arrowEl + imgBox}
-  </div></div>`;
 }
 
 function renderComp(comp, mediaMap) {
@@ -125,8 +98,23 @@ function renderComp(comp, mediaMap) {
   const typeLabel = comp.type === 'ATK' ? '⚔ Attack Composition' : '🛡 Defence Composition';
   const typeCls   = comp.type === 'ATK' ? 'atk' : 'def';
 
-  const stripHtml = (comp.chars||[]).length ? charStrip(comp.chars, anchorId, comp.bondsData||null) : '';
+  // Character strip
+  const stripHtml = (comp.chars||[]).length
+    ? charStrip(comp.chars, anchorId, comp.bondsData||null)
+    : [1,2,3,4,5].map(() => `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px">
+  <div class="char-card-inner">
+    <div class="char-face">
+      <div style="height:154px;background:var(--bg4);display:flex;align-items:center;justify-content:center">
+        <span style="font-size:1.5rem;color:var(--text3)">?</span>
+      </div>
+      <div style="height:66px;display:flex;align-items:center;justify-content:center;padding:0.5rem">
+        <div style="font-size:0.75rem;color:var(--text3);text-align:center">Not set</div>
+      </div>
+    </div>
+  </div>
+</div>`).join('');
 
+  // Skill rotation
   let rotHtml;
   const rot = comp.rotation;
   if (rot && Object.keys(rot).length > 0) {
@@ -157,33 +145,71 @@ function renderComp(comp, mediaMap) {
       }).join('');
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
-    rotHtml = rows ? `<div class="rot-table">${rows}</div>` : `<div style="color:var(--text3);font-size:0.82rem;text-align:center;padding:1rem 0">Skill data coming soon</div>`;
+    rotHtml = rows ? `<div class="rot-table">${rows}</div>` : `<div style="display:flex;align-items:center;justify-content:center;min-height:220px">${NA}</div>`;
   } else {
-    rotHtml = `<div style="color:var(--text3);font-size:0.82rem;text-align:center;padding:1rem 0">Skill data coming soon</div>`;
+    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;min-height:220px">${NA}</div>`;
   }
 
-  let orderHtml = '';
+  // Unit order
   const unitOrder = comp.unitOrder || [];
+  let orderHtml;
   if (unitOrder.length) {
     const pills = unitOrder.map((u, i) => {
       const pos  = typeof u === 'object' ? (u.pos||i+1) : i+1;
       const name = typeof u === 'object' ? u.name : u;
       return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:${color};color:#fff;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${pos}</div>
+  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${pos}</div>
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
     }).join('');
-    orderHtml = `<div class="card" style="margin-top:1rem">
+    orderHtml = `<div class="card" style="margin-top:1rem;min-height:140px">
   <div class="card-title">Unit Order</div>
   <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${pills}</div>
 </div>`;
+  } else {
+    orderHtml = `<div class="card" style="margin-top:1rem;min-height:140px">
+  <div class="card-title">Unit Order</div>
+  ${NA}
+</div>`;
   }
 
+  // Board positioning — flip card (front + back)
+  const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
+  const backKey  = `comp_${tier.toLowerCase()}_board_back`;
+  const boardHtml = `<div class="board-flip-wrap" style="position:relative;min-height:200px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;min-height:200px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
+    <div class="board-face" style="backface-visibility:hidden;position:relative;min-height:200px;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+      <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
+      <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
+      <button data-action="expand-img" data-src="/img/${esc(frontKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
+    </div>
+    <div class="board-face" style="backface-visibility:hidden;position:absolute;inset:0;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+      <span style="color:var(--text3);font-size:0.75rem">No back image yet</span>
+      <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
+      <button data-action="expand-img" data-src="/img/${esc(backKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
+    </div>
+  </div>
+  <div style="font-size:0.65rem;color:var(--text3);text-align:center;margin-top:4px">Click to flip</div>
+</div>`;
+
+  // How and When to Play
+  const howToPlayHtml = `<div class="card" style="padding:1rem;margin-top:0.75rem">
+  <div class="card-title" style="margin-bottom:0.5rem">How and When to Play</div>
+  <div style="color:var(--text3);font-size:0.82rem;min-height:40px;line-height:1.6;white-space:pre-wrap">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+</div>`;
+
+  // Build notes
   const notesHtml = (comp.notes||[]).map(n=>`<li>${esc(n)}</li>`).join('');
+
+  // Preemptive skills
+  const preemptive = comp.preemptive || [];
+  const preemptiveHtml = preemptive.length
+    ? preemptive.map(src => `<img src="${esc(src)}" style="height:40px;width:auto;object-fit:contain;border-radius:4px;border:1px solid var(--border2)" class="img-err-hide">`).join('')
+    : '<span style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.8rem">N/A</span>';
+
+  // Matchups
   const counters    = comp.counters || [];
   const counteredBy = comp.countered_by || [];
-  const cHtml  = counters.length ? `<div style="margin-bottom:0.4rem"><span style="font-size:0.75rem;color:var(--text3)">Counters </span>${counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('')}</div>` : '';
-  const cbHtml = counteredBy.length ? `<div><span style="font-size:0.75rem;color:var(--text3)">Countered By </span>${counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('')}</div>` : '';
 
   return `
 <div class="comp-section" id="${anchorId}">
@@ -203,29 +229,38 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:start">
     <div>
-      <div class="card">
+      <div class="card" style="min-height:280px;display:flex;flex-direction:column">
         <div class="card-title">Skill Rotation</div>
         ${rotHtml}
       </div>
       ${orderHtml}
     </div>
-    <div class="card">
-      <div class="card-title">Board Positioning</div>
-      ${boardMediaBox(tier, comp.type, mediaMap)}
-      <div style="margin-top:0.75rem;border:1px dashed rgba(201,168,76,0.3);border-radius:6px;padding:1rem;text-align:center">
-        <div style="font-family:'Cinzel',serif;font-size:0.8rem;color:var(--gold);margin-bottom:0.25rem">How and When to Play</div>
-        <div style="font-size:0.75rem;color:var(--text3)">Coming soon</div>
+    <div>
+      <div class="card" style="padding:1rem">
+        <div class="card-title">Board Positioning</div>
+        ${boardHtml}
       </div>
+      ${howToPlayHtml}
     </div>
     <div>
-      <div class="card" style="margin-bottom:1rem">
+      <div class="card" style="min-height:200px;max-height:240px;overflow-y:auto;margin-bottom:1rem;display:flex;flex-direction:column">
         <div class="card-title">Build Notes</div>
-        <ul class="notes-list" style="max-height:160px;overflow-y:auto">${notesHtml||'<li style="color:var(--text3)">Build data coming soon</li>'}</ul>
+        <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card">
+      <div class="card" style="padding:1rem;min-height:80px;margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;min-height:40px">${preemptiveHtml}</div>
+      </div>
+      <div class="card" style="padding:1rem;min-height:140px;display:flex;flex-direction:column">
         <div class="card-title">Matchups</div>
-        ${cHtml}${cbHtml}
-        ${!cHtml&&!cbHtml?'<span style="color:var(--text3);font-size:0.82rem">Data pending</span>':''}
+        <div style="margin-bottom:0.5rem">
+          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
+          ${counters.length ? counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
+        </div>
+        <div>
+          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Countered By</div>
+          ${counteredBy.length ? counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
+        </div>
       </div>
     </div>
   </div>
@@ -233,13 +268,15 @@ function renderComp(comp, mediaMap) {
 }
 
 export async function handleGuide(request, env) {
-  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {};
+  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {};
   try {
-    const [compRes, mediaRes, rotRes, compCharsRes] = await Promise.all([
+    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes] = await Promise.all([
       env.DB.prepare('SELECT * FROM compositions ORDER BY tier, id').all(),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%'").all().catch(() => ({results:[]})),
     ]);
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
@@ -255,24 +292,30 @@ export async function handleGuide(request, env) {
       if (!compCharsMap[c.tier]) compCharsMap[c.tier] = [];
       compCharsMap[c.tier].push(c);
     }
+    for (const r of (noteRes.results||[])) {
+      dbNotes[r.key.replace('notes_', '')] = r.data;
+    }
+    for (const r of (extraRes.results||[])) {
+      extraMap[r.key] = r.data;
+    }
   } catch { /* ignore */ }
 
   const KNOWN = new Set(['T1','T2','T3','T4','T5','T6']);
 
   const sidebarLinks = allComps.map(c => {
-    const tid = c.tier.toLowerCase().replace(/[^a-z0-9]/g,'');
-    const anchor = KNOWN.has(c.tier) ? c.tier.toLowerCase() : slugify(c.name);
+    const anchor = c.tier.toLowerCase();
     return `<a href="#${anchor}" class="sidebar-link">
-  <span class="sidebar-badge ${tid}" style="background:${c.color||'#c9a84c'}">${esc(c.tier)}</span>
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#ffffff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
   <span class="sidebar-name">${esc(c.name)}</span>
 </a>`;
   }).join('');
 
   let compsHtml = '';
   for (const dbComp of allComps) {
-    const tier = dbComp.tier;
+    const tier    = dbComp.tier;
+    const tierLow = tier.toLowerCase();
     const isKnown = KNOWN.has(tier);
-    const dbRot = rotationMap[tier] || null;
+    const dbRot   = rotationMap[tier] || null;
 
     const chars = isKnown
       ? (STATIC_CHARS[tier] || [])
@@ -294,21 +337,40 @@ export async function handleGuide(request, env) {
       unitOrder = STATIC_UNIT_ORDER[tier] || [];
     }
 
-    const notes = isKnown
-      ? (STATIC_NOTES[tier] || [])
-      : (dbComp.description ? dbComp.description.split('\n').filter(Boolean) : []);
+    // Build notes: check images table first (notes_{tier}), then per-char for T1, then DB desc, then static
+    let notes;
+    const tierNoteKey = dbNotes[tier];
+    if (tierNoteKey) {
+      notes = String(tierNoteKey).split('\n').filter(Boolean);
+    } else if (tier === 'T1') {
+      notes = (STATIC_CHARS.T1 || []).map((c, idx) =>
+        dbNotes[c.name] || (STATIC_NOTES.T1||[])[idx] || ''
+      ).filter(Boolean);
+    } else if (isKnown) {
+      notes = dbComp.description
+        ? dbComp.description.split('\n').filter(Boolean)
+        : (STATIC_NOTES[tier] || []);
+    } else {
+      notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : [];
+    }
 
     const staticMatchup = STATIC_MATCHUPS[tier] || {counters:[],countered_by:[]};
     const counteredBy = dbComp.countered_by
       ? dbComp.countered_by.split(',').map(s=>s.trim()).filter(Boolean)
       : staticMatchup.countered_by;
 
+    let preemptive = [];
+    const preemptiveRaw = extraMap[`preemptive_${tierLow}`];
+    if (preemptiveRaw) { try { preemptive = JSON.parse(preemptiveRaw); } catch {} }
+
+    const howToPlay = extraMap[`how_to_play_${tierLow}`] || '';
+
     compsHtml += renderComp({
       tier,
       name: dbComp.name,
       type: dbComp.type || 'ATK',
       color: dbComp.color || '#c9a84c',
-      anchorId: isKnown ? tier.toLowerCase() : slugify(dbComp.name),
+      anchorId: tierLow,
       chars,
       bondsData: tier === 'T1' ? T1_DATA.bonds : null,
       rotation,
@@ -317,6 +379,8 @@ export async function handleGuide(request, env) {
       counters: staticMatchup.counters,
       countered_by: counteredBy,
       warning: STATIC_WARNINGS[tier] || null,
+      preemptive,
+      howToPlay,
     }, mediaMap);
   }
 
@@ -341,8 +405,12 @@ document.addEventListener('click', function(e) {
   var b = e.target.closest('[data-action]');
   if (!b) return;
   var action = b.dataset.action;
-  if (action === 'expand-img') openLightbox(b.dataset.src);
-  if (action === 'card-flip')  toggleFlip(b.dataset.slug);
+  if (action === 'expand-img')  { e.stopPropagation(); openLightbox(b.dataset.src); }
+  if (action === 'card-flip')   toggleFlip(b.dataset.slug);
+  if (action === 'board-flip') {
+    var wrap = b.closest('[data-action="board-flip"]');
+    if (wrap) toggleBoardFlip(wrap.dataset.tier);
+  }
 });
 
 function toggleFlip(cardId) {
@@ -350,6 +418,35 @@ function toggleFlip(cardId) {
   if (!inner) return;
   inner.classList.toggle('flipped');
 }
+
+function toggleBoardFlip(tier) {
+  var inner = document.getElementById('board-card-' + tier);
+  if (!inner) return;
+  inner.classList.toggle('flipped');
+}
+
+document.addEventListener('mouseover', function(e) {
+  var wrap = e.target.closest('.skill-wrap');
+  if (!wrap) return;
+  var popup = wrap.querySelector('.tt-popup');
+  if (!popup) return;
+  popup.style.display = 'block';
+  popup.style.position = 'fixed';
+  popup.style.zIndex = '99999';
+  var rect = wrap.getBoundingClientRect();
+  var top = rect.top - 8;
+  popup.style.left = Math.max(4, rect.left) + 'px';
+  popup.style.top = '0px';
+  popup.style.display = 'block';
+  var ph = popup.offsetHeight;
+  popup.style.top = Math.max(4, top - ph) + 'px';
+});
+document.addEventListener('mouseout', function(e) {
+  var wrap = e.target.closest('.skill-wrap');
+  if (!wrap || wrap.contains(e.relatedTarget)) return;
+  var popup = wrap.querySelector('.tt-popup');
+  if (popup) popup.style.display = 'none';
+});
 
 document.addEventListener('error', function(e) {
   if (e.target.classList && e.target.classList.contains('img-err-hide')) {

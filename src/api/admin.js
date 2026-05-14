@@ -233,9 +233,62 @@ export async function handleAdminApi(request, env) {
     // ── Comp Board Image (tier-keyed) ─────────────────────────
     if (path === '/api/admin/comp/board/save' && method === 'POST') {
       if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
-      const key = 'comp_' + body.tier.toLowerCase() + '_board';
+      const suffix = body.suffix || '';
+      const key = 'comp_' + body.tier.toLowerCase() + '_board' + suffix;
       await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.data).run();
       return json({ success:true, message:'Board saved.', key });
+    }
+
+    // ── Comp Preemptive Skills ────────────────────────────────
+    if (path === '/api/admin/comp/preemptive/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('preemptive_' + tier.toLowerCase()).first();
+      const items = row ? JSON.parse(row.data) : [];
+      return json({ items });
+    }
+    if (path === '/api/admin/comp/preemptive/add' && method === 'POST') {
+      if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
+      const key  = 'preemptive_' + body.tier.toLowerCase();
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
+      const items = row ? JSON.parse(row.data) : [];
+      items.push(body.data);
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
+      return json({ success:true, message:'Added.', count: items.length });
+    }
+    if (path === '/api/admin/comp/preemptive/delete' && method === 'POST') {
+      if (!body.tier || body.index === undefined) return json({ success:false, message:'tier and index required' }, 400);
+      const key  = 'preemptive_' + body.tier.toLowerCase();
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
+      const items = row ? JSON.parse(row.data) : [];
+      items.splice(body.index, 1);
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
+      return json({ success:true, message:'Deleted.' });
+    }
+
+    // ── Comp How To Play ──────────────────────────────────────
+    if (path === '/api/admin/comp/howtoplay/save' && method === 'POST') {
+      if (!body.tier) return json({ success:false, message:'tier required' }, 400);
+      const key = 'how_to_play_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.content || '').run();
+      return json({ success:true, message:'Saved.' });
+    }
+    if (path === '/api/admin/comp/howtoplay/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('how_to_play_' + tier.toLowerCase()).first();
+      return json({ content: row ? row.data : '' });
+    }
+
+    // ── Comp Build Notes (images key) ─────────────────────────
+    if (path === '/api/admin/comp/notes/save' && method === 'POST') {
+      if (!body.tier) return json({ success:false, message:'tier required' }, 400);
+      const key = 'notes_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, body.content || '').run();
+      return json({ success:true, message:'Build notes saved.' });
+    }
+    if (path === '/api/admin/comp/notes/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('notes_' + tier.toLowerCase()).first();
+      return json({ content: row ? row.data : '' });
     }
 
     // ── Comp Chars ────────────────────────────────────────────
@@ -264,9 +317,15 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Saved.' });
     }
     if (path === '/api/admin/home/notes/get' && method === 'GET') {
-      const slot = url.searchParams.get('slot') || '';
+      const slot = parseInt(url.searchParams.get('slot') || '0', 10);
+      const defaults = {
+        1: { title: 'Tier Usage', content: 'Use T2 for general attacking and climbing\nUse T4 for general defence\nOnly use T1 going for Rank 1 — last hour only\nT5 only counters Michaela, loses to most Double Taunt\nT6 counters T3 and Double Taunt — loses to T2 and T1' },
+        2: { title: 'Targeting Top 10', content: 'Hit 3 hours before end and sit in Top 10\nDefend until 2–1.5 hours remain\nThen spam attack' },
+        3: { title: 'Targeting Rank 1', content: 'Sit Top 1–3 at the 3-hour mark\nUse T6 as blocker to feed one player into R1\nThe R1 player uses T1 or T2' },
+        4: { title: 'Building PvP Characters', content: 'Tanks: target 105% Magic Resist, Defence at 90%\nDamage carries: 50% Crit Rate with buffer, 100% without\nJustia & Alec: HP ring with ATK substats + Magic Resist Armor\nAll compositions can swap lanes' },
+      };
       const row  = await env.DB.prepare("SELECT data FROM images WHERE key=?").bind('home_strategy_' + slot).first();
-      const data = row ? JSON.parse(row.data) : null;
+      const data = row ? JSON.parse(row.data) : (defaults[slot] || { title: '', content: '' });
       return json({ data });
     }
 
