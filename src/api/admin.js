@@ -1,5 +1,30 @@
 import { json } from '../layout/layout.js';
 
+async function renameTierCascade(env, oldTier, newTier) {
+  if (oldTier === newTier) return;
+  const ol = oldTier.toLowerCase();
+  const nl = newTier.toLowerCase();
+  await env.DB.prepare('UPDATE comp_rotations SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  await env.DB.prepare('UPDATE comp_media SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  await env.DB.prepare('UPDATE comp_chars SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  const imgPatterns = [
+    [`comp_${ol}_board`, `comp_${nl}_board`],
+    [`comp_${ol}_board_back`, `comp_${nl}_board_back`],
+    [`comp_${ol}_video`, `comp_${nl}_video`],
+    [`preemptive_${ol}`, `preemptive_${nl}`],
+    [`how_to_play_${ol}`, `how_to_play_${nl}`],
+    [`notes_${ol}`, `notes_${nl}`],
+  ];
+  for (const [ok, nk] of imgPatterns) {
+    if (ok === nk) continue;
+    const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(ok).first().catch(()=>null);
+    if (row) {
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(nk, row.data).run().catch(()=>{});
+      await env.DB.prepare('DELETE FROM images WHERE key=?').bind(ok).run().catch(()=>{});
+    }
+  }
+}
+
 function isAuthed(request) {
   const cookie = request.headers.get('Cookie') || '';
   return cookie.split(';').some(c => c.trim() === 'admin=true');
@@ -53,24 +78,84 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Deleted.' });
     }
     if (path === '/api/admin/comp/reorder' && method === 'POST') {
-      // Auto-add sort_order if migration hasn't run yet
       await env.DB.prepare('ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0').run().catch(() => {});
-      // body: { id, direction:'up'|'down' }
       const comp = await env.DB.prepare('SELECT id, type, sort_order FROM compositions WHERE id=?').bind(body.id).first();
       if (!comp) return json({ success:false, message:'Not found' }, 404);
       const allOfType = await env.DB.prepare(
-        'SELECT id, sort_order FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+        'SELECT id, tier, sort_order, name, color FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
       ).bind(comp.type).all().catch(() => ({results:[]}));
       const list = allOfType.results || [];
       const idx  = list.findIndex(r => r.id === comp.id);
       const swapIdx = body.direction === 'up' ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= list.length) return json({ success:true, message:'Already at edge.' });
+      if (swapIdx < 0 || swapIdx >= list.length) {
+        return json({ success:true, message:'Already at edge.', comps: list.map(c=>({...c,type:comp.type})) });
+      }
       const a = list[idx], b = list[swapIdx];
       const aOrder = a.sort_order || (idx + 1) * 10;
       const bOrder = b.sort_order || (swapIdx + 1) * 10;
       await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(bOrder, a.id).run().catch(() => {});
       await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(aOrder, b.id).run().catch(() => {});
-      return json({ success:true, message:'Reordered.' });
+      // Re-read in new order and renumber tiers
+      const newOrder = await env.DB.prepare(
+        'SELECT id, tier, name, color FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).bind(comp.type).all().catch(() => ({results:[]}));
+      const ordered = newOrder.results || [];
+      const prefix = comp.type === 'DEF' ? 'D' : 'A';
+      // Build map of id→newTier
+      const newTierMap = {};
+      ordered.forEach((c, i) => { newTierMap[c.id] = `${prefix}${i + 1}`; });
+      // Two-pass rename via temp names to avoid conflicts
+      for (const c of ordered) {
+        const nt = newTierMap[c.id];
+        if (c.tier !== nt) {
+          const tmp = `_TMP_${c.id}`;
+          await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(tmp, c.id).run().catch(()=>{});
+          await renameTierCascade(env, c.tier, tmp);
+        }
+      }
+      for (const c of ordered) {
+        const nt = newTierMap[c.id];
+        if (c.tier !== nt) {
+          const tmp = `_TMP_${c.id}`;
+          await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(nt, c.id).run().catch(()=>{});
+          await renameTierCascade(env, tmp, nt);
+        }
+      }
+      // Return all comps of both types so client can refresh
+      const allComps = await env.DB.prepare(
+        'SELECT id, tier, name, type, color, short_description, description, countered_by, unit_order FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).all().catch(() => ({results:[]}));
+      return json({ success:true, comps: allComps.results || [] });
+    }
+
+    if (path === '/api/admin/comp/normalize-tiers' && method === 'POST') {
+      // Renumber all ATK comps to A1,A2,... and DEF comps to D1,D2,...
+      for (const type of ['ATK','DEF']) {
+        const prefix = type === 'DEF' ? 'D' : 'A';
+        const res = await env.DB.prepare(
+          'SELECT id, tier FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+        ).bind(type).all().catch(() => ({results:[]}));
+        const comps = res.results || [];
+        const newTierMap = {};
+        comps.forEach((c, i) => { newTierMap[c.id] = `${prefix}${i + 1}`; });
+        for (const c of comps) {
+          const nt = newTierMap[c.id];
+          if (c.tier !== nt) {
+            const tmp = `_TMP_${c.id}`;
+            await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(tmp, c.id).run().catch(()=>{});
+            await renameTierCascade(env, c.tier, tmp);
+          }
+        }
+        for (const c of comps) {
+          const nt = newTierMap[c.id];
+          if (c.tier !== nt) {
+            const tmp = `_TMP_${c.id}`;
+            await env.DB.prepare('UPDATE compositions SET tier=? WHERE id=?').bind(nt, c.id).run().catch(()=>{});
+            await renameTierCascade(env, tmp, nt);
+          }
+        }
+      }
+      return json({ success:true, message:'All tiers normalized.' });
     }
 
     // ── Emotes ───────────────────────────────────────────────
@@ -363,13 +448,13 @@ export async function handleAdminApi(request, env) {
       return json({ chars: r.results || [] });
     }
 
-    // ── Password Change ───────────────────────────────────────
-    if (path === '/api/admin/password/change' && method === 'POST') {
-      if (!body.new_password || body.new_password.length < 8)
-        return json({ success:false, message:'Password must be at least 8 characters.' });
-      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('admin_password',?)")
-        .bind(body.new_password).run();
-      return json({ success:true, message:'Password changed successfully.' });
+    // ── Secret Code ───────────────────────────────────────────
+    if (path === '/api/admin/secret/save' && method === 'POST') {
+      if (!body.code || body.code.length < 4)
+        return json({ success:false, message:'Secret code must be at least 4 characters.' });
+      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('secret_code',?)")
+        .bind(body.code).run();
+      return json({ success:true, message:'Secret code updated.' });
     }
 
     // ── Home Notes ────────────────────────────────────────────

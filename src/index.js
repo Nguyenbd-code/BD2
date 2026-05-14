@@ -37,6 +37,19 @@ export default {
       // Image serving
       if (path.startsWith('/img/')) return handleImage(request, env);
 
+      // Secret code check (public, no auth)
+      if (path === '/api/secret/check' && method === 'POST') {
+        let b = {};
+        try { b = await request.json(); } catch {}
+        const submitted = b.code || '';
+        const DEFAULT_SECRET = 'Seji404';
+        const row = await env.DB.prepare("SELECT data FROM images WHERE key='secret_code'").first().catch(()=>null);
+        const correct = (row && row.data) ? row.data : DEFAULT_SECRET;
+        return new Response(JSON.stringify({ success: submitted === correct }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       // Redeem API
       if (path === '/api/redeem' && method === 'POST') return handleRedeem(request);
 

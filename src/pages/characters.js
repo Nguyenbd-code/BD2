@@ -57,10 +57,18 @@ export async function handleCharacters(request, env) {
   <div style="width:40px;height:2px;background:var(--gold);margin-bottom:0.5rem;opacity:0.5"></div>
   <p style="color:var(--text3);font-size:0.85rem;margin-bottom:2rem">PvP characters and costumes. Select a costume from the dropdown to preview its portrait.</p>
 
-  ${chars.length === 0
-    ? '<p style="color:var(--text3)">No characters have been added yet.</p>'
-    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem">${cardHtml}</div>`
-  }
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem">
+    ${cardHtml}
+    <div class="char-page-card" style="opacity:0.55">
+      <div style="height:220px;background:var(--bg4);border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:2.5rem">⏳</span>
+      </div>
+      <div style="padding:0.75rem">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:0.2rem">Coming Soon</div>
+        <div style="font-size:0.72rem;color:var(--text3)">More characters being added</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>

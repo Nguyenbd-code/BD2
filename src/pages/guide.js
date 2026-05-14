@@ -346,8 +346,6 @@ export async function handleGuide(request, env) {
     let rotation;
     if (dbRot && Object.keys(dbRot).length > 0) {
       rotation = dbRot;
-    } else if (tier === 'T1' && (dbComp.type||'ATK') === 'ATK') {
-      rotation = T1_DATA.rotation;
     } else {
       rotation = {};
     }
