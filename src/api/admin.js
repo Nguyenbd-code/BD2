@@ -269,9 +269,6 @@ export async function handleAdminApi(request, env) {
       const data = row ? JSON.parse(row.data) : null;
       return json({ data });
     }
-      const r = await env.DB.prepare('SELECT * FROM comp_rotations WHERE tier=? ORDER BY char_name, slot').bind(tier).all().catch(() => ({ results: [] }));
-      return json({ rotation: r.results || [] });
-    }
 
   } catch(e) {
     return json({ success:false, message:'DB error: ' + e.message }, 500);
