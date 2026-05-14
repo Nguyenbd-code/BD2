@@ -147,7 +147,7 @@ function renderComp(comp, mediaMap) {
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div class="rot-table" style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0">${rows}</div>`
+      ? `<div class="rot-table" style="overflow-x:auto;overflow-y:auto;max-height:150px">${rows}</div>`
       : `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
   } else {
     rotHtml = `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
@@ -232,7 +232,7 @@ function renderComp(comp, mediaMap) {
   <div class="comp-header">
     <div>
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem">
-        <span class="tier-badge ${tierCls}" style="background:${color}">${esc(tier)}</span>
+        <span class="tier-badge ${tierCls}" style="background:${color};color:#fff">${esc(tier)}</span>
         <h2 style="font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700">${esc(comp.name)}</h2>
         <span class="${typeCls}">${typeLabel}</span>
       </div>
@@ -355,21 +355,23 @@ export async function handleGuide(request, env) {
       unitOrder = STATIC_UNIT_ORDER[tier] || [];
     }
 
-    // Build notes: check images table first (notes_{tier}), then per-char for T1, then DB desc, then static
+    // Build notes: T1 always uses per-char notes; others use DB tier key → DB desc → static
     let notes;
-    const tierNoteKey = dbNotes[tier] || dbNotes[tier.toLowerCase()];
-    if (tierNoteKey) {
-      notes = String(tierNoteKey).split('\n').filter(Boolean);
-    } else if (tier === 'T1') {
+    if (tier === 'T1') {
       notes = (STATIC_CHARS.T1 || []).map((c, idx) =>
         dbNotes[c.name] || (STATIC_NOTES.T1||[])[idx] || ''
       ).filter(Boolean);
-    } else if (isKnown) {
-      notes = dbComp.description
-        ? dbComp.description.split('\n').filter(Boolean)
-        : (STATIC_NOTES[tier] || []);
     } else {
-      notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : [];
+      const tierNoteKey = dbNotes[tier] || dbNotes[tier.toLowerCase()];
+      if (tierNoteKey) {
+        notes = String(tierNoteKey).split('\n').filter(Boolean);
+      } else if (isKnown) {
+        notes = dbComp.description
+          ? dbComp.description.split('\n').filter(Boolean)
+          : (STATIC_NOTES[tier] || []);
+      } else {
+        notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : [];
+      }
     }
 
     const staticMatchup = STATIC_MATCHUPS[tier] || {counters:[],countered_by:[]};
@@ -454,6 +456,9 @@ document.addEventListener('mouseover', function(e) {
   popup.style.zIndex = '99999';
   popup.style.left = '0px';
   popup.style.top = '0px';
+  popup.style.background = '#0f0f18';
+  popup.style.border = '1px solid rgba(201,168,76,0.2)';
+  popup.style.boxShadow = '0 8px 32px rgba(0,0,0,0.8)';
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
   var rect = wrap.getBoundingClientRect();
