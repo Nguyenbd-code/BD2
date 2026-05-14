@@ -148,9 +148,9 @@ function renderComp(comp, mediaMap) {
     }).filter(Boolean).join('');
     rotHtml = rows
       ? `<div class="rot-table" style="overflow-x:auto;overflow-y:auto;max-height:150px">${rows}</div>`
-      : `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
+      : `<div style="padding:1rem 0;text-align:center">${NA}</div>`;
   } else {
-    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
+    rotHtml = `<div style="padding:1rem 0;text-align:center">${NA}</div>`;
   }
 
   // Unit order
@@ -245,7 +245,7 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
     <div style="display:flex;flex-direction:column;gap:0.75rem">
-      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div class="card">
         <div class="card-title">Skill Rotation</div>
         ${rotHtml}
       </div>
