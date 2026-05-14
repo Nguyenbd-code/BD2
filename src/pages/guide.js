@@ -147,34 +147,26 @@ function renderComp(comp, mediaMap) {
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div class="rot-table" style="overflow-x:auto;overflow-y:auto;max-height:150px">${rows}</div>`
-      : `<div style="padding:1rem 0;text-align:center">${NA}</div>`;
+      ? `<div class="rot-table" style="flex:1;overflow-x:auto;overflow-y:auto;min-height:0">${rows}</div>`
+      : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
-    rotHtml = `<div style="padding:1rem 0;text-align:center">${NA}</div>`;
+    rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   }
 
-  // Unit order
+  // Unit order — always 5 rows so height is identical across all tiers
   const unitOrder = comp.unitOrder || [];
-  let orderHtml;
-  if (unitOrder.length) {
-    const pills = unitOrder.map((u, i) => {
-      const pos  = typeof u === 'object' ? (u.pos||i+1) : i+1;
-      const name = typeof u === 'object' ? u.name : u;
-      return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${pos}</div>
+  const orderPills = [1,2,3,4,5].map(i => {
+    const u    = unitOrder[i-1];
+    const name = u ? (typeof u === 'object' ? u.name : u) : '—';
+    return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
+  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${i}</div>
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
-    }).join('');
-    orderHtml = `<div class="card" style="margin-top:0.75rem">
+  }).join('');
+  const orderHtml = `<div class="card">
   <div class="card-title">Unit Order</div>
-  <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${pills}</div>
+  <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${orderPills}</div>
 </div>`;
-  } else {
-    orderHtml = `<div class="card" style="margin-top:0.75rem">
-  <div class="card-title">Unit Order</div>
-  ${NA}
-</div>`;
-  }
 
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
@@ -245,8 +237,8 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
     <div style="display:flex;flex-direction:column;gap:0.75rem">
-      <div class="card">
-        <div class="card-title">Skill Rotation</div>
+      <div class="card" style="max-height:145px;overflow:hidden;display:flex;flex-direction:column">
+        <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
       ${orderHtml}
