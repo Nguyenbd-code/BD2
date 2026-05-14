@@ -1452,7 +1452,7 @@ async function moveComp(id, direction) {
 }
 
 async function resetAllChars() {
-  if (!confirm('DELETE all characters, costumes, skills, bonds, portraits and gear images?\n\nThis cannot be undone.')) return;
+  if (!confirm('DELETE all characters, costumes, skills, bonds, portraits and gear images?\\n\\nThis cannot be undone.')) return;
   showAlert('reset-chars-alert', true, 'Deleting…');
   var r = await apiPost('/api/admin/chars/reset', {});
   showAlert('reset-chars-alert', r.success, r.message);
