@@ -38,7 +38,8 @@ export async function handleHome(request, env) {
   let compRows = [];
   let homeNotes = { 1: DEFAULT_HOME_NOTES[1], 2: DEFAULT_HOME_NOTES[2], 3: DEFAULT_HOME_NOTES[3], 4: DEFAULT_HOME_NOTES[4] };
   try {
-    const res = await env.DB.prepare('SELECT * FROM compositions ORDER BY tier ASC').all();
+    const res = await env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all()
+      .catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all());
     compRows = res.results || [];
   } catch { /* ignore */ }
 

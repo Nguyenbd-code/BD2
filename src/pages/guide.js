@@ -281,7 +281,7 @@ export async function handleGuide(request, env) {
   let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {};
   try {
     const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes] = await Promise.all([
-      env.DB.prepare('SELECT * FROM compositions ORDER BY tier, id').all(),
+      env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
@@ -314,16 +314,26 @@ export async function handleGuide(request, env) {
 
   const KNOWN = new Set(['T1','T2','T3','T4','T5','T6']);
 
-  const sidebarLinks = allComps.map(c => {
-    const anchor = c.tier.toLowerCase();
-    return `<a href="#${anchor}" class="sidebar-link">
-  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#ffffff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
-  <span class="sidebar-name">${esc(c.name)}</span>
-</a>`;
-  }).join('');
+  // Anchor is unique per comp: tier + type suffix (e.g. t1-atk, t1-def)
+  const compAnchor = (c) => c.tier.toLowerCase().replace(/[^a-z0-9]/g,'') + '-' + (c.type||'ATK').toLowerCase();
 
-  let compsHtml = '';
-  for (const dbComp of allComps) {
+  const atkComps = allComps.filter(c => (c.type||'ATK').toUpperCase() === 'ATK');
+  const defComps = allComps.filter(c => (c.type||'ATK').toUpperCase() === 'DEF');
+
+  const sidebarLinks = [
+    atkComps.length ? `<div style="font-size:0.63rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.5rem 0.1rem">Attacking</div>` : '',
+    ...atkComps.map(c => `<a href="#${compAnchor(c)}" class="sidebar-link">
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
+  <span class="sidebar-name">${esc(c.name)}</span>
+</a>`),
+    defComps.length ? `<div style="font-size:0.63rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.1em;padding:0.5rem 0.5rem 0.1rem;border-top:1px solid var(--border2);margin-top:0.35rem">Defence</div>` : '',
+    ...defComps.map(c => `<a href="#${compAnchor(c)}" class="sidebar-link">
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
+  <span class="sidebar-name">${esc(c.name)}</span>
+</a>`),
+  ].filter(Boolean).join('');
+
+  const buildCompHtml = (dbComp) => {
     const tier    = dbComp.tier;
     const tierLow = tier.toLowerCase();
     const isKnown = KNOWN.has(tier);
@@ -331,12 +341,12 @@ export async function handleGuide(request, env) {
 
     const chars = isKnown
       ? (STATIC_CHARS[tier] || [])
-      : (compCharsMap[tier]||[]).map(c=>({name:c.char_name, bond:c.costume_name||'', slug:c.char_slug}));
+      : (compCharsMap[tier]||[]).map(c=>({name:c.char_name, bond:c.costume_name||'', slug:c.char_slug, costume_name:c.costume_name||''}));
 
     let rotation;
     if (dbRot && Object.keys(dbRot).length > 0) {
       rotation = dbRot;
-    } else if (tier === 'T1') {
+    } else if (tier === 'T1' && (dbComp.type||'ATK') === 'ATK') {
       rotation = T1_DATA.rotation;
     } else {
       rotation = {};
@@ -349,18 +359,15 @@ export async function handleGuide(request, env) {
       unitOrder = STATIC_UNIT_ORDER[tier] || [];
     }
 
-    // Build notes: T1 always uses static (DB char-level keys may have corrupt data)
     let notes;
-    if (tier === 'T1') {
+    if (tier === 'T1' && (dbComp.type||'ATK') === 'ATK') {
       notes = STATIC_NOTES.T1 || [];
     } else {
       const tierNoteKey = dbNotes[tier] || dbNotes[tier.toLowerCase()];
       if (tierNoteKey) {
         notes = String(tierNoteKey).split('\n').filter(Boolean);
       } else if (isKnown) {
-        notes = dbComp.description
-          ? dbComp.description.split('\n').filter(Boolean)
-          : (STATIC_NOTES[tier] || []);
+        notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : (STATIC_NOTES[tier] || []);
       } else {
         notes = dbComp.description ? dbComp.description.split('\n').filter(Boolean) : [];
       }
@@ -377,14 +384,14 @@ export async function handleGuide(request, env) {
 
     const howToPlay = extraMap[`how_to_play_${tierLow}`] || '';
 
-    compsHtml += renderComp({
+    return renderComp({
       tier,
       name: dbComp.name,
       type: dbComp.type || 'ATK',
       color: dbComp.color || '#c9a84c',
-      anchorId: tierLow,
+      anchorId: compAnchor(dbComp),
       chars,
-      bondsData: tier === 'T1' ? T1_DATA.bonds : null,
+      bondsData: (tier === 'T1' && (dbComp.type||'ATK') === 'ATK') ? T1_DATA.bonds : null,
       rotation,
       unitOrder,
       notes,
@@ -394,6 +401,26 @@ export async function handleGuide(request, env) {
       preemptive,
       howToPlay,
     }, mediaMap);
+  };
+
+  let compsHtml = '';
+
+  if (atkComps.length) {
+    compsHtml += `
+<div style="display:flex;align-items:center;gap:1rem;margin:2rem 0 1.5rem">
+  <div style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
+  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(93,173,226,0.6),transparent)"></div>
+</div>`;
+    compsHtml += atkComps.map(buildCompHtml).join('');
+  }
+
+  if (defComps.length) {
+    compsHtml += `
+<div style="display:flex;align-items:center;gap:1rem;margin:3rem 0 1.5rem">
+  <div style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
+  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(46,204,113,0.6),transparent)"></div>
+</div>`;
+    compsHtml += defComps.map(buildCompHtml).join('');
   }
 
   return layout('PvP Guide', `

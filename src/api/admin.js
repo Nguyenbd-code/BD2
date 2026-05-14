@@ -36,14 +36,39 @@ export async function handleAdminApi(request, env) {
     // ── Compositions ─────────────────────────────────────────
     if (path === '/api/admin/comp/add' && method === 'POST') {
       if (!body.name) return json({ success:false, message:'Name required' }, 400);
+      // Assign sort_order = max(sort_order)+10 within same type
+      const mx = await env.DB.prepare('SELECT MAX(sort_order) as m FROM compositions WHERE type=?').bind(body.type||'ATK').first().catch(() => null);
+      const nextOrder = ((mx && mx.m) || 0) + 10;
       const r = await env.DB.prepare(
-        'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated) VALUES (?,?,?,?,?,?)'
-      ).bind(body.tier||'T2', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
+        'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated,sort_order) VALUES (?,?,?,?,?,?,?)'
+      ).bind(body.tier||'T1', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'', nextOrder).run().catch(async () => {
+        return env.DB.prepare(
+          'INSERT INTO compositions (tier,name,type,description,countered_by,last_updated) VALUES (?,?,?,?,?,?)'
+        ).bind(body.tier||'T1', body.name, body.type||'ATK', body.description||'', body.countered_by||'', body.last_updated||'').run();
+      });
       return json({ success:true, message:'Composition added!', id: r.meta.last_row_id });
     }
     if (path === '/api/admin/comp/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM compositions WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
+    }
+    if (path === '/api/admin/comp/reorder' && method === 'POST') {
+      // body: { id, direction:'up'|'down' }
+      const comp = await env.DB.prepare('SELECT id, type, sort_order FROM compositions WHERE id=?').bind(body.id).first();
+      if (!comp) return json({ success:false, message:'Not found' }, 404);
+      const allOfType = await env.DB.prepare(
+        'SELECT id, sort_order FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'
+      ).bind(comp.type).all().catch(() => ({results:[]}));
+      const list = allOfType.results || [];
+      const idx  = list.findIndex(r => r.id === comp.id);
+      const swapIdx = body.direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= list.length) return json({ success:true, message:'Already at edge.' });
+      const a = list[idx], b = list[swapIdx];
+      const aOrder = a.sort_order || (idx + 1) * 10;
+      const bOrder = b.sort_order || (swapIdx + 1) * 10;
+      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(bOrder, a.id).run().catch(() => {});
+      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(aOrder, b.id).run().catch(() => {});
+      return json({ success:true, message:'Reordered.' });
     }
 
     // ── Emotes ───────────────────────────────────────────────
@@ -170,36 +195,17 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'Bond stats saved.' });
     }
 
-    // ── Portrait migration ───────────────────────────────────
-    if (path === '/api/admin/chars/migrate-portraits' && method === 'POST') {
-      // Goal: for every character in char_registry, make sure a 'char_{slug}_portrait' image exists.
-      // We scan existing image keys that look like portraits and try to match them by name/slug fuzzy matching,
-      // then copy the data row to the canonical key.
-      const slug = (s) => (s||'').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const charsRes = await env.DB.prepare('SELECT name, slug FROM char_registry').all().catch(() => ({results:[]}));
-      const imgsRes  = await env.DB.prepare("SELECT key FROM images WHERE key LIKE 'char\\_%\\_portrait' ESCAPE '\\'").all().catch(() => ({results:[]}));
-      const portraitKeys = (imgsRes.results||[]).map(r => r.key);
-      const remapped = [];
-      for (const c of (charsRes.results||[])) {
-        const canonKey = 'char_' + (c.slug || slug(c.name)) + '_portrait';
-        if (portraitKeys.includes(canonKey)) continue;
-        const targetSlug = slug(c.name);
-        let matchKey = portraitKeys.find(k => slug(k.replace(/^char_/, '').replace(/_portrait$/, '')) === targetSlug);
-        if (!matchKey) {
-          matchKey = portraitKeys.find(k => slug(k).includes(targetSlug));
-        }
-        if (matchKey) {
-          const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(matchKey).first();
-          if (row) {
-            await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(canonKey, row.data).run();
-            remapped.push({ from: matchKey, to: canonKey });
-          }
-        }
-      }
-      return json({ success:true, message: 'Migrated ' + remapped.length + ' portrait(s).', remapped });
+    // ── Character reset (danger zone) ────────────────────────
+    if (path === '/api/admin/chars/reset' && method === 'POST') {
+      await env.DB.prepare('DELETE FROM char_registry').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM char_costumes').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM char_skills').run().catch(() => {});
+      await env.DB.prepare('DELETE FROM comp_chars').run().catch(() => {});
+      await env.DB.prepare("DELETE FROM images WHERE key LIKE 'char_%'").run().catch(() => {});
+      return json({ success:true, message:'All characters, costumes, skills, bonds, portraits and gear deleted.' });
     }
 
-    // ── Skills ────────────────────────────────────────────────
+    // ── Skills ─────────────────────────────────────────────────
     if (path === '/api/admin/skills/list' && method === 'GET') {
       const slug = url.searchParams.get('costume_slug') || '';
       const r = await env.DB.prepare('SELECT * FROM char_skills WHERE costume_slug=? ORDER BY id').bind(slug).all();
