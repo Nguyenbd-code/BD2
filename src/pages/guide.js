@@ -146,9 +146,11 @@ function renderComp(comp, mediaMap) {
       }).join('');
       return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
-    rotHtml = rows ? `<div class="rot-table">${rows}</div>` : `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0">${NA}</div>`;
+    rotHtml = rows
+      ? `<div class="rot-table" style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0">${rows}</div>`
+      : `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
   } else {
-    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0">${NA}</div>`;
+    rotHtml = `<div style="display:flex;align-items:center;justify-content:center;padding:1rem 0;flex:1">${NA}</div>`;
   }
 
   // Unit order
@@ -193,6 +195,19 @@ function renderComp(comp, mediaMap) {
   <div style="font-size:0.65rem;color:var(--text3);text-align:center;margin-top:4px">Click to flip</div>
 </div>`;
 
+  // Board section — ATK/DEF dual-box with arrow
+  const isAtk = comp.type === 'ATK';
+  const arrow = isAtk
+    ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
+    : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
+  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4)">${boardHtml}</div>`;
+  const videoBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
+    video
+      ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
+      : '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+  }</div>`;
+  const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;min-height:200px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
+
   // How and When to Play
   const howToPlayHtml = `<div class="card" style="padding:1rem;margin-top:0.75rem">
   <div class="card-title" style="margin-bottom:0.5rem">How and When to Play</div>
@@ -228,9 +243,9 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:start">
-    <div>
-      <div class="card" style="min-height:140px;max-height:380px;overflow-y:auto;display:flex;flex-direction:column">
+  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
         <div class="card-title">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -239,8 +254,7 @@ function renderComp(comp, mediaMap) {
     <div>
       <div class="card" style="padding:1rem">
         <div class="card-title">Board Positioning</div>
-        ${boardHtml}
-        ${video ? `<div style="margin-top:0.75rem;text-align:center"><a href="${esc(video)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#e74c3c;padding:5px 14px;border-radius:4px;font-size:0.8rem;text-decoration:none;font-weight:600">▶ Watch Battle Video</a></div>` : ''}
+        ${boardSectionHtml}
       </div>
       ${howToPlayHtml}
     </div>
@@ -295,7 +309,9 @@ export async function handleGuide(request, env) {
       compCharsMap[c.tier].push(c);
     }
     for (const r of (noteRes.results||[])) {
-      dbNotes[r.key.replace('notes_', '')] = r.data;
+      const k = r.key.replace('notes_', '');
+      dbNotes[k] = r.data;
+      dbNotes[k.toUpperCase()] = r.data;
     }
     for (const r of (extraRes.results||[])) {
       extraMap[r.key] = r.data;
@@ -341,7 +357,7 @@ export async function handleGuide(request, env) {
 
     // Build notes: check images table first (notes_{tier}), then per-char for T1, then DB desc, then static
     let notes;
-    const tierNoteKey = dbNotes[tier];
+    const tierNoteKey = dbNotes[tier] || dbNotes[tier.toLowerCase()];
     if (tierNoteKey) {
       notes = String(tierNoteKey).split('\n').filter(Boolean);
     } else if (tier === 'T1') {
@@ -432,16 +448,21 @@ document.addEventListener('mouseover', function(e) {
   if (!wrap) return;
   var popup = wrap.querySelector('.tt-popup');
   if (!popup) return;
+  popup.style.visibility = 'hidden';
   popup.style.display = 'block';
   popup.style.position = 'fixed';
   popup.style.zIndex = '99999';
-  var rect = wrap.getBoundingClientRect();
-  var top = rect.top - 8;
-  popup.style.left = Math.max(4, rect.left) + 'px';
+  popup.style.left = '0px';
   popup.style.top = '0px';
-  popup.style.display = 'block';
   var ph = popup.offsetHeight;
-  popup.style.top = Math.max(4, top - ph) + 'px';
+  var pw = popup.offsetWidth;
+  var rect = wrap.getBoundingClientRect();
+  var left = Math.min(rect.left, window.innerWidth - pw - 8);
+  var top = rect.top - ph - 8;
+  if (top < 4) top = rect.bottom + 8;
+  popup.style.left = Math.max(4, left) + 'px';
+  popup.style.top = Math.max(4, top) + 'px';
+  popup.style.visibility = 'visible';
 });
 document.addEventListener('mouseout', function(e) {
   var wrap = e.target.closest('.skill-wrap');
