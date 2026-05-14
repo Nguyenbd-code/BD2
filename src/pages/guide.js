@@ -171,9 +171,9 @@ function renderComp(comp, mediaMap) {
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
-  const boardHtml = `<div class="board-flip-wrap" style="position:relative;min-height:200px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
-  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;min-height:200px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="backface-visibility:hidden;position:relative;min-height:200px;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+  const boardHtml = `<div class="board-flip-wrap" style="position:relative;width:100%;height:100%;min-height:200px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;height:100%;min-height:200px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
+    <div class="board-face" style="backface-visibility:hidden;position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
       <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
       <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button data-action="expand-img" data-src="/img/${esc(frontKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
@@ -184,7 +184,7 @@ function renderComp(comp, mediaMap) {
       <button data-action="expand-img" data-src="/img/${esc(backKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
     </div>
   </div>
-  <div style="font-size:0.65rem;color:var(--text3);text-align:center;margin-top:4px">Click to flip</div>
+  <div style="font-size:0.65rem;color:var(--text3);text-align:center;position:absolute;bottom:4px;left:0;right:0">Click to flip</div>
 </div>`;
 
   // Board section — ATK/DEF dual-box with arrow
@@ -192,7 +192,7 @@ function renderComp(comp, mediaMap) {
   const arrow = isAtk
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
-  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center">${boardHtml}</div>`;
+  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4)">${boardHtml}</div>`;
   const videoBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
     video
       ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
