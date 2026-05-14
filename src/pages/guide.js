@@ -144,10 +144,10 @@ function renderComp(comp, mediaMap) {
   </div>
 </div>`;
       }).join('');
-      return `<div class="rot-row"><div class="rot-char">${esc(name)}</div><div class="rot-skills">${icons}</div></div>`;
+      return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div class="rot-table" style="flex:1;overflow-x:auto;overflow-y:hidden;min-height:0">${rows}</div>`
+      ? `<div style="flex:1;overflow:hidden;position:relative;"><div class="rot-table" style="position:absolute;inset:0;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;">${rows}</div></div>`
       : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
     rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
@@ -171,28 +171,28 @@ function renderComp(comp, mediaMap) {
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
-  const boardHtml = `<div class="board-flip-wrap" style="position:relative;width:100%;height:100%;min-height:200px;perspective:1000px" data-action="board-flip" data-tier="${esc(tier)}">
-  <div class="board-card-inner" id="board-card-${esc(tier)}" style="position:relative;width:100%;height:100%;min-height:200px;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="backface-visibility:hidden;position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
-      <span style="color:var(--text3);font-size:0.75rem">No image yet</span>
+  const boardHtml = `<div class="board-flip-wrap" style="position:absolute;inset:0;" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}" style="width:100%;height:100%;position:relative;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
+    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;background:var(--bg4);border-radius:6px;overflow:hidden;">
+      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
       <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button data-action="expand-img" data-src="/img/${esc(frontKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
     </div>
-    <div class="board-face" style="backface-visibility:hidden;position:absolute;inset:0;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center">
-      <span style="color:var(--text3);font-size:0.75rem">No back image yet</span>
+    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;">
+      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
       <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button data-action="expand-img" data-src="/img/${esc(backKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
     </div>
   </div>
-  <div style="font-size:0.65rem;color:var(--text3);text-align:center;position:absolute;bottom:4px;left:0;right:0">Click to flip</div>
-</div>`;
+</div>
+<div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.65rem;color:var(--text3);pointer-events:none">Click to flip</div>`;
 
   // Board section — ATK/DEF dual-box with arrow
   const isAtk = comp.type === 'ATK';
   const arrow = isAtk
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
-  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4)">${boardHtml}</div>`;
+  const imageBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
   const videoBox = `<div style="flex:1;min-height:200px;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
     video
       ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
@@ -235,31 +235,31 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.85fr 1.3fr 0.85fr;gap:1rem;align-items:stretch">
-    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%">
-      <div class="card" style="flex:1;min-height:120px;overflow:hidden;display:flex;flex-direction:column">
+  <div style="display:grid;grid-template-columns:0.65fr 1.5fr 0.85fr;gap:1rem;align-items:stretch;min-width:0;">
+    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%;min-width:0;overflow:hidden;">
+      <div class="card" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
       ${orderHtml}
     </div>
-    <div>
+    <div style="min-width:0;">
       <div class="card" style="padding:1rem">
         <div class="card-title">Board Positioning</div>
         ${boardSectionHtml}
       </div>
       ${howToPlayHtml}
     </div>
-    <div>
-      <div class="card" style="min-height:200px;max-height:240px;overflow-y:auto;margin-bottom:1rem;display:flex;flex-direction:column">
+    <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;">
+      <div class="card" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column">
         <div class="card-title">Build Notes</div>
         <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card" style="padding:1rem;min-height:140px;margin-bottom:1rem">
+      <div class="card" style="padding:1rem;min-height:60px;max-height:100px;overflow:hidden;">
         <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start;min-height:100px">${preemptiveHtml}</div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start">${preemptiveHtml}</div>
       </div>
-      <div class="card" style="padding:1rem;min-height:220px;display:flex;flex-direction:column">
+      <div class="card" style="padding:1rem;min-height:120px;display:flex;flex-direction:column">
         <div class="card-title">Matchups</div>
         <div style="margin-bottom:0.5rem">
           <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
