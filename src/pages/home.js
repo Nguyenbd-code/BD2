@@ -57,7 +57,7 @@ export async function handleHome(request, env) {
 <div class="hero">
   <div class="hero-tag">PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
-  <p>team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu. Mamonir Lover.</p>
+  <p>Team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu. Mamonir Lover.</p>
   <div class="hero-disclaimer">⚠ These compositions are intended for Top 30 to Rank 1 ranked play. Meta may shift with balance updates.</div>
 </div>
 
@@ -133,7 +133,7 @@ export async function handleHome(request, env) {
       var data = await res.json();
       if (data.success) {
         localStorage.setItem('kitsu_unlocked', 'true');
-        result.textContent = '✓ Access Granted';
+        result.textContent = '✓ Access Granted — Emotes page is now unlocked!';
         result.style.color = '#d4af37';
         input.style.borderColor = '#d4af37';
         modal.style.transition = 'background 0.8s ease';

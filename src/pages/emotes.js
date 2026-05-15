@@ -110,7 +110,7 @@ export async function handleEmotes(request, env) {
       </div>
       <div class="set-info">
         <div class="set-title">${displayName}
-          <span class="set-hint-icon" data-set="${sn}" title="Hint">?</span>
+          <span class="set-hint-icon" data-set="${sn}" style="cursor:pointer">?</span>
         </div>
         <div class="set-meta">${list.length} emote${list.length === 1 ? '' : 's'}</div>
       </div>
@@ -121,10 +121,8 @@ export async function handleEmotes(request, env) {
   }).join('');
 
   return layout("Kitsu's Emotes", `
-<script>if(localStorage.getItem('kitsu_unlocked')!=='true'){document.documentElement.setAttribute('data-emote-locked','1');}</script>
-<style>html:not([data-emote-locked]) #emote-lock-screen{display:none!important;}html[data-emote-locked] #emote-page-content{display:none!important;}</style>
-<!-- Page lock screen — shown until secret code is entered on Home page -->
-<div id="emote-lock-screen" style="position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
+<!-- Page lock screen — shown only if kitsu_unlocked not set -->
+<div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center">
     <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
       <span style="font-size:3.5rem">&#128274;</span>
@@ -139,6 +137,7 @@ export async function handleEmotes(request, env) {
   </div>
 </div>
 
+<script>(function(){if(localStorage.getItem('kitsu_unlocked')!=='true'){var ls=document.getElementById('emote-lock-screen');var pc=document.getElementById('emote-page-content');if(ls)ls.style.display='flex';if(pc)pc.style.display='none';}})();</script>
 <!-- Main page content (hidden until unlocked) -->
 <div id="emote-page-content">
 <div class="hero" style="padding-bottom:2rem">

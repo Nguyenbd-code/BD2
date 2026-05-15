@@ -916,8 +916,14 @@ export async function handleAdmin(request, env) {
         <div id="set-cfg-target-wrap" class="form-row">
           <div class="form-group">
             <label id="set-cfg-target-label">Element Target</label>
-            <input type="text" id="set-cfg-target" placeholder="water">
-            <div id="set-cfg-target-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">water / fire / wind / light / dark</div>
+            <select id="set-cfg-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="">— Select Element —</option>
+              <option value="water">💧 Water</option>
+              <option value="fire">🔥 Fire</option>
+              <option value="light">✨ Light</option>
+              <option value="dark">🌑 Dark</option>
+              <option value="wind">🌿 Wind</option>
+            </select>
           </div>
           <div id="set-cfg-count-wrap" class="form-group">
             <label>Click Count</label>
@@ -926,7 +932,11 @@ export async function handleAdmin(request, env) {
         </div>
         <div id="set-cfg-sequence-wrap" class="form-group" style="display:none">
           <label id="set-cfg-sequence-label">Sequence</label>
-          <input type="text" id="set-cfg-sequence" placeholder="water,fire,light,dark,wind">
+          <!-- Hidden input keeps the comma-separated value for saving -->
+          <input type="hidden" id="set-cfg-sequence">
+          <div id="set-cfg-sequence-selects" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.25rem">
+            <!-- 5 positional selects built by updateSetCfgModeUI -->
+          </div>
           <div id="set-cfg-sequence-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem"></div>
         </div>
 
@@ -1884,10 +1894,15 @@ function renderSetConfig(sn) {
   if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
   // who_am_i fields
   if ((s.unlock_mode || 'count') === 'who_am_i') {
-    loadWAICharList(s.unlock_target);
     if (g('set-cfg-wai-answer')) g('set-cfg-wai-answer').value = s.unlock_sequence || '';
   }
   updateSetCfgModeUI(s.unlock_mode || 'count');
+  // If who_am_i, load char list with preselect AFTER updateSetCfgModeUI shows the wrap
+  if ((s.unlock_mode || 'count') === 'who_am_i') {
+    loadWAICharList(s.unlock_target);
+  }
+  // Rebuild sequence selects with current value (after updateSetCfgModeUI built them)
+  buildSequenceSelects(s.unlock_mode || 'count');
 }
 
 function updateSetCfgModeUI(mode) {
@@ -1902,11 +1917,54 @@ function updateSetCfgModeUI(mode) {
   // Show/hide who_am_i block
   if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
   // Update sequence labels
-  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence (comma-separated)' : 'Element Sequence (comma-separated)';
-  if (g('set-cfg-sequence'))       g('set-cfg-sequence').placeholder        = mode === 'letter_sequence' ? 'K,I,T,S,U' : 'water,fire,light,dark,wind';
+  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
   if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.';
-  // Load character list for who_am_i
-  if (isWho) loadWAICharList();
+  // Build the 5 positional selects for the sequence
+  buildSequenceSelects(mode);
+  // (who_am_i char list loaded by renderSetConfig after this runs)
+}
+
+function buildSequenceSelects(mode) {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  var hidden = document.getElementById('set-cfg-sequence');
+  var curVal = hidden ? hidden.value : '';
+  var curParts = curVal ? curVal.split(',').map(function(x){return x.trim();}) : [];
+
+  var elemOpts = ['water','fire','light','dark','wind'].map(function(el) {
+    return '<option value="' + el + '">' + el.charAt(0).toUpperCase() + el.slice(1) + '</option>';
+  }).join('');
+
+  // For letter_sequence, get currently configured set letters
+  var letterOpts = '';
+  if (mode === 'letter_sequence' && typeof _esSets !== 'undefined') {
+    Object.keys(_esSets).forEach(function(sn) {
+      var s = _esSets[sn];
+      var ltr = (s && (s.set_letter || s.name || '')).toUpperCase();
+      if (ltr) letterOpts += '<option value="' + ltr + '">' + ltr + '</option>';
+    });
+  }
+
+  var opts = mode === 'letter_sequence' ? letterOpts : elemOpts;
+  container.innerHTML = [1,2,3,4,5].map(function(pos) {
+    var cur = curParts[pos-1] || '';
+    var selOpts = '<option value="">—</option>' + opts;
+    // Mark selected
+    selOpts = selOpts.replace('value="' + cur + '"', 'value="' + cur + '" selected');
+    return '<div style="text-align:center">'
+      + '<div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">' + pos + '</div>'
+      + '<select class="seq-pos-sel" data-pos="' + pos + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.82rem;width:90px">'
+      + selOpts + '</select>'
+      + '</div>';
+  }).join('');
+
+  // Wire change events to sync hidden input
+  container.querySelectorAll('.seq-pos-sel').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var vals = Array.from(container.querySelectorAll('.seq-pos-sel')).map(function(s){return s.value;}).filter(Boolean);
+      if (hidden) hidden.value = vals.join(',');
+    });
+  });
 }
 
 var _waiCharsLoaded = false;
