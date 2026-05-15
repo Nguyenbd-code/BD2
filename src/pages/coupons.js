@@ -104,9 +104,15 @@ export async function handleCoupons(request, env) {
 <div id="toast-stack"></div>
 
 <script>
+window.addEventListener('error', function(e) {
+  try { alert('[Coupon Script Error] ' + (e.message || e.error)); } catch(_) {}
+});
+
 var CODES = ${codesJson};
 
 function showToast(kind, title, msg) {
+  // Always also alert so the user sees feedback no matter what
+  try { alert(title + (msg ? '\n' + msg : '')); } catch(_) {}
   var stack = document.getElementById('toast-stack');
   if (!stack) return;
   var t = document.createElement('div');
@@ -306,11 +312,14 @@ async function redeemOne(code) {
   }
 }
 
+console.log('[coupons] script loaded, codes=', CODES.length);
+
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
   var action = btn.dataset.action;
   var code   = btn.dataset.code || '';
+  console.log('[coupons] click action=', action, 'code=', code);
 
   if (action === 'copy-code') {
     navigator.clipboard.writeText(code).then(function() {
