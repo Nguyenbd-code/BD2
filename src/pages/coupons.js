@@ -83,10 +83,48 @@ export async function handleCoupons(request, env) {
   font-family:'Courier New',monospace;font-size:0.7rem;color:#e67e22;
   white-space:pre-wrap;word-break:break-all;line-height:1.5;
 }
+#toast-stack {
+  position:fixed;top:1rem;right:1rem;z-index:9999;
+  display:flex;flex-direction:column;gap:0.5rem;max-width:340px;pointer-events:none;
+}
+.toast {
+  pointer-events:auto;padding:0.75rem 1rem;border-radius:6px;
+  font-size:0.85rem;line-height:1.4;font-family:inherit;
+  box-shadow:0 6px 24px rgba(0,0,0,0.35);
+  animation:toast-in 0.2s ease-out;
+}
+.toast.t-success { background:rgba(46,204,113,0.95); color:#fff; border:1px solid rgba(46,204,113,1); }
+.toast.t-warn    { background:rgba(243,156,18,0.95); color:#fff; border:1px solid rgba(243,156,18,1); }
+.toast.t-error   { background:rgba(231,76,60,0.95);  color:#fff; border:1px solid rgba(231,76,60,1); }
+.toast.t-info    { background:rgba(52,73,94,0.95);   color:#fff; border:1px solid rgba(52,73,94,1); }
+.toast b { font-family:'Cinzel',serif;display:block;margin-bottom:0.15rem;font-size:0.78rem;letter-spacing:0.04em; }
+@keyframes toast-in { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 </style>
+
+<div id="toast-stack"></div>
 
 <script>
 var CODES = ${codesJson};
+
+function showToast(kind, title, msg) {
+  var stack = document.getElementById('toast-stack');
+  if (!stack) return;
+  var t = document.createElement('div');
+  t.className = 'toast t-' + kind;
+  t.innerHTML = '<b>' + escH(title) + '</b>' + escH(msg || '');
+  stack.appendChild(t);
+  setTimeout(function() { t.style.transition = 'opacity 0.3s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, kind === 'success' ? 4000 : 5500);
+}
+
+function toastForResult(code, result) {
+  var s = result.status;
+  if (s === 'Success')       return showToast('success', code + ' — Redeemed!', result.message || 'Check your in-game mailbox.');
+  if (s === 'AlreadyUsed')   return showToast('warn',    code + ' — Already Used', result.message || '');
+  if (s === 'ExpiredCode')   return showToast('warn',    code + ' — Expired', result.message || '');
+  if (s === 'InvalidCode')   return showToast('error',   code + ' — Invalid Code', result.message || '');
+  if (s === 'IncorrectUser') return showToast('error',   'Wrong Nickname', result.message || 'Check your in-game name.');
+  return showToast('error', code + ' — Error', result.message || 'Unknown error');
+}
 
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -154,8 +192,17 @@ function renderDebug(row, result) {
 
 async function redeemAll() {
   var nickname = getNickname();
-  if (!nickname) { document.getElementById('redeem-status').textContent = 'Please enter your in-game nickname.'; document.getElementById('nickname').focus(); return; }
-  if (!CODES.length) { document.getElementById('redeem-status').textContent = 'No active codes to redeem.'; return; }
+  if (!nickname) {
+    document.getElementById('redeem-status').textContent = 'Please enter your in-game nickname.';
+    showToast('warn', 'Nickname required', 'Please enter your in-game nickname first.');
+    document.getElementById('nickname').focus();
+    return;
+  }
+  if (!CODES.length) {
+    document.getElementById('redeem-status').textContent = 'No active codes to redeem.';
+    showToast('info', 'No codes', 'There are no active codes to redeem right now.');
+    return;
+  }
 
   var btn = document.getElementById('redeem-btn');
   btn.disabled = true;
@@ -187,17 +234,20 @@ async function redeemAll() {
 
     try {
       var result = await redeemViaProxy(nickname, code);
-      if (!badge) continue;
-      badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
-      badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
+      if (badge) {
+        badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
+        badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
+      }
       if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
         renderDebug(row, result);
       }
+      toastForResult(code, result);
       if (result.success) counts.success++;
       else if (result.status === 'AlreadyUsed') counts.used++;
       else counts.other++;
     } catch(e) {
       if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
+      showToast('error', code + ' — Error', e.message || 'Request failed');
       counts.other++;
     }
   }
@@ -210,11 +260,17 @@ async function redeemAll() {
   if (counts.used)    parts.push(counts.used + ' already used');
   if (counts.other)   parts.push(counts.other + ' failed');
   summary.textContent = parts.join(' · ');
+  showToast(counts.success ? 'success' : (counts.other ? 'warn' : 'info'), 'Done', parts.join(' · ') || 'Nothing to do');
 }
 
 async function redeemOne(code) {
   var nickname = getNickname();
-  if (!nickname) { document.getElementById('redeem-status').textContent = 'Enter your in-game nickname first.'; document.getElementById('nickname').focus(); return; }
+  if (!nickname) {
+    document.getElementById('redeem-status').textContent = 'Enter your in-game nickname first.';
+    showToast('warn', 'Nickname required', 'Enter your in-game nickname first.');
+    document.getElementById('nickname').focus();
+    return;
+  }
 
   document.getElementById('redeem-results').style.display = 'block';
   var resultsList = document.getElementById('results-list');
@@ -243,8 +299,10 @@ async function redeemOne(code) {
     if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
       renderDebug(row, result);
     }
+    toastForResult(code, result);
   } catch(e) {
     if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
+    showToast('error', code + ' — Error', e.message || 'Request failed');
   }
 }
 
