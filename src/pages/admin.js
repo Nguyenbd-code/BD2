@@ -114,7 +114,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(c.element||'Dark') + '">'
         + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -197,6 +197,19 @@ export async function handleAdmin(request, env) {
         <div class="form-group">
           <label>TEAM NAME</label>
           <input type="text" id="comp-name" placeholder="Team name...">
+        </div>
+
+        <!-- Card Label -->
+        <div class="form-group">
+          <label>CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short line shown under the comp title on the guide page</span></label>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <select id="comp-card-label-color" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:5px;min-width:105px">
+              <option value="">None</option>
+              <option value="green">● Green</option>
+              <option value="red">● Red</option>
+            </select>
+            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1">
+          </div>
         </div>
 
         <!-- Color row -->
@@ -525,6 +538,12 @@ export async function handleAdmin(request, env) {
       <div class="admin-form">
         <h3>Characters</h3>
         <div id="char-alert"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
+          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all">All</button>
+          ${['Light','Dark','Fire','Water','Wind'].map(el =>
+            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '">' + esc(el) + '</button>'
+          ).join('')}
+        </div>
         <div id="char-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem">
           ${charsListHtml}
         </div>
@@ -727,6 +746,8 @@ export async function handleAdmin(request, env) {
 .img-cat-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
 .char-subtab-btn { display:inline-block; background:var(--bg4); border:1px solid var(--border2); color:var(--text2); padding:5px 12px; border-radius:4px; font-size:0.78rem; cursor:pointer; }
 .char-subtab-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
+.elem-dot-btn { display:inline-block; background:var(--bg4); border:1px solid var(--el-c,var(--border2)); color:var(--el-c,var(--text2)); padding:3px 9px; border-radius:12px; font-size:0.72rem; cursor:pointer; opacity:0.65; transition:opacity 0.15s; }
+.elem-dot-btn.active { opacity:1; background:rgba(201,168,76,0.08); font-weight:700; }
 .char-row { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; background:var(--bg4); border-radius:5px; cursor:pointer; border:1px solid transparent; }
 .char-row:hover { border-color:var(--border2); }
 .char-row.selected { border-color:var(--gold); background:rgba(201,168,76,0.08); }
@@ -1133,8 +1154,14 @@ async function loadCompData(id) {
     if (nameEl && opt.dataset.name !== undefined) nameEl.value = opt.dataset.name;
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
-    var sdEl = document.getElementById('comp-short-desc');
-    if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
+    var sdRaw = opt.dataset.shortDesc || '';
+    var labelColorEl = document.getElementById('comp-card-label-color');
+    var labelTextEl  = document.getElementById('comp-card-label');
+    if (labelColorEl && labelTextEl) {
+      var sdMatch = sdRaw.match(/^(green|red):(.*)$/s);
+      if (sdMatch) { labelColorEl.value = sdMatch[1]; labelTextEl.value = sdMatch[2]; }
+      else { labelColorEl.value = ''; labelTextEl.value = sdRaw; }
+    }
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
 
@@ -1168,11 +1195,13 @@ async function saveCompMeta() {
   var type   = opt ? opt.dataset.type  || 'ATK' : 'ATK';
   var cby    = opt ? opt.dataset.cby   || '' : '';
   var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var sd     = opt ? opt.dataset.shortDesc || '' : '';
+  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
+  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
-    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
+    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.notes = notes; opt.dataset.shortDesc = sd; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
   }
   showAlert('comp-meta-alert', r.success, r.message);
 }
@@ -2203,6 +2232,17 @@ document.addEventListener('click', function(e) {
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'upload-element')   uploadElementIcon(b.dataset.element);
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+  if (action === 'admin-elem-filter') {
+    document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    var filterEl = b.dataset.elem;
+    document.querySelectorAll('#char-list .char-row').forEach(function(row) {
+      row.style.display = (filterEl === 'all' || row.dataset.element === filterEl) ? '' : 'none';
+    });
+    document.querySelectorAll('#char-list div[style*="font-size:0.7rem"]').forEach(function(label) {
+      label.style.display = '';
+    });
+  }
 });
 
 /* ═════════════════════════════════ DELEGATED CHANGE LISTENER ══ */
