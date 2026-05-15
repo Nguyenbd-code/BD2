@@ -136,10 +136,10 @@ function renderComp(comp, mediaMap) {
         const cosSlug = costumeSlug(cos);
         const abbr = (cos || '???').substring(0,3).toUpperCase();
         const portrait = cosSlug
-          ? `<img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:52px;height:52px;object-fit:cover;object-position:top center;border-radius:50%;border:2px solid var(--border2);display:block" class="img-err-hide">`
-          : `<div class="skill-abbr" style="border-radius:50%;width:52px;height:52px;line-height:52px;text-align:center">${esc(abbr)}</div>`;
+          ? `<div style="width:32px;height:32px;border-radius:50%;border:2px solid var(--border2);overflow:hidden;margin:0 auto"><img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;display:block;transform:scale(1.7);transform-origin:50% 22%" class="img-err-hide"></div>`
+          : `<div class="skill-abbr" style="border-radius:50%">${esc(abbr)}</div>`;
         return `<div class="skill-wrap">
-  <div class="skill-icon-box" style="width:58px;flex-shrink:0">
+  <div class="skill-icon-box" style="width:38px;flex-shrink:0">
     <div class="skill-num">${i+1}</div>
     ${portrait}
   </div>
@@ -222,8 +222,8 @@ function renderComp(comp, mediaMap) {
   if (sdRaw) {
     const sdMatch = sdRaw.match(/^(green|red):(.+)$/s);
     const labelColor = sdMatch ? (sdMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
-    const labelBg    = sdMatch ? (sdMatch[1] === 'green' ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)') : 'rgba(201,168,76,0.1)';
-    const labelBorder= sdMatch ? (sdMatch[1] === 'green' ? 'rgba(46,204,113,0.3)' : 'rgba(231,76,60,0.3)') : 'rgba(201,168,76,0.3)';
+    const labelBg    = sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
+    const labelBorder= sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
     const labelText  = sdMatch ? sdMatch[2] : sdRaw;
     cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
   }

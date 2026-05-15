@@ -106,7 +106,13 @@ export async function handleAdmin(request, env) {
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
   const groupedChars     = {};
-  for (const c of chars) { const el = c.element||'Dark'; if (!groupedChars[el]) groupedChars[el]=[]; groupedChars[el].push(c); }
+  for (const c of chars) {
+    const raw = (c.element || 'Dark').toString().trim();
+    const norm = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const el = elemOrderServer.includes(norm) ? norm : 'Dark';
+    if (!groupedChars[el]) groupedChars[el]=[];
+    groupedChars[el].push(c);
+  }
   let charsListHtml = '';
   for (const el of elemOrderServer) {
     const grp = groupedChars[el];
@@ -114,7 +120,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(c.element||'Dark') + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
         + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -390,29 +396,64 @@ export async function handleAdmin(request, env) {
   <!-- ═══════════════════════════════════════════════════════════ EMOTES -->
   <div class="admin-section" id="tab-emotes">
     <div class="admin-form">
-      <h3>Add Emote</h3>
-      <div id="emote-alert"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Happy Sylvia"></div>
-        <div class="form-group"><label>Image URL <span style="color:var(--text3);font-weight:400">(or upload below)</span></label><input type="text" id="e-url" placeholder="https://..."></div>
-      </div>
+      <h3>Emote Sets</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Five secret sets. Pick a set to edit its unlock condition, hint, cover image, and emotes.</p>
       <div class="form-group">
-        <label>Upload Image File <span style="color:var(--text3);font-weight:400">(optional — replaces URL)</span></label>
-        <input type="file" id="e-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-        <canvas id="emote-canvas" style="display:none"></canvas>
+        <label>Pick Set</label>
+        <select id="emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option>
+        </select>
       </div>
-      <button class="btn" style="width:auto;padding:10px 24px" data-action="add-emote">Add Emote</button>
-    </div>
-    <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
-      ${emotes.map(e =>
-        '<div class="admin-item" id="emote-' + e.id + '">'
-        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-        + '<img src="' + esc(e.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" class="img-err-hide">'
-        + '<strong>' + esc(e.name) + '</strong>'
-        + '</div>'
-        + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '">Delete</button>'
-        + '</div>'
-      ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No emotes yet.</p>'}
+      <div id="emote-set-editor" style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
+        <div class="form-row">
+          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
+          <div class="form-group">
+            <label>Unlock Page</label>
+            <select id="es-page" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="characters">Characters</option>
+              <option value="guide">PvP Guide</option>
+              <option value="coupons">Coupons</option>
+              <option value="home">Home</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unlock Element Button</label>
+            <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="water">Water</option>
+              <option value="fire">Fire</option>
+              <option value="wind">Wind</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="50" value="7"></div>
+        </div>
+        <div class="form-group">
+          <label>Hint (shown in tooltip on Emotes page)</label>
+          <textarea id="es-hint" rows="2" placeholder="Reword as a riddle..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Cover Image (optional — used as set thumbnail)</label>
+          <input type="file" id="es-cover-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+          <canvas id="es-cover-canvas" style="display:none"></canvas>
+          <div id="es-cover-preview" style="margin-top:0.4rem;font-size:0.75rem;color:var(--text3)"></div>
+        </div>
+        <button class="btn" style="width:auto;padding:10px 24px" data-action="save-emote-set">Save Set Settings</button>
+        <div id="es-alert"></div>
+      </div>
+
+      <h3 style="margin-top:1.5rem">Emotes in this Set</h3>
+      <div class="form-group">
+        <label>Upload Folder of Emotes <span style="color:var(--text3);font-weight:400">(select multiple files, or paste from clipboard)</span></label>
+        <input type="file" id="es-bulk-files" accept="image/*" multiple style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+        <canvas id="es-bulk-canvas" style="display:none"></canvas>
+        <div id="es-paste-zone" tabindex="0" style="margin-top:0.5rem;padding:1rem;border:2px dashed var(--border2);border-radius:6px;text-align:center;color:var(--text3);font-size:0.82rem;outline:none">Click here, then paste images with Ctrl+V (or Cmd+V)</div>
+        <button class="btn" style="width:auto;padding:10px 24px;margin-top:0.5rem" data-action="bulk-add-emotes">Upload Selected Files</button>
+        <div id="es-bulk-alert"></div>
+      </div>
+      <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.5rem"></div>
     </div>
   </div>
 
@@ -1393,8 +1434,142 @@ async function addEmote() {
 
 async function deleteEmote(id) {
   var r = await apiPost('/api/admin/emote/delete', { id: id });
-  if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); }
-  else showAlert('emote-alert', false, r.message);
+  if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); var el2 = document.getElementById('es-emote-' + id); if (el2) el2.remove(); }
+  else showAlert('es-bulk-alert', false, r.message);
+}
+
+/* ══════════════════════════════════════════════════════ EMOTE SETS ══ */
+var _esSets = {};
+var _esCurrentSet = 1;
+var _esPendingCover = '';
+
+async function loadEmoteSets() {
+  try {
+    var r = await fetch('/api/admin/emote-set/list');
+    var d = await r.json();
+    var arr = (d && d.sets) || [];
+    _esSets = {};
+    arr.forEach(function(s) { _esSets[s.set_num] = s; });
+    renderEmoteSet(_esCurrentSet);
+    loadEmoteSetEmotes(_esCurrentSet);
+  } catch(e) {}
+}
+
+function renderEmoteSet(sn) {
+  var s = _esSets[sn] || { name: 'Set ' + sn, hint: '', unlock_page: 'characters', unlock_target: 'water', unlock_count: 7, cover_key: '' };
+  var nameEl = document.getElementById('es-name'); if (nameEl) nameEl.value = s.name || ('Set ' + sn);
+  var pageEl = document.getElementById('es-page'); if (pageEl) pageEl.value = s.unlock_page || 'characters';
+  var tEl = document.getElementById('es-target'); if (tEl) tEl.value = (s.unlock_target || 'water').toLowerCase();
+  var cEl = document.getElementById('es-count'); if (cEl) cEl.value = s.unlock_count || 7;
+  var hEl = document.getElementById('es-hint'); if (hEl) hEl.value = s.hint || '';
+  var prev = document.getElementById('es-cover-preview');
+  if (prev) prev.innerHTML = s.cover_key ? ('Current: <img src="/img/' + escH(s.cover_key) + '" style="height:32px;vertical-align:middle;border-radius:3px"> <code>' + escH(s.cover_key) + '</code>') : 'No cover set';
+  _esPendingCover = '';
+}
+
+async function loadEmoteSetEmotes(sn) {
+  var listEl = document.getElementById('es-emote-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;grid-column:1/-1">Loading...</div>';
+  try {
+    var r = await fetch('/api/admin/emote/list-by-set?set_num=' + sn);
+    var d = await r.json();
+    var arr = (d && d.emotes) || [];
+    if (!arr.length) { listEl.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;grid-column:1/-1">No emotes in this set yet.</div>'; return; }
+    listEl.innerHTML = arr.map(function(e) {
+      return '<div class="admin-item" id="es-emote-' + e.id + '" style="flex-direction:column;align-items:stretch;padding:0.5rem;gap:0.4rem">'
+        + '<img src="' + escH(e.image_url) + '" style="width:100%;height:80px;object-fit:contain;background:var(--bg4);border-radius:4px" class="img-err-hide">'
+        + '<div style="font-size:0.72rem;word-break:break-word">' + escH(e.name) + '</div>'
+        + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '" style="font-size:0.7rem;padding:3px 8px">Delete</button>'
+        + '</div>';
+    }).join('');
+  } catch(e) { listEl.innerHTML = '<div style="color:#e74c3c;font-size:0.8rem;grid-column:1/-1">Failed to load.</div>'; }
+}
+
+async function saveEmoteSet() {
+  var sn = _esCurrentSet;
+  var body = {
+    set_num: sn,
+    name: (document.getElementById('es-name')||{}).value || ('Set ' + sn),
+    hint: (document.getElementById('es-hint')||{}).value || '',
+    unlock_page: (document.getElementById('es-page')||{}).value || 'characters',
+    unlock_target: (document.getElementById('es-target')||{}).value || '',
+    unlock_count: parseInt((document.getElementById('es-count')||{}).value, 10) || 7,
+    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+  };
+  if (_esPendingCover) {
+    var key = 'emote_set_' + sn + '_cover';
+    var up = await apiPost('/api/admin/image/upload', { key: key, data: _esPendingCover });
+    if (up.success) body.cover_key = key;
+  }
+  var r = await apiPost('/api/admin/emote-set/save', body);
+  showAlert('es-alert', r.success, r.message);
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
+}
+
+async function bulkAddEmotes() {
+  var sn = _esCurrentSet;
+  var fileEl = document.getElementById('es-bulk-files');
+  var files = (fileEl && fileEl.files) ? Array.from(fileEl.files) : [];
+  if (_esPasteBuffer && _esPasteBuffer.length) files = files.concat(_esPasteBuffer);
+  if (!files.length) { showAlert('es-bulk-alert', false, 'Select files or paste images first'); return; }
+  showAlert('es-bulk-alert', true, 'Uploading ' + files.length + ' emote(s)...');
+  var items = [];
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var data = await compressToDataUrl(files[i], 'es-bulk-canvas', 200, 0.85);
+      var nm = (files[i].name || ('emote_' + (i+1))).replace(/\.[^.]+$/, '');
+      items.push({ name: nm, data: data });
+    } catch(e) {}
+  }
+  var r = await apiPost('/api/admin/emote/bulk-add', { set_num: sn, items: items });
+  showAlert('es-bulk-alert', r.success, r.message);
+  if (r.success) {
+    if (fileEl) fileEl.value = '';
+    _esPasteBuffer = [];
+    var pz = document.getElementById('es-paste-zone');
+    if (pz) pz.textContent = 'Click here, then paste images with Ctrl+V (or Cmd+V)';
+    loadEmoteSetEmotes(sn);
+  }
+}
+
+var _esPasteBuffer = [];
+function setupEmoteSetUI() {
+  var sel = document.getElementById('emote-set-select');
+  if (sel) {
+    sel.addEventListener('change', function() {
+      _esCurrentSet = parseInt(sel.value, 10) || 1;
+      renderEmoteSet(_esCurrentSet);
+      loadEmoteSetEmotes(_esCurrentSet);
+    });
+  }
+  var coverInput = document.getElementById('es-cover-file');
+  if (coverInput) {
+    coverInput.addEventListener('change', async function() {
+      if (!coverInput.files || !coverInput.files[0]) return;
+      try {
+        _esPendingCover = await compressToDataUrl(coverInput.files[0], 'es-cover-canvas', 400, 0.85);
+        var prev = document.getElementById('es-cover-preview');
+        if (prev) prev.innerHTML = 'New cover ready (save settings to apply)';
+      } catch(e) {}
+    });
+  }
+  var pz = document.getElementById('es-paste-zone');
+  if (pz) {
+    pz.addEventListener('paste', function(ev) {
+      var items = ev.clipboardData && ev.clipboardData.items;
+      if (!items) return;
+      var added = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) {
+          var f = items[i].getAsFile();
+          if (f) { _esPasteBuffer.push(f); added++; }
+        }
+      }
+      if (added) pz.textContent = _esPasteBuffer.length + ' pasted image(s) queued. Click "Upload Selected Files" to save.';
+    });
+  }
+  loadEmoteSets();
 }
 
 /* ══════════════════════════════════════════════════════════ IMAGES ══ */
@@ -2242,6 +2417,8 @@ document.addEventListener('click', function(e) {
   if (action === 'add-preemptive')   addPreemptive();
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
+  if (action === 'save-emote-set')   saveEmoteSet();
+  if (action === 'bulk-add-emotes')  bulkAddEmotes();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
@@ -2277,6 +2454,7 @@ document.addEventListener('error', function(e) {
   if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
 }, true);
 updateImgKey();
+setupEmoteSetUI();
 </script>
 `);
 }
