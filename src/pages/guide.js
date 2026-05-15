@@ -211,7 +211,7 @@ function renderComp(comp, mediaMap) {
   // Preemptive skills
   const preemptive = comp.preemptive || [];
   const preemptiveHtml = preemptive.length
-    ? preemptive.slice(0, 3).map(src => `<img src="${esc(src)}" style="width:100%;height:auto;max-height:110px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);display:block" class="img-err-hide">`).join('')
+    ? preemptive.slice(0, 3).map(src => `<img src="${esc(src)}" style="flex:1;min-height:0;width:100%;object-fit:contain;border-radius:4px;border:1px solid var(--border2);display:block" class="img-err-hide">`).join('')
     : '<span style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.8rem">N/A</span>';
 
   // Matchups
@@ -236,7 +236,7 @@ function renderComp(comp, mediaMap) {
 
   <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%;min-width:0;overflow:hidden;">
-      <div class="card" style="flex:1;min-height:340px;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="card" style="height:340px;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -247,30 +247,32 @@ function renderComp(comp, mediaMap) {
         <div class="card-title">Board Positioning</div>
         ${boardSectionHtml}
       </div>
-      <div class="card" style="padding:1.25rem;flex:1;display:flex;flex-direction:column;">
-        <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
-        <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex:1;min-height:0;">
+        <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
+          <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:hidden">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+        </div>
+        <div class="card" style="padding:1rem;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="card-title" style="flex-shrink:0">Matchups</div>
+          <div style="margin-top:0.5rem;margin-bottom:0.4rem;flex-shrink:0">
+            <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
+            ${counters.length ? counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('') : '<span class="beats-tag" style="opacity:0.55">Need data</span>'}
+          </div>
+          <div style="flex-shrink:0">
+            <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Countered By</div>
+            ${counteredBy.length ? counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('') : '<span class="counter-tag" style="opacity:0.55">Need data</span>'}
+          </div>
+        </div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;">
-      <div class="card" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column">
+      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
         <div class="card-title">Build Notes</div>
-        <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
+        <ul class="notes-list" style="flex:1;overflow:hidden;">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card" style="padding:1rem;">
-        <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;flex-direction:column;gap:0.4rem;">${preemptiveHtml}</div>
-      </div>
-      <div class="card" style="padding:1rem;min-height:120px;display:flex;flex-direction:column">
-        <div class="card-title">Matchups</div>
-        <div style="margin-bottom:0.5rem">
-          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
-          ${counters.length ? counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
-        </div>
-        <div>
-          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Countered By</div>
-          ${counteredBy.length ? counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
-        </div>
+      <div class="card" style="padding:1rem;flex-shrink:0;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="card-title" style="margin-bottom:0.5rem;flex-shrink:0">Preemptive Skills</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:0.4rem;min-height:0;">${preemptiveHtml}</div>
       </div>
     </div>
   </div>
@@ -286,7 +288,7 @@ export async function handleGuide(request, env) {
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
-      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%' OR key LIKE 'counters_%'").all().catch(() => ({results:[]})),
     ]);
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
@@ -381,6 +383,8 @@ export async function handleGuide(request, env) {
     if (preemptiveRaw) { try { preemptive = JSON.parse(preemptiveRaw); } catch {} }
 
     const howToPlay = extraMap[`how_to_play_${tierLow}`] || '';
+    const countersRaw = extraMap[`counters_${tierLow}`] || '';
+    const dbCounters = countersRaw ? countersRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
 
     return renderComp({
       tier,
@@ -393,7 +397,7 @@ export async function handleGuide(request, env) {
       rotation,
       unitOrder,
       notes,
-      counters: staticMatchup.counters,
+      counters: dbCounters.length ? dbCounters : staticMatchup.counters,
       countered_by: counteredBy,
       warning: STATIC_WARNINGS[tier] || null,
       preemptive,
