@@ -24,19 +24,24 @@ export async function handleCharacters(request, env) {
   const cardHtml = chars.map(char => {
     const costumes   = costumesMap[char.slug] || [];
     const slug       = char.slug;
-    const el         = char.element || 'Dark';
+    const elRaw      = (char.element || 'Dark').toString().trim();
+    const elNorm     = elRaw.charAt(0).toUpperCase() + elRaw.slice(1).toLowerCase();
+    const el         = ['Light','Dark','Fire','Water','Wind'].includes(elNorm) ? elNorm : 'Dark';
     const elemColor  = elemColors[el]  || '#888';
     const elemGlow   = elemGlows[el]   || 'rgba(136,136,136,0.12)';
     const elemGrad   = elemGradient[el] || 'rgba(136,136,136,0.12),transparent';
-    const costumeOpts = costumes.map(c =>
-      `<option value="${esc(c.costume_slug)}">${esc(c.costume_name)}</option>`
+    const baseCostume = costumes[0];
+    const costumeOpts = costumes.map((c, idx) =>
+      `<option value="${esc(c.costume_slug)}"${idx === 0 ? ' selected' : ''}>${esc(c.costume_name)}</option>`
     ).join('');
+    const defaultImg = baseCostume
+      ? `/img/char_${esc(slug)}_${esc(baseCostume.costume_slug)}_icon`
+      : `/img/char_${esc(slug)}_portrait`;
 
     return `<div class="char-page-card" data-element="${esc(el)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
   <div class="char-img-wrap">
     <span class="char-initial">${esc(char.name.charAt(0))}</span>
-    <img src="/img/char_${esc(slug)}_portrait" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
-    <img src="" class="img-err-hide" id="cp-costume-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none">
+    <img src="${defaultImg}" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
     <div class="char-elem-grad" style="background:linear-gradient(to top,${elemGrad})"></div>
     <div class="char-elem-badge">
       <img src="/img/element_${esc(el.toLowerCase())}" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
@@ -51,7 +56,6 @@ export async function handleCharacters(request, env) {
     <div class="char-card-elem" style="color:${elemColor}">${esc(el)}</div>
     ${costumes.length
       ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
-          <option value="">Base Portrait</option>
           ${costumeOpts}
         </select>
         <div style="font-size:0.65rem;color:var(--text3);margin-top:0.3rem">${costumes.length} costume${costumes.length !== 1 ? 's' : ''}</div>`
@@ -174,10 +178,11 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
-    var el = btn.dataset.element;
+    var el = (btn.dataset.element || '').toLowerCase();
     document.querySelectorAll('#char-grid .char-page-card').forEach(function(card) {
       if (card.classList.contains('char-coming-soon')) return;
-      card.style.display = (el === 'all' || card.dataset.element === el) ? '' : 'none';
+      var ce = (card.dataset.element || '').toLowerCase();
+      card.style.display = (el === 'all' || ce === el) ? '' : 'none';
     });
   });
 });
@@ -188,24 +193,9 @@ document.querySelectorAll('.char-costume-picker').forEach(function(sel) {
     var slug       = sel.dataset.slug;
     var cosSlug    = sel.value;
     var portraitEl = document.getElementById('cp-portrait-' + slug);
-    var costumeEl  = document.getElementById('cp-costume-'  + slug);
-    if (!portraitEl || !costumeEl) return;
+    if (!portraitEl || !cosSlug) return;
     portraitEl.classList.remove('errored');
-    if (!cosSlug) {
-      costumeEl.style.display  = 'none';
-      portraitEl.style.display = 'block';
-      return;
-    }
-    costumeEl.classList.remove('errored');
-    costumeEl.onerror = function() {
-      costumeEl.style.display  = 'none';
-      portraitEl.style.display = 'block';
-    };
-    costumeEl.onload = function() {
-      portraitEl.style.display = 'none';
-      costumeEl.style.display  = 'block';
-    };
-    costumeEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
+    portraitEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
   });
 });
 </script>

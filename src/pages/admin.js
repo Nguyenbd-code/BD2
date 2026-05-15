@@ -106,7 +106,13 @@ export async function handleAdmin(request, env) {
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
   const groupedChars     = {};
-  for (const c of chars) { const el = c.element||'Dark'; if (!groupedChars[el]) groupedChars[el]=[]; groupedChars[el].push(c); }
+  for (const c of chars) {
+    const raw = (c.element || 'Dark').toString().trim();
+    const norm = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const el = elemOrderServer.includes(norm) ? norm : 'Dark';
+    if (!groupedChars[el]) groupedChars[el]=[];
+    groupedChars[el].push(c);
+  }
   let charsListHtml = '';
   for (const el of elemOrderServer) {
     const grp = groupedChars[el];
@@ -114,7 +120,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(c.element||'Dark') + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
         + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')

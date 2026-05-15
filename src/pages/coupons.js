@@ -34,8 +34,8 @@ export async function handleCoupons(request, env) {
 <div class="coupon-form">
   <h3>Auto-Redeem All Codes</h3>
   <div class="form-group">
-    <label>In-Game Nickname</label>
-    <input type="text" id="nickname" placeholder="Your BD2 nickname (case-sensitive)" autocomplete="off"
+    <label for="nickname">In-Game Nickname</label>
+    <input type="text" id="nickname" name="nickname" placeholder="Your BD2 nickname (case-sensitive)" autocomplete="off"
       style="font-size:1rem">
   </div>
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
