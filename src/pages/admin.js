@@ -111,7 +111,7 @@ export async function handleAdmin(request, env) {
   for (const el of elemOrderServer) {
     const grp = groupedChars[el];
     if (!grp || !grp.length) continue;
-    charsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
+    charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
       return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(c.element||'Dark') + '">'
@@ -344,6 +344,12 @@ export async function handleAdmin(request, env) {
         </div>
 
         <div id="comp-editor-alert"></div>
+
+        <!-- Save All -->
+        <div style="border-top:2px solid var(--border);padding-top:1.25rem;margin-top:0.5rem;display:flex;align-items:center;gap:1rem">
+          <button class="btn" style="width:auto;padding:10px 28px;font-size:0.95rem;font-weight:700" data-action="save-all-comp">Save All</button>
+          <span id="comp-save-all-alert" style="font-size:0.82rem"></span>
+        </div>
       </div>
 
       <!-- Add new comp form -->
@@ -1150,6 +1156,22 @@ async function loadCompData(id) {
       }).join('');
     }
   } catch(e) {}
+}
+
+async function saveAllComp() {
+  if (!_compId) { showAlert('comp-save-all-alert', false, 'Select a composition first'); return; }
+  var alertEl = document.getElementById('comp-save-all-alert');
+  if (alertEl) { alertEl.style.color = 'var(--text3)'; alertEl.textContent = 'Saving...'; }
+  var errors = [];
+  try { await saveCompMeta(); } catch(e) { errors.push('Notes/Color'); }
+  try { await saveCompUnitOrder(); } catch(e) { errors.push('Unit Order'); }
+  try { await saveMatchups(); } catch(e) { errors.push('Matchups'); }
+  try { await saveHowToPlay(); } catch(e) { errors.push('How To Play'); }
+  if (alertEl) {
+    alertEl.style.color = errors.length ? '#e74c3c' : '#2ecc71';
+    alertEl.textContent = errors.length ? 'Some saves failed: ' + errors.join(', ') : 'All saved! Refresh guide to see changes.';
+    setTimeout(function() { if (alertEl) alertEl.textContent = ''; }, 4000);
+  }
 }
 
 async function saveCardLabel() {
@@ -2222,6 +2244,7 @@ document.addEventListener('click', function(e) {
   if (action === 'add-emote')        addEmote();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
+  if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
@@ -2230,8 +2253,8 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('#char-list .char-row').forEach(function(row) {
       row.style.display = (filterEl === 'all' || row.dataset.element === filterEl) ? '' : 'none';
     });
-    document.querySelectorAll('#char-list div[style*="font-size:0.7rem"]').forEach(function(label) {
-      label.style.display = '';
+    document.querySelectorAll('#char-list .elem-group-label').forEach(function(label) {
+      label.style.display = (filterEl === 'all' || label.dataset.elem === filterEl) ? '' : 'none';
     });
   }
 });

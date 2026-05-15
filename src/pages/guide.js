@@ -136,10 +136,10 @@ function renderComp(comp, mediaMap) {
         const cosSlug = costumeSlug(cos);
         const abbr = (cos || '???').substring(0,3).toUpperCase();
         const portrait = cosSlug
-          ? `<img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid var(--border2);display:block" class="img-err-hide">`
-          : `<div class="skill-abbr" style="border-radius:50%">${esc(abbr)}</div>`;
+          ? `<img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:52px;height:52px;object-fit:cover;object-position:top center;border-radius:50%;border:2px solid var(--border2);display:block" class="img-err-hide">`
+          : `<div class="skill-abbr" style="border-radius:50%;width:52px;height:52px;line-height:52px;text-align:center">${esc(abbr)}</div>`;
         return `<div class="skill-wrap">
-  <div class="skill-icon-box" style="width:38px;flex-shrink:0">
+  <div class="skill-icon-box" style="width:58px;flex-shrink:0">
     <div class="skill-num">${i+1}</div>
     ${portrait}
   </div>
@@ -494,7 +494,8 @@ document.addEventListener('mouseover', function(e) {
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
   var rect = wrap.getBoundingClientRect();
-  var left = Math.min(rect.left, window.innerWidth - pw - 8);
+  var left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.min(left, window.innerWidth - pw - 8);
   var top = rect.top - ph - 8;
   if (top < 4) top = rect.bottom + 8;
   popup.style.left = Math.max(4, left) + 'px';
