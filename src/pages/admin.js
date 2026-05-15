@@ -79,7 +79,8 @@ export async function handleAdmin(request, env) {
       : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
     const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
     const color = c.color || '#c9a84c';
-    return '<div class="admin-item" id="comp-' + c.id + '">'
+    return '<div class="admin-item" id="comp-' + c.id + '" draggable="true" style="cursor:grab">'
+      + '<span style="color:var(--text3);font-size:1rem;cursor:grab;user-select:none;margin-right:6px;flex-shrink:0">&#10783;</span>'
       + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
       + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
       + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
@@ -286,45 +287,46 @@ export async function handleAdmin(request, env) {
           <div id="comp-meta-alert"></div>
         </div>
 
-        <!-- Unit Order (all tiers) -->
+        <!-- Character Bonds -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>CHARACTER BONDS</label>
+          <!-- 5 portrait summary slots -->
+          <div id="bonds-summary" style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap">
+            <span style="color:var(--text3);font-size:0.82rem">Select a composition to set bonds</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <button class="btn" style="width:auto;padding:8px 20px" id="open-bonds-modal-btn">Edit Bonds</button>
+            <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Bonds</button>
+            <div id="comp-bonds-alert" style="font-size:0.78rem"></div>
+          </div>
+        </div>
+
+        <!-- Unit Order -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem" id="unit-order-section">
           <label>UNIT ORDER</label>
-          <div id="unit-order-slots" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
-            <span style="color:var(--text3);font-size:0.82rem">Select a composition to load unit order</span>
+          <div id="unit-order-gated" style="pointer-events:none;opacity:0.35;transition:opacity 0.2s">
+            <p style="font-size:0.8rem;color:var(--text3);margin-bottom:0.6rem">Set Character Bonds first to enable unit ordering.</p>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0" onclick="saveCompUnitOrder()">Save Unit Order</button>
-          <div id="comp-order-alert"></div>
+          <div id="unit-order-active" style="display:none">
+            <!-- Summary of chosen order -->
+            <div id="unit-order-summary" style="display:flex;gap:0.5rem;margin-bottom:0.6rem;flex-wrap:wrap"></div>
+            <button class="btn" style="width:auto;padding:8px 20px" id="open-unit-order-btn">Configure Order</button>
+            <button class="btn" style="width:auto;padding:8px 20px;margin-left:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+            <div id="comp-order-alert" style="font-size:0.78rem;margin-top:0.4rem"></div>
+          </div>
         </div>
 
-        <!-- Board images (front / back) -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>Board Image — Front</label>
-          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
-          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
-        </div>
-        <div class="form-group">
-          <label>Board Image — Back</label>
-          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas-back" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
-          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
-        </div>
-
-        <!-- Video URL -->
-        <div class="form-group">
-          <label>Battle Video URL</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
+        <!-- Skill Rotation (all tiers) -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem" id="skill-rotation-section">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.4rem">Skill Rotation</h4>
+          <div id="skill-rotation-gated" style="pointer-events:none;opacity:0.35;transition:opacity 0.2s">
+            <p style="font-size:0.8rem;color:var(--text3)">Set Character Bonds first to enable skill rotation.</p>
           </div>
-          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
-            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          <div id="skill-rotation-active" style="display:none">
+            <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
+            <div id="rot-alert" style="margin-bottom:0.5rem"></div>
+            <div id="rot-grid"></div>
           </div>
-          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
-          <div id="comp-video-alert"></div>
         </div>
 
         <!-- How and When to Play -->
@@ -352,6 +354,22 @@ export async function handleAdmin(request, env) {
           <div id="comp-matchups-alert"></div>
         </div>
 
+        <!-- Board images (front / back) -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>Board Image — Front</label>
+          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
+          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
+        </div>
+        <div class="form-group">
+          <label>Board Image — Back</label>
+          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas-back" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
+          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
+        </div>
+
         <!-- Preemptive Skills -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>PREEMPTIVE SKILLS</label>
@@ -362,22 +380,19 @@ export async function handleAdmin(request, env) {
           <div id="comp-preemptive-alert"></div>
         </div>
 
-        <!-- Character Bonds -->
-        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Character Bonds</h4>
-          <div id="comp-bonds-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:0.75rem">
-            <span style="color:var(--text3);font-size:0.82rem;grid-column:1/-1">Select a composition to edit character bonds</span>
+        <!-- Video URL -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>Battle Video URL</label>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Character Bonds</button>
-          <div id="comp-bonds-alert"></div>
-        </div>
-
-        <!-- Skill Rotation (all tiers) -->
-        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
-          <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
-          <div id="rot-alert" style="margin-bottom:0.5rem"></div>
-          <div id="rot-grid"></div>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
+          <div id="comp-video-alert"></div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -407,6 +422,57 @@ export async function handleAdmin(request, env) {
         <div class="form-group"><label>Countered By</label><input type="text" id="new-comp-cby" placeholder="T1, Schera teams"></div>
         <div id="comp-add-alert"></div>
         <button class="btn" style="width:auto;padding:10px 24px" onclick="addComp()">Add Composition</button>
+      </div>
+    </div>
+
+    <!-- Bonds Picker Modal -->
+    <div id="bonds-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:700px;width:100%;margin:auto;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Select Character Bonds</div>
+          <button id="close-bonds-modal-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <!-- 5 bond slots at top -->
+        <div id="bonds-modal-slots" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
+        <!-- Element filter -->
+        <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
+          <button class="bond-elem-btn active" data-elem="all" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif">All</button>
+          <button class="bond-elem-btn" data-elem="water" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Water</button>
+          <button class="bond-elem-btn" data-elem="fire" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Fire</button>
+          <button class="bond-elem-btn" data-elem="light" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Light</button>
+          <button class="bond-elem-btn" data-elem="dark" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Dark</button>
+          <button class="bond-elem-btn" data-elem="wind" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Wind</button>
+        </div>
+        <!-- Search -->
+        <input id="bonds-char-search" type="text" placeholder="Search characters..." style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:5px;font-size:0.88rem;outline:none;margin-bottom:0.75rem">
+        <!-- Character grid -->
+        <div id="bonds-char-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:0.6rem;max-height:360px;overflow-y:auto"></div>
+        <!-- Costume select -->
+        <div id="bonds-costume-area" style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border2);display:none">
+          <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.4rem" id="bonds-costume-label">Costume for slot:</div>
+          <select id="bonds-costume-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.85rem">
+            <option value="">&#8212; Default &#8212;</option>
+          </select>
+          <button class="btn" style="width:auto;padding:6px 16px;margin-top:0.5rem;font-size:0.82rem" id="bonds-confirm-slot-btn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unit Order Modal -->
+    <div id="unit-order-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:420px;width:100%;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Unit Order</div>
+          <button id="close-unit-order-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Arrange positions 1&#8211;5. Only bonded characters are available.</p>
+        <div id="unit-order-slots" style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem">
+          <!-- slots populated by JS -->
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompUnitOrder();closeUnitOrderModal()">Save &amp; Close</button>
+        </div>
+        <div id="comp-order-alert-modal" style="font-size:0.78rem;margin-top:0.4rem"></div>
       </div>
     </div>
 
@@ -921,6 +987,14 @@ var _compTier = '';
 var _compId = 0;
 var _compBoardKey = '';
 var _imgCat = 'all';
+
+var _bondedCharNames  = [];   // names of currently set bond chars (for gating)
+var _bondsPendingSlot = null; // which slot index (0-4) is being assigned in modal
+var _bondsPendingChar = null; // { name, slug } being confirmed
+var _bondsModalChars  = [];   // all chars loaded for bonds modal
+var _bondsSelections  = [null,null,null,null,null]; // {name, slug, costume} per slot
+var _currentUnitOrder = [];
+var _bondsCurElem     = 'all';
 
 var elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
 
