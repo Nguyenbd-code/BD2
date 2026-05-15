@@ -133,10 +133,7 @@ export async function handleEmotes(request, env) {
       <div style="font-size:0.72rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6">One character keeps something unusual by their side. The octopus there isn&rsquo;t just decoration.</div>
     </div>
-    <input type="text" id="emote-unlock-code" placeholder="Enter secret code..." autocomplete="off"
-      style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:0.7rem 1rem;border-radius:6px;font-size:0.95rem;text-align:center;outline:none;margin-bottom:0.5rem;font-family:inherit">
-    <div id="emote-unlock-error" style="font-size:0.8rem;color:#e74c3c;min-height:1.4em;margin-bottom:0.5rem"></div>
-    <button id="emote-unlock-btn" style="width:100%;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em">Unlock</button>
+    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
   </div>
 </div>
 
@@ -233,34 +230,6 @@ export async function handleEmotes(request, env) {
       var lockImgWrap = document.getElementById('emote-lock-img-wrap');
       if (lockImgWrap) lockImgWrap.innerHTML = '<img src="' + LOCK_IMG + '" style="width:100%;height:100%;object-fit:contain">';
     }
-    var unlockInput = document.getElementById('emote-unlock-code');
-    var unlockBtn   = document.getElementById('emote-unlock-btn');
-    var unlockErr   = document.getElementById('emote-unlock-error');
-    function tryUnlock() {
-      var code = unlockInput ? unlockInput.value.trim() : '';
-      if (!code) return;
-      if (unlockBtn) unlockBtn.disabled = true;
-      if (unlockErr) { unlockErr.textContent = '...'; unlockErr.style.color = 'var(--text3)'; }
-      fetch('/api/secret/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: code }) })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          if (d.success) {
-            localStorage.setItem('kitsu_unlocked', 'true');
-            if (lockScreen) { lockScreen.style.transition = 'opacity 0.4s'; lockScreen.style.opacity = '0'; }
-            setTimeout(showPage, 400);
-          } else {
-            if (unlockErr) { unlockErr.textContent = 'Incorrect code. Head to the Home page for a hint.'; unlockErr.style.color = '#e74c3c'; }
-            if (unlockBtn) unlockBtn.disabled = false;
-            if (unlockInput) { unlockInput.value = ''; unlockInput.focus(); }
-          }
-        })
-        .catch(function() {
-          if (unlockErr) { unlockErr.textContent = 'Network error. Try again.'; unlockErr.style.color = '#e74c3c'; }
-          if (unlockBtn) unlockBtn.disabled = false;
-        });
-    }
-    if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
-    if (unlockInput) unlockInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryUnlock(); });
   }
 
   function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
