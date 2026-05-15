@@ -1375,20 +1375,8 @@ async function loadCompData(id) {
 
     var currentOrder = [];
     try { currentOrder = JSON.parse(opt.dataset.unitOrder || '[]'); } catch(e) {}
-
-    var slotsEl = document.getElementById('unit-order-slots');
-    if (slotsEl) {
-      slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
-        var cur = currentOrder[n-1] || '';
-        var opts = '<option value="">— Select —</option>' + allChars.map(function(c) {
-          return '<option value="' + escH(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + escH(c.name) + '</option>';
-        }).join('');
-        return '<div style="text-align:center">'
-          + '<div style="font-size:0.65rem;color:var(--text3);margin-bottom:3px">' + n + '</div>'
-          + '<select id="uorder-sel-' + n + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:120px;font-size:0.82rem">'
-          + opts + '</select></div>';
-      }).join('');
-    }
+    _currentUnitOrder = currentOrder.slice(0, 5);
+    updateUnitOrderSummary();
   } catch(e) {}
 }
 
@@ -1455,11 +1443,9 @@ async function saveCompMeta() {
 
 async function saveCompUnitOrder() {
   if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
-  var order = [];
-  for (var i = 1; i <= 5; i++) {
-    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
-    if (v) order.push(v);
-  }
+  // Sync from modal selects if open
+  onUnitOrderChange();
+  var order = (_currentUnitOrder||[]).filter(Boolean);
   var sel  = document.getElementById('comp-select');
   var opt  = sel ? sel.options[sel.selectedIndex] : null;
   var name = opt ? opt.dataset.name  || '' : '';
@@ -1477,111 +1463,254 @@ async function saveCompUnitOrder() {
 /* ══════════════════════════════════════════════════ COMP CHAR BONDS ══ */
 async function loadCompChars() {
   if (!_compTier) return;
-  var grid = document.getElementById('comp-bonds-grid');
-  if (!grid) return;
   try {
-    var charsRes = await fetch('/api/admin/chars/list');
-    var charsData = await charsRes.json();
-    var allChars = charsData.chars || [];
+    if (_bondsModalChars.length === 0) {
+      var charsRes = await fetch('/api/admin/chars/list');
+      var charsData = await charsRes.json();
+      _bondsModalChars = charsData.chars || [];
+    }
     var existingRes = await fetch('/api/admin/comp/chars/get?tier=' + encodeURIComponent(_compTier));
     var existingData = await existingRes.json();
     var existingChars = existingData.chars || [];
-
-    var charOptions = '<option value="">— None —</option>' + allChars.map(function(c) {
-      return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
-    }).join('');
-
-    grid.innerHTML = [1,2,3,4,5].map(function(n) {
-      var ex = existingChars.find(function(c) { return c.position === n; }) || {};
-      var charOpts = '<option value="">— None —</option>' + allChars.map(function(c) {
-        return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '"' + (c.name === (ex.char_name||'') ? ' selected' : '') + '>' + escH(c.name) + '</option>';
-      }).join('');
-      var portraitSrc = ex.char_slug ? '/img/char_' + ex.char_slug + '_portrait' : '';
-      return '<div style="border:1px solid var(--border2);border-radius:8px;padding:0.75rem;background:var(--bg4)">'
-        + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.4rem;font-family:Cinzel,serif">SLOT ' + n + '</div>'
-        + '<select id="bond-char-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
-        + charOpts + '</select>'
-        + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
-        + '<option value="">— Costume —</option></select>'
-        + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
-        + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
-        + '</div></div>';
-    }).join('');
-
-    for (var n = 1; n <= 5; n++) {
-      (function(slot) {
-        var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
-        var charSel = document.getElementById('bond-char-' + slot);
-        var costSel = document.getElementById('bond-cost-' + slot);
-        function refreshPortrait() {
-          var img = document.getElementById('bond-portrait-' + slot);
-          if (!img) return;
-          var charOpt = charSel ? charSel.options[charSel.selectedIndex] : null;
-          var slug = charOpt ? (charOpt.dataset.slug || '') : '';
-          if (!slug) { img.src = ''; img.style.display = 'none'; return; }
-          var costName = costSel ? costSel.value : '';
-          var cosSlug  = (costName||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-          var url = cosSlug
-            ? '/img/char_' + slug + '_' + cosSlug + '_icon'
-            : '/img/char_' + slug + '_portrait';
-          img.onerror = function() {
-            img.onerror = null;
-            img.src = '/img/char_' + slug + '_portrait?t=' + Date.now();
-          };
-          img.src = url + '?t=' + Date.now();
-          img.style.display = 'block';
-        }
-        if (charSel) {
-          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '', refreshPortrait);
-          charSel.addEventListener('change', function() {
-            var opt = charSel.options[charSel.selectedIndex];
-            var slug = opt ? (opt.dataset.slug || '') : '';
-            loadBondCostumes(slot, slug, '', refreshPortrait);
-            refreshPortrait();
-          });
-        }
-        if (costSel) costSel.addEventListener('change', refreshPortrait);
-      })(n);
-    }
+    _bondsSelections = [null,null,null,null,null];
+    existingChars.forEach(function(ex) {
+      var idx = (ex.position || 1) - 1;
+      if (idx >= 0 && idx < 5) {
+        _bondsSelections[idx] = { name: ex.char_name, slug: ex.char_slug || '', costume: ex.costume_name || '' };
+      }
+    });
+    _bondedCharNames = _bondsSelections.filter(Boolean).map(function(s) { return s.name; });
+    renderBondsSummary();
+    updateBondGating();
+    updateUnitOrderSummary();
   } catch(e) {}
 }
 
-async function loadBondCostumes(slot, charSlug, selectedCostume, done) {
-  var sel = document.getElementById('bond-cost-' + slot);
-  if (!sel || !charSlug) { if (done) done(); return; }
-  try {
-    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
-    var data = await res.json();
-    sel.innerHTML = '<option value="">— Costume —</option>' + (data.costumes||[]).map(function(c) {
-      return '<option value="' + escH(c.costume_name) + '"' + (c.costume_name === selectedCostume ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
-    }).join('');
-  } catch(e) {
-    sel.innerHTML = '<option value="">— No costumes —</option>';
+function updateBondGating() {
+  var hasBonds = _bondedCharNames.length > 0;
+  var gated  = document.getElementById('unit-order-gated');
+  var active = document.getElementById('unit-order-active');
+  var rotGated  = document.getElementById('skill-rotation-gated');
+  var rotActive = document.getElementById('skill-rotation-active');
+  if (gated)    gated.style.display    = hasBonds ? 'none' : 'block';
+  if (active)   active.style.display   = hasBonds ? 'block' : 'none';
+  if (rotGated)  rotGated.style.display  = hasBonds ? 'none' : 'block';
+  if (rotActive) rotActive.style.display = hasBonds ? 'block' : 'none';
+  if (hasBonds) refreshRotationWithBonds();
+}
+
+function refreshRotationWithBonds() {
+  buildRotationSelectors(_bondedCharNames.map(function(n) {
+    var found = _bondsModalChars.find(function(c) { return c.name === n; });
+    return found || { name: n, slug: n.toLowerCase().replace(/[^a-z0-9]/g,'') };
+  }));
+}
+
+function openBondsModal() {
+  if (!_compTier) { alert('Select a composition first'); return; }
+  var modal = document.getElementById('bonds-modal');
+  if (modal) { modal.style.display = 'flex'; }
+  loadBondsModalChars();
+}
+function closeBondsModal() {
+  var modal = document.getElementById('bonds-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadBondsModalChars() {
+  if (_bondsModalChars.length === 0) {
+    try {
+      var res = await fetch('/api/admin/chars/list');
+      var data = await res.json();
+      _bondsModalChars = data.chars || [];
+    } catch(e) {}
   }
-  if (done) done();
+  renderBondsCharGrid('all');
+  renderBondsModalSlots();
+}
+
+function renderBondsCharGrid(elemFilter) {
+  var grid = document.getElementById('bonds-char-grid');
+  var search = (document.getElementById('bonds-char-search')||{}).value || '';
+  if (!grid) return;
+  var chars = _bondsModalChars.filter(function(c) {
+    if (elemFilter && elemFilter !== 'all' && (c.element||'').toLowerCase() !== elemFilter) return false;
+    if (search && c.name.toLowerCase().indexOf(search.toLowerCase()) < 0) return false;
+    return true;
+  });
+  var selectedNames = _bondsSelections.filter(Boolean).map(function(s) { return s.name; });
+  grid.innerHTML = chars.map(function(c) {
+    var isSelected = selectedNames.indexOf(c.name) >= 0;
+    return '<div class="bond-char-card" data-slug="' + escH(c.slug) + '" data-name="' + escH(c.name) + '" data-elem="' + escH(c.element||'') + '" style="border:2px solid ' + (isSelected ? 'var(--gold)' : 'var(--border2)') + ';border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg3);text-align:center;padding-bottom:0.35rem;transition:border-color 0.15s">'
+      + '<div style="height:70px;overflow:hidden;background:var(--bg4)">'
+      + '<img src="/img/char_' + escH(c.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '</div>'
+      + '<div style="font-size:0.68rem;padding:0.25rem 0.15rem 0;color:' + (isSelected ? 'var(--gold)' : 'var(--text)') + ';line-height:1.2">' + escH(c.name) + '</div>'
+      + '<div style="font-size:0.6rem;color:var(--text3);text-transform:capitalize">' + escH(c.element||'') + '</div>'
+      + '</div>';
+  }).join('');
+  grid.querySelectorAll('.bond-char-card').forEach(function(card) {
+    card.addEventListener('click', function() { onBondsCharClick(card.dataset.name, card.dataset.slug); });
+  });
+}
+
+function renderBondsModalSlots() {
+  var slotsEl = document.getElementById('bonds-modal-slots');
+  if (!slotsEl) return;
+  slotsEl.innerHTML = _bondsSelections.map(function(s, i) {
+    var isEmpty = !s;
+    return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name)) + '">'
+      + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
+      + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
+        : '<img src="/img/char_' + escH(s.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+          + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
+      + '</div>'
+      + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
+      + '</div>';
+  }).join('');
+  slotsEl.querySelectorAll('.bond-modal-slot').forEach(function(el) {
+    el.addEventListener('click', function() { _bondsPendingSlot = parseInt(el.dataset.slot, 10); });
+  });
+}
+
+function onBondsCharClick(name, slug) {
+  var existing = _bondsSelections.findIndex(function(s) { return s && s.name === name; });
+  if (existing >= 0) {
+    _bondsSelections[existing] = null;
+    renderBondsCharGrid(_bondsCurElem || 'all');
+    renderBondsModalSlots();
+    return;
+  }
+  var targetSlot = (_bondsPendingSlot !== null && !_bondsSelections[_bondsPendingSlot]) ? _bondsPendingSlot : _bondsSelections.findIndex(function(s) { return !s; });
+  if (targetSlot < 0) { alert('All 5 slots are filled. Click a slot above to replace it.'); return; }
+  _bondsPendingChar = { name: name, slug: slug };
+  _bondsPendingSlot = targetSlot;
+  showBondsCostumeArea(name, slug, targetSlot);
+}
+
+async function showBondsCostumeArea(name, slug, slot) {
+  var area = document.getElementById('bonds-costume-area');
+  var label = document.getElementById('bonds-costume-label');
+  var sel = document.getElementById('bonds-costume-sel');
+  var confirmBtn = document.getElementById('bonds-confirm-slot-btn');
+  if (!area || !sel) return;
+  area.style.display = 'block';
+  if (label) label.textContent = 'Costume for ' + name + ' (Slot ' + (slot+1) + '):';
+  sel.innerHTML = '<option value="">&#8212; Default &#8212;</option>';
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(slug));
+    var data = await res.json();
+    (data.costumes||[]).forEach(function(c) {
+      sel.innerHTML += '<option value="' + escH(c.costume_name) + '">' + escH(c.costume_name) + '</option>';
+    });
+  } catch(e) {}
+  if (confirmBtn) confirmBtn.onclick = function() { confirmBondSlot(); };
+}
+
+function confirmBondSlot() {
+  if (_bondsPendingSlot === null || !_bondsPendingChar) return;
+  var sel = document.getElementById('bonds-costume-sel');
+  var costume = sel ? sel.value : '';
+  _bondsSelections[_bondsPendingSlot] = { name: _bondsPendingChar.name, slug: _bondsPendingChar.slug, costume: costume };
+  _bondsPendingChar = null;
+  var area = document.getElementById('bonds-costume-area');
+  if (area) area.style.display = 'none';
+  renderBondsCharGrid(_bondsCurElem || 'all');
+  renderBondsModalSlots();
+  renderBondsSummary();
+}
+
+function clearBondSlot(idx) {
+  _bondsSelections[idx] = null;
+  renderBondsModalSlots();
+  renderBondsCharGrid(_bondsCurElem || 'all');
+  renderBondsSummary();
+}
+
+function renderBondsSummary() {
+  var summary = document.getElementById('bonds-summary');
+  if (!summary) return;
+  var filled = _bondsSelections.filter(Boolean);
+  if (!filled.length) {
+    summary.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No bonds set &#8212; click Edit Bonds to pick characters</span>';
+    return;
+  }
+  summary.innerHTML = _bondsSelections.map(function(s, i) {
+    if (!s) return '<div style="width:48px;height:48px;border:1px dashed var(--border2);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.7rem">' + (i+1) + '</div>';
+    return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + '">'
+      + '<img src="/img/char_' + escH(s.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '</div>';
+  }).join('');
 }
 
 async function saveCompBonds() {
   if (!_compTier) { showAlert('comp-bonds-alert', false, 'Select a composition first'); return; }
-  var charsRes = await fetch('/api/admin/chars/list').then(function(r) { return r.json(); }).catch(function() { return { chars: [] }; });
-  var allChars = charsRes.chars || [];
   var chars = [];
-  for (var n = 1; n <= 5; n++) {
-    var charSel = document.getElementById('bond-char-' + n);
-    var costSel = document.getElementById('bond-cost-' + n);
-    var charName = charSel ? charSel.value : '';
-    if (!charName) continue;
-    var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
-    chars.push({
-      position: n,
-      char_name: charName,
-      char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      costume_name: costSel ? costSel.value : '',
-      bond_stats: '',
-    });
-  }
+  _bondsSelections.forEach(function(s, i) {
+    if (s) chars.push({ position: i+1, char_name: s.name, char_slug: s.slug, costume_name: s.costume || '', bond_stats: '' });
+  });
   var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
   showAlert('comp-bonds-alert', r.success, r.message);
+  if (r.success) {
+    _bondedCharNames = chars.map(function(c) { return c.char_name; });
+    updateBondGating();
+    updateUnitOrderSummary();
+  }
+}
+
+/* ══════════════════════════════════════════════ UNIT ORDER MODAL ══ */
+function openUnitOrderModal() {
+  if (!_compTier) { alert('Select a composition first'); return; }
+  var modal = document.getElementById('unit-order-modal');
+  if (modal) modal.style.display = 'flex';
+  renderUnitOrderSlots();
+}
+function closeUnitOrderModal() {
+  var modal = document.getElementById('unit-order-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderUnitOrderSlots() {
+  var slotsEl = document.getElementById('unit-order-slots');
+  if (!slotsEl) return;
+  var bondedNames = _bondedCharNames;
+  slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
+    var cur = _currentUnitOrder[n-1] || '';
+    var opts = '<option value="">&#8212; Select &#8212;</option>' + bondedNames.map(function(name) {
+      return '<option value="' + escH(name) + '"' + (name === cur ? ' selected' : '') + '>' + escH(name) + '</option>';
+    }).join('');
+    return '<div style="display:flex;align-items:center;gap:0.6rem">'
+      + '<div style="font-size:0.7rem;color:var(--text3);width:16px;text-align:right;flex-shrink:0">' + n + '</div>'
+      + '<select id="uorder-sel-' + n + '" style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.85rem" onchange="onUnitOrderChange()">'
+      + opts + '</select></div>';
+  }).join('');
+}
+
+function onUnitOrderChange() {
+  _currentUnitOrder = [];
+  for (var i = 1; i <= 5; i++) {
+    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
+    _currentUnitOrder[i-1] = v || '';
+  }
+  updateUnitOrderSummary();
+}
+
+function updateUnitOrderSummary() {
+  var summary = document.getElementById('unit-order-summary');
+  if (!summary) return;
+  var filled = (_currentUnitOrder||[]).filter(Boolean);
+  if (!filled.length) {
+    summary.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No order set &#8212; click Configure Order</span>';
+    return;
+  }
+  summary.innerHTML = (_currentUnitOrder||[]).map(function(name, i) {
+    if (!name) return '<div style="width:40px;height:40px;border:1px dashed var(--border2);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.7rem">' + (i+1) + '</div>';
+    var found = _bondsModalChars.find(function(c) { return c.name === name; });
+    var slug = found ? found.slug : '';
+    return '<div style="width:40px;height:40px;border:1px solid var(--border2);border-radius:5px;overflow:hidden;display:inline-block" title="' + escH(name) + '">'
+      + (slug ? '<img src="/img/char_' + escH(slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">' : '<span style="font-size:0.6rem;color:var(--text);display:flex;align-items:center;justify-content:center;height:100%">' + escH(name.slice(0,4)) + '</span>')
+      + '</div>';
+  }).join('');
 }
 
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
@@ -2857,6 +2986,77 @@ document.addEventListener('error', function(e) {
 }, true);
 updateImgKey();
 setupEmoteSetUI();
+
+/* ═══════════════════════════ BONDS / UNIT-ORDER MODAL WIRING ══ */
+(function() {
+  var openBondsBtn  = document.getElementById('open-bonds-modal-btn');
+  var closeBondsBtn = document.getElementById('close-bonds-modal-btn');
+  var openUOBtn     = document.getElementById('open-unit-order-btn');
+  var closeUOBtn    = document.getElementById('close-unit-order-btn');
+  if (openBondsBtn)  openBondsBtn.addEventListener('click',  openBondsModal);
+  if (closeBondsBtn) closeBondsBtn.addEventListener('click', closeBondsModal);
+  if (openUOBtn)     openUOBtn.addEventListener('click',     openUnitOrderModal);
+  if (closeUOBtn)    closeUOBtn.addEventListener('click',    closeUnitOrderModal);
+
+  // Close on backdrop click
+  var bm = document.getElementById('bonds-modal');
+  if (bm) bm.addEventListener('click', function(e) { if (e.target === bm) closeBondsModal(); });
+  var um = document.getElementById('unit-order-modal');
+  if (um) um.addEventListener('click', function(e) { if (e.target === um) closeUnitOrderModal(); });
+
+  // Element filter buttons
+  document.querySelectorAll('.bond-elem-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _bondsCurElem = btn.dataset.elem || 'all';
+      document.querySelectorAll('.bond-elem-btn').forEach(function(b) {
+        b.style.background = b === btn ? 'var(--gold)' : 'var(--bg3)';
+        b.style.color      = b === btn ? '#0a0a0f'     : 'var(--text2)';
+      });
+      renderBondsCharGrid(_bondsCurElem);
+    });
+  });
+
+  // Character search
+  var cs = document.getElementById('bonds-char-search');
+  if (cs) cs.addEventListener('input', function() { renderBondsCharGrid(_bondsCurElem || 'all'); });
+})();
+
+/* ═══════════════════════════════════════ COMP LIST DRAG & DROP ══ */
+function initCompDragDrop() {
+  var list = document.getElementById('comp-list');
+  if (!list) return;
+  var dragging = null;
+  list.addEventListener('dragstart', function(e) {
+    dragging = e.target.closest('.admin-item[draggable]');
+    if (dragging) { setTimeout(function() { dragging.style.opacity = '0.4'; }, 0); e.dataTransfer.effectAllowed = 'move'; }
+  });
+  list.addEventListener('dragend', function() {
+    if (dragging) { dragging.style.opacity = ''; dragging = null; }
+  });
+  list.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    var over = e.target.closest('.admin-item[draggable]');
+    if (!over || over === dragging || !dragging) return;
+    var rect = over.getBoundingClientRect();
+    var insertBefore = e.clientY < rect.top + rect.height / 2 ? over : over.nextSibling;
+    list.insertBefore(dragging, insertBefore);
+  });
+  list.addEventListener('drop', async function(e) {
+    e.preventDefault();
+    var ids = Array.from(list.querySelectorAll('.admin-item[id^="comp-"]')).map(function(el) {
+      return parseInt(el.id.replace('comp-', ''), 10);
+    }).filter(Boolean);
+    if (!ids.length) return;
+    var r = await apiPost('/api/admin/comp/reorder', { ids: ids });
+    var alert = document.getElementById('normalize-alert');
+    if (alert) {
+      alert.style.color = r.success ? '#2ecc71' : '#e74c3c';
+      alert.textContent = r.success ? 'Order saved!' : 'Reorder failed';
+      setTimeout(function() { if (alert) alert.textContent = ''; }, 2500);
+    }
+  });
+}
+initCompDragDrop();
 </script>
 `);
 }
