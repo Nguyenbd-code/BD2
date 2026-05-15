@@ -49,10 +49,12 @@ export async function handleRedeem(request) {
     const res = await fetch('https://redeem.bd2.pmang.cloud/bd2/coupon/use', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': '*/*',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
         'Origin': 'https://redeem.bd2.pmang.cloud',
         'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
+        'X-Requested-With': 'XMLHttpRequest',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
       body: new URLSearchParams({ nickname, coupon_code: code }).toString(),
@@ -66,7 +68,10 @@ export async function handleRedeem(request) {
 
     const result = parseResult(data, statusCode);
     const success = result.status === 'Success';
-    return json({ success, ...result });
+    if (!success && result.status === 'Error') {
+      result.message = `HTTP ${statusCode}: ${(rawText || '(empty)').substring(0, 200)}`;
+    }
+    return json({ success, ...result, http: statusCode, raw: rawText.substring(0, 300) });
 
   } catch(e) {
     return json({

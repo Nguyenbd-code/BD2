@@ -123,29 +123,27 @@ function renderComp(comp, mediaMap) {
   let rotHtml;
   const rot = comp.rotation;
   if (rot && Object.keys(rot).length > 0) {
+    const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const slugByName = {};
+    for (const c of (comp.chars||[])) slugByName[c.name] = c.slug || cSlug(c.name);
     const charNames = (comp.chars||[]).length ? comp.chars.map(c=>c.name) : Object.keys(rot);
     const rows = charNames.map(name => {
       const skills = rot[name];
       if (!skills || !skills.length) return '';
+      const slug = slugByName[name] || cSlug(name);
       const icons = skills.map((sk, i) => {
-        const abbr = (sk.costume||'???').substring(0,3).toUpperCase();
-        const iconContent = sk.icon
-          ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid var(--border2)" class="img-err-hide">`
-          : `<div class="skill-abbr">${esc(abbr)}</div>`;
+        const cos = sk.costume || '';
+        const cosSlug = costumeSlug(cos);
+        const abbr = (cos || '???').substring(0,3).toUpperCase();
+        const portrait = cosSlug
+          ? `<img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid var(--border2);display:block" class="img-err-hide">`
+          : `<div class="skill-abbr" style="border-radius:50%">${esc(abbr)}</div>`;
         return `<div class="skill-wrap">
   <div class="skill-icon-box" style="width:38px;flex-shrink:0">
     <div class="skill-num">${i+1}</div>
-    ${iconContent}
+    ${portrait}
   </div>
-  <div class="tt-popup">
-    <div class="tt-name">${esc(sk.name||'')}</div>
-    <div class="tt-stats">
-      <span class="tt-stat">${esc(sk.sp||'')}</span>
-      <span class="tt-stat">${esc(sk.cd||'')}</span>
-      <span class="tt-stat ${tileCls(sk.tile)}">${esc(sk.tile||'FRONT')}</span>
-    </div>
-    <div class="tt-desc">${esc(sk.desc||'')}</div>
-  </div>
+  ${cos ? `<div class="tt-popup"><div class="tt-name">${esc(cos)}</div></div>` : ''}
 </div>`;
       }).join('');
       return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;

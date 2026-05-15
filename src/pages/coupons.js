@@ -164,7 +164,8 @@ async function redeemAll() {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
       if (result.message && result.status !== 'Success' && result.status !== 'AlreadyUsed') {
-        badge.title = result.message;
+        var dbg = result.raw ? ' [HTTP ' + result.http + ': ' + result.raw + ']' : '';
+        badge.title = result.message + dbg;
       }
       if (result.success) counts.success++;
       else if (result.status === 'AlreadyUsed') counts.used++;
