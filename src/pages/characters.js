@@ -188,16 +188,36 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
       card.style.display = (el === 'all' || ce === el) ? '' : 'none';
     });
     if (el && el !== 'all' && KITSU_SETS) {
+      // Track recent click sequence for sequence-mode sets
+      var recent = [];
+      try { recent = JSON.parse(localStorage.getItem('kitsu_recent_clicks') || '[]'); } catch(e) {}
+      recent.push(el);
+      if (recent.length > 30) recent = recent.slice(-30);
+      localStorage.setItem('kitsu_recent_clicks', JSON.stringify(recent));
+
       KITSU_SETS.forEach(function(s) {
         if ((s.unlock_page || '') !== 'characters') return;
-        if ((s.unlock_target || '').toLowerCase() !== el) return;
         if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
-        var key = 'kitsu_set_' + s.set_num + '_count';
-        var c = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-        localStorage.setItem(key, String(c));
-        if (c >= (s.unlock_count || 7)) {
-          localStorage.setItem('kitsu_set_' + s.set_num, '1');
-          showUnlockToast(s.set_num);
+
+        var mode = s.unlock_mode || 'count';
+        if (mode === 'sequence') {
+          var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean);
+          if (!seq.length) return;
+          var tail = recent.slice(-seq.length);
+          var match = tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; });
+          if (match) {
+            localStorage.setItem('kitsu_set_' + s.set_num, '1');
+            showUnlockToast(s.set_num);
+          }
+        } else {
+          if ((s.unlock_target || '').toLowerCase() !== el) return;
+          var key = 'kitsu_set_' + s.set_num + '_count';
+          var c = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+          localStorage.setItem(key, String(c));
+          if (c >= (s.unlock_count || 7)) {
+            localStorage.setItem('kitsu_set_' + s.set_num, '1');
+            showUnlockToast(s.set_num);
+          }
         }
       });
     }

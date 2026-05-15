@@ -179,12 +179,16 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/emote-set/save' && method === 'POST') {
       await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
+      const mode = (body.unlock_mode === 'sequence') ? 'sequence' : 'count';
+      const sequence = (body.unlock_sequence || '').toString().toLowerCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
       await env.DB.prepare(
-        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key) VALUES (?,?,?,?,?,?,?) ' +
-        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key'
-      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||'').toLowerCase(), parseInt(body.unlock_count,10)||7, body.cover_key||'').run();
+        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence) VALUES (?,?,?,?,?,?,?,?,?) ' +
+        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence'
+      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||'').toLowerCase(), parseInt(body.unlock_count,10)||7, body.cover_key||'', mode, sequence).run();
       return json({ success:true, message:'Set saved.' });
     }
     if (path === '/api/admin/emote/list-by-set' && method === 'GET') {
