@@ -170,7 +170,7 @@ function renderDebug(row, result) {
   if (result.raw) lines.push('raw: ' + result.raw);
   var div = document.createElement('div');
   div.className = 'rb-debug';
-  div.textContent = lines.join('\n');
+  div.textContent = lines.join('\\n');
   row.appendChild(div);
 }
 

@@ -58,7 +58,7 @@ export default {
         let rows = [];
         try {
           await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run();
-          const r = await env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count FROM emote_sets ORDER BY set_num').all();
+          const r = await env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence FROM emote_sets ORDER BY set_num').all().catch(() => env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count FROM emote_sets ORDER BY set_num').all());
           rows = r.results || [];
         } catch(e) {}
         return new Response(JSON.stringify({ sets: rows }), { headers: { 'Content-Type': 'application/json' } });

@@ -451,7 +451,14 @@ export async function handleAdmin(request, env) {
             <label>Hint (shown in modal on Emotes page)</label>
             <textarea id="es-hint" rows="3" placeholder="Phrase as a riddle..."></textarea>
           </div>
-          <div class="form-row">
+          <div class="form-group">
+            <label>Unlock Mode</label>
+            <select id="es-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
+              <option value="count">Count (click N times)</option>
+              <option value="sequence">Sequence (click in order)</option>
+            </select>
+          </div>
+          <div id="es-mode-count" class="form-row">
             <div class="form-group">
               <label>Unlock Element (Characters page)</label>
               <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
@@ -459,6 +466,11 @@ export async function handleAdmin(request, env) {
               </select>
             </div>
             <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="99" value="7"></div>
+          </div>
+          <div id="es-mode-sequence" class="form-group" style="display:none">
+            <label>Element Sequence <span style="color:var(--text3);font-weight:400">(comma-separated; user must click in this exact order)</span></label>
+            <input type="text" id="es-sequence" placeholder="water,fire,light,dark,wind">
+            <div style="font-size:0.72rem;color:var(--text3);margin-top:0.3rem">Valid: water, fire, light, dark, wind</div>
           </div>
           <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Settings</button>
         </div>
@@ -1465,12 +1477,19 @@ async function loadEmoteSets() {
 }
 
 function renderEmoteSet(sn) {
-  var s = _esSets[sn] || { name: 'Set ' + sn, hint: '', unlock_page: 'characters', unlock_target: 'water', unlock_count: 7, cover_key: '' };
+  var s = _esSets[sn] || { name: 'Set ' + sn, hint: '', unlock_page: 'characters', unlock_target: 'water', unlock_count: 7, cover_key: '', unlock_mode: 'count', unlock_sequence: '' };
   var nameEl = document.getElementById('es-name'); if (nameEl) nameEl.value = s.name || ('Set ' + sn);
   var pageEl = document.getElementById('es-page'); if (pageEl) pageEl.value = s.unlock_page || 'characters';
   var tEl = document.getElementById('es-target'); if (tEl) tEl.value = (s.unlock_target || 'water').toLowerCase();
   var cEl = document.getElementById('es-count'); if (cEl) cEl.value = s.unlock_count || 7;
   var hEl = document.getElementById('es-hint'); if (hEl) hEl.value = s.hint || '';
+  var mEl = document.getElementById('es-mode'); if (mEl) mEl.value = s.unlock_mode || 'count';
+  var seqEl = document.getElementById('es-sequence'); if (seqEl) seqEl.value = s.unlock_sequence || '';
+  var modeCount = document.getElementById('es-mode-count');
+  var modeSeq = document.getElementById('es-mode-sequence');
+  var isSeq = (s.unlock_mode === 'sequence');
+  if (modeCount) modeCount.style.display = isSeq ? 'none' : '';
+  if (modeSeq) modeSeq.style.display = isSeq ? '' : 'none';
   var prev = document.getElementById('es-cover-preview-img');
   if (prev) {
     if (s.cover_key) {
@@ -1510,6 +1529,8 @@ async function saveEmoteSet() {
     unlock_page: (document.getElementById('es-page')||{}).value || 'characters',
     unlock_target: (document.getElementById('es-target')||{}).value || '',
     unlock_count: parseInt((document.getElementById('es-count')||{}).value, 10) || 7,
+    unlock_mode: (document.getElementById('es-mode')||{}).value || 'count',
+    unlock_sequence: (document.getElementById('es-sequence')||{}).value || '',
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
   };
   if (_esPendingCover) {
@@ -1557,6 +1578,16 @@ function setupEmoteSetUI() {
       _esCurrentSet = parseInt(sel.value, 10) || 1;
       renderEmoteSet(_esCurrentSet);
       loadEmoteSetEmotes(_esCurrentSet);
+    });
+  }
+  var modeSel = document.getElementById('es-mode');
+  if (modeSel) {
+    modeSel.addEventListener('change', function() {
+      var isSeq = modeSel.value === 'sequence';
+      var modeCount = document.getElementById('es-mode-count');
+      var modeSeq = document.getElementById('es-mode-sequence');
+      if (modeCount) modeCount.style.display = isSeq ? 'none' : '';
+      if (modeSeq) modeSeq.style.display = isSeq ? '' : 'none';
     });
   }
   var coverInput = document.getElementById('es-cover-file');
@@ -2442,12 +2473,14 @@ document.addEventListener('click', function(e) {
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
-    var filterEl = b.dataset.elem;
+    var filterEl = (b.dataset.elem || '').toLowerCase();
     document.querySelectorAll('#char-list .char-row').forEach(function(row) {
-      row.style.display = (filterEl === 'all' || row.dataset.element === filterEl) ? '' : 'none';
+      var re = (row.dataset.element || '').toLowerCase();
+      row.style.display = (filterEl === 'all' || re === filterEl) ? '' : 'none';
     });
     document.querySelectorAll('#char-list .elem-group-label').forEach(function(label) {
-      label.style.display = (filterEl === 'all' || label.dataset.elem === filterEl) ? '' : 'none';
+      var le = (label.dataset.elem || '').toLowerCase();
+      label.style.display = (filterEl === 'all' || le === filterEl) ? '' : 'none';
     });
   }
 });

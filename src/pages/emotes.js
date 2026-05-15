@@ -11,18 +11,24 @@ async function ensureSchema(env) {
     cover_key TEXT
   )`).run().catch(()=>{});
   await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
+  const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
   if (!r || !r.n) {
     const defaults = [
-      [1, 'Set 1', 'My favorite girl has how many letters? Count them and click her element that many times on the Characters page.', 'characters', 'water', 7],
-      [2, 'Set 2', 'Secret hint coming soon.', 'characters', 'fire', 5],
-      [3, 'Set 3', 'Secret hint coming soon.', 'characters', 'wind', 5],
-      [4, 'Set 4', 'Secret hint coming soon.', 'characters', 'light', 5],
-      [5, 'Set 5', 'Secret hint coming soon.', 'characters', 'dark', 5],
+      [1, 'Set 1', 'My favorite girl has how many letters? Count them and click her element that many times on the Characters page.', 'characters', 'water', 7, 'count', ''],
+      [2, 'Set 2', 'Secret hint coming soon.', 'characters', 'fire', 5, 'count', ''],
+      [3, 'Set 3', 'Secret hint coming soon.', 'characters', 'wind', 5, 'count', ''],
+      [4, 'Set 4', 'Secret hint coming soon.', 'characters', 'light', 5, 'count', ''],
+      [5, 'Set 5', set5Riddle, 'characters', '', 0, 'sequence', 'water,fire,light,dark,wind'],
     ];
     for (const d of defaults) {
-      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count) VALUES (?,?,?,?,?,?)').bind(...d).run().catch(()=>{});
+      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (?,?,?,?,?,?,?,?)').bind(...d).run().catch(()=>{});
     }
+  } else {
+    // Upgrade existing Set 5 to sequence mode with the riddle (one-time)
+    await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_mode='sequence', unlock_sequence='water,fire,light,dark,wind' WHERE set_num=5 AND (unlock_mode IS NULL OR unlock_mode='count')").bind(set5Riddle).run().catch(()=>{});
   }
 }
 
@@ -52,6 +58,8 @@ export async function handleEmotes(request, env) {
     unlock_page: s.unlock_page || '',
     unlock_target: s.unlock_target || '',
     unlock_count: s.unlock_count || 7,
+    unlock_mode: s.unlock_mode || 'count',
+    unlock_sequence: s.unlock_sequence || '',
     cover_key: s.cover_key || '',
     count: (emotesBySet[s.set_num] || []).length,
   })));
