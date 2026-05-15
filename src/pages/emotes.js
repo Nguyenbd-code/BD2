@@ -247,7 +247,71 @@ export async function handleEmotes(request, env) {
     });
   }
 
+  function escH2(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function openEmoteModal(sn, setData) {
+    var overlay = document.getElementById('emote-modal-overlay');
+    var title = document.getElementById('emote-modal-title');
+    var body = document.getElementById('emote-modal-body');
+    if (!overlay || !body) return;
+    if (title) title.textContent = (setData ? (setData.name || 'Set ' + sn) : 'Set ' + sn) + "'s Emotes";
+    body.innerHTML = '<div style="color:var(--text3);font-size:0.82rem">Loading emotes...</div>';
+    overlay.classList.add('open');
+    fetch('/api/emotes/by-set?set_num=' + sn)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var emotes = d.emotes || [];
+        if (!emotes.length) {
+          body.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem">No emotes in this set yet.</p>';
+          return;
+        }
+        var html = '<div class="emote-items-grid">';
+        emotes.forEach(function(e) {
+          html += '<div class="emote-card">'
+            + '<img src="' + escH2(e.image_url) + '" alt="' + escH2(e.name) + '" loading="lazy">'
+            + '<div class="emote-name">' + escH2(e.name) + '</div>'
+            + '<a href="' + escH2(e.image_url) + '" download="' + escH2(e.name) + '" class="emote-dl">Download</a>'
+            + '</div>';
+        });
+        html += '</div>';
+        html += '<div style="margin-top:1rem;text-align:center">'
+          + '<button class="emote-dl-all" data-action="download-all-emotes" style="font-size:0.8rem;padding:6px 18px">&#11015; Download All</button>'
+          + '</div>';
+        body.innerHTML = html;
+        body._emotes = emotes;
+      })
+      .catch(function() {
+        body.innerHTML = '<p style="color:#e74c3c">Failed to load emotes.</p>';
+      });
+  }
+
+  document.getElementById('emote-modal-close').addEventListener('click', function() {
+    document.getElementById('emote-modal-overlay').classList.remove('open');
+  });
+  document.getElementById('emote-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
   document.addEventListener('click', function(e) {
+    var dlBtn = e.target.closest('[data-action="download-all-emotes"]');
+    if (dlBtn) {
+      var modalBody = document.getElementById('emote-modal-body');
+      var emotes = modalBody && modalBody._emotes;
+      if (emotes && emotes.length) {
+        emotes.forEach(function(em, i) {
+          setTimeout(function() {
+            var a = document.createElement('a');
+            a.href = em.image_url;
+            a.download = em.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }, i * 150);
+        });
+      }
+      return;
+    }
+
     var hintBtn = e.target.closest('.set-hint-icon');
     if (hintBtn && hintBtn.dataset.set) {
       e.stopPropagation();
@@ -286,25 +350,6 @@ export async function handleEmotes(request, env) {
     }
     // Open emote modal
     openEmoteModal(sn, setData);
-
-    var dlCard = e.target.closest('[data-action="download-all-emotes"]');
-    if (dlCard) {
-      var modalBody = document.getElementById('emote-modal-body');
-      var emotes = modalBody && modalBody._emotes;
-      if (emotes && emotes.length) {
-        emotes.forEach(function(em, i) {
-          setTimeout(function() {
-            var a = document.createElement('a');
-            a.href = em.image_url;
-            a.download = em.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }, i * 150);
-        });
-      }
-      return;
-    }
   });
 
   document.addEventListener('error', function(e) {
