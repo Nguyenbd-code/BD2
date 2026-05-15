@@ -1,11 +1,47 @@
 import { json } from '../layout/layout.js';
 
+// Map pmang result_code numbers to friendly status strings
+function parseResult(data, statusCode) {
+  const rc  = data.result_code ?? data.resultCode ?? data.code ?? null;
+  const msg = String(data.message || data.msg || data.result || '').toLowerCase();
+  const res = String(data.result || '');
+
+  // Explicit success
+  if (res === 'SUCCESS' || res === 'Success' || rc === 0 || msg.includes('success')) {
+    return { status: 'Success', message: 'Redeemed successfully!' };
+  }
+
+  // Already used / duplicate
+  if (rc === 4 || msg.includes('already') || msg.includes('duplicate') || msg.includes('used')) {
+    return { status: 'AlreadyUsed', message: 'Code already used on this account' };
+  }
+
+  // Expired code
+  if (rc === 3 || msg.includes('expir')) {
+    return { status: 'ExpiredCode', message: 'Code has expired' };
+  }
+
+  // Invalid code
+  if (rc === 2 || msg.includes('invalid') || msg.includes('not found') || msg.includes('wrong code')) {
+    return { status: 'InvalidCode', message: 'Invalid code' };
+  }
+
+  // User not found / wrong nickname
+  if (rc === 1 || msg.includes('user') || msg.includes('nickname') || msg.includes('character')) {
+    return { status: 'IncorrectUser', message: 'Nickname not found — check your in-game name' };
+  }
+
+  // Unknown
+  const raw = String(data.message || data.msg || data.result || JSON.stringify(data)).substring(0, 120);
+  return { status: 'Error', message: raw || `HTTP ${statusCode}` };
+}
+
 export async function handleRedeem(request) {
   let body;
-  try { body = await request.json(); } catch { return json({ success: false, message: 'Invalid request body.' }, 400); }
+  try { body = await request.json(); } catch { return json({ success: false, status: 'Error', message: 'Invalid request body.' }, 400); }
 
   const { nickname, code } = body;
-  if (!nickname || !code) return json({ success: false, message: 'Missing nickname or code.' });
+  if (!nickname || !code) return json({ success: false, status: 'Error', message: 'Missing nickname or code.' });
 
   let rawText = '';
   let statusCode = 0;
@@ -23,25 +59,20 @@ export async function handleRedeem(request) {
     });
 
     statusCode = res.status;
-    rawText = await res.text();
+    rawText    = await res.text();
 
     let data;
     try { data = JSON.parse(rawText); } catch { data = {}; }
 
-    const rc  = data.result_code ?? data.resultCode ?? data.code ?? null;
-    const msg = String(data.message || data.msg || data.result || '').toLowerCase();
-
-    if (data.result === 'SUCCESS' || rc === 0 || msg.includes('success')) {
-      return json({ success: true, message: 'Success' });
-    }
-    if (rc === 4 || msg.includes('already') || msg.includes('used') || msg.includes('expired')) {
-      return json({ success: false, already_used: true, message: 'Already Used' });
-    }
-
-    const cleanMsg = rawText.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 80);
-    return json({ success: false, message: 'Status: ' + statusCode + ' | ' + (cleanMsg || rawText.substring(0, 200)) });
+    const result = parseResult(data, statusCode);
+    const success = result.status === 'Success';
+    return json({ success, ...result });
 
   } catch(e) {
-    return json({ success: false, message: 'Error: ' + e.message + (rawText ? ' | Status: ' + statusCode + ' | ' + rawText.replace(/<[^>]*>/g,'').trim().substring(0, 80) : '') });
+    return json({
+      success: false,
+      status: 'NetworkError',
+      message: 'Network error: ' + e.message,
+    });
   }
 }
