@@ -833,25 +833,20 @@ export async function handleAdmin(request, env) {
           <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
           <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Unlock Page</label>
-            <select id="set-cfg-page" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="characters">Characters</option>
-              <option value="emotes">Emotes</option>
-              <option value="home">Home</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Unlock Mode</label>
-            <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="count">Count (click element N times)</option>
-              <option value="sequence">Sequence (elements in exact order)</option>
-              <option value="letter_sequence">Letter Sequence (click set cards)</option>
-              <option value="who_am_i">Who Am I? (ghost portrait)</option>
-            </select>
-          </div>
+        <!-- Hidden page field — auto-set by JS, not editable (placements are fixed) -->
+        <input type="hidden" id="set-cfg-page" value="characters">
+
+        <div class="form-group">
+          <label>Unlock Mode</label>
+          <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <option value="count">Count (click element N times)</option>
+            <option value="sequence">Sequence (elements in exact order)</option>
+            <option value="letter_sequence">Letter Sequence (click set cards)</option>
+            <option value="who_am_i">Who Am I? (ghost portrait)</option>
+          </select>
         </div>
+
+        <!-- Count / sequence fields -->
         <div id="set-cfg-target-wrap" class="form-row">
           <div class="form-group">
             <label id="set-cfg-target-label">Element Target</label>
@@ -867,6 +862,27 @@ export async function handleAdmin(request, env) {
           <label id="set-cfg-sequence-label">Sequence</label>
           <input type="text" id="set-cfg-sequence" placeholder="water,fire,light,dark,wind">
           <div id="set-cfg-sequence-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem"></div>
+        </div>
+
+        <!-- Who Am I fields (shown for who_am_i mode) -->
+        <div id="set-cfg-who-am-i-wrap" style="display:none">
+          <div class="form-group">
+            <label>Ghost Portrait Character <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(character whose dropdown shows "Who Am I?")</span></label>
+            <select id="set-cfg-wai-char" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="">— Loading characters... —</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem">
+            <div id="set-cfg-wai-portrait" style="width:90px;height:90px;border:1px solid var(--border2);border-radius:8px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <span style="font-size:0.65rem;color:var(--text3);text-align:center">No portrait</span>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text3);line-height:1.6">Portrait preview — change above to update</div>
+          </div>
+          <div class="form-group">
+            <label>Correct Answer <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(what player must type to unlock)</span></label>
+            <input type="text" id="set-cfg-wai-answer" placeholder="e.g. Synae">
+            <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
+          </div>
         </div>
         <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
@@ -1653,48 +1669,90 @@ function renderSetConfig(sn) {
   if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
   if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
-  if (g('set-cfg-page')) g('set-cfg-page').value = s.unlock_page || 'characters';
+  // Auto-set page based on set number (Set 2 = emotes, all others = characters)
+  var fixedPage = (sn === 2) ? 'emotes' : 'characters';
+  if (g('set-cfg-page')) g('set-cfg-page').value = fixedPage;
   if (g('set-cfg-location-display')) {
-    var page = s.unlock_page || 'characters';
-    var loc = page.charAt(0).toUpperCase() + page.slice(1);
+    var loc = fixedPage.charAt(0).toUpperCase() + fixedPage.slice(1);
     g('set-cfg-location-display').textContent = 'Location: ' + loc;
   }
   if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
   if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
   if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
+  // who_am_i fields
+  if ((s.unlock_mode || 'count') === 'who_am_i') {
+    loadWAICharList(s.unlock_target);
+    if (g('set-cfg-wai-answer')) g('set-cfg-wai-answer').value = s.unlock_sequence || '';
+  }
   updateSetCfgModeUI(s.unlock_mode || 'count');
 }
 
 function updateSetCfgModeUI(mode) {
   function g(id) { return document.getElementById(id); }
   var isCount = mode === 'count';
-  var isWho = mode === 'who_am_i';
-  var needsSeq = mode === 'sequence' || mode === 'letter_sequence' || isWho;
-  if (g('set-cfg-target-wrap')) g('set-cfg-target-wrap').style.display = (isCount || isWho) ? '' : 'none';
-  if (g('set-cfg-count-wrap')) g('set-cfg-count-wrap').style.display = isCount ? '' : 'none';
-  if (g('set-cfg-sequence-wrap')) g('set-cfg-sequence-wrap').style.display = needsSeq ? '' : 'none';
-  if (g('set-cfg-target-label')) g('set-cfg-target-label').textContent = isWho ? 'Ghost Portrait Slug' : 'Element Target';
-  if (g('set-cfg-target')) g('set-cfg-target').placeholder = isWho ? 'synae' : 'water';
-  if (g('set-cfg-target-note')) g('set-cfg-target-note').textContent = isWho ? 'The character slug of the ghost portrait on the Characters page.' : 'water / fire / wind / light / dark';
-  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = isWho ? 'Correct Answer' : (mode === 'letter_sequence' ? 'Letter Sequence (comma-separated)' : 'Element Sequence (comma-separated)');
-  if (g('set-cfg-sequence')) g('set-cfg-sequence').placeholder = isWho ? 'Synae' : (mode === 'letter_sequence' ? 'K,I,T,S,U' : 'water,fire,light,dark,wind');
-  if (g('set-cfg-sequence-note')) g('set-cfg-sequence-note').textContent = isWho ? 'Case-insensitive. What the player must type in the Who Am I input.' : (mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.');
+  var isWho   = mode === 'who_am_i';
+  var isSeq   = mode === 'sequence' || mode === 'letter_sequence';
+  // Show/hide standard fields
+  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = isCount ? '' : 'none';
+  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq   ? '' : 'none';
+  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = isCount ? '' : 'none';
+  // Show/hide who_am_i block
+  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
+  // Update sequence labels
+  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence (comma-separated)' : 'Element Sequence (comma-separated)';
+  if (g('set-cfg-sequence'))       g('set-cfg-sequence').placeholder        = mode === 'letter_sequence' ? 'K,I,T,S,U' : 'water,fire,light,dark,wind';
+  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.';
+  // Load character list for who_am_i
+  if (isWho) loadWAICharList();
+}
+
+var _waiCharsLoaded = false;
+async function loadWAICharList(preselect) {
+  var sel = document.getElementById('set-cfg-wai-char');
+  if (!sel) return;
+  if (!_waiCharsLoaded) {
+    try {
+      var res = await fetch('/api/admin/chars/list');
+      var data = await res.json();
+      var chars = data.chars || [];
+      sel.innerHTML = '<option value="">— Select character —</option>' + chars.map(function(c) {
+        return '<option value="' + escH(c.slug) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + ' (' + escH(c.element||'?') + ')</option>';
+      }).join('');
+      _waiCharsLoaded = true;
+    } catch(e) {
+      sel.innerHTML = '<option value="">— Failed to load —</option>';
+    }
+  }
+  if (preselect) {
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === preselect) { sel.selectedIndex = i; break; }
+    }
+  }
+  refreshWAIPortrait(sel.value);
+}
+
+function refreshWAIPortrait(slug) {
+  var prev = document.getElementById('set-cfg-wai-portrait');
+  if (!prev) return;
+  if (!slug) { prev.innerHTML = '<span style="font-size:0.65rem;color:var(--text3);text-align:center">No portrait</span>'; return; }
+  prev.innerHTML = '<img src="/img/char_' + escH(slug) + '_portrait?t=' + Date.now() + '" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">';
 }
 
 async function saveSetConfig() {
   var sn = _settingsCurrentSet || 1;
   function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var mode = gv('set-cfg-mode') || 'count';
+  var isWho = mode === 'who_am_i';
   var body = {
     set_num: sn,
     name: gv('set-cfg-name') || ('Set ' + sn),
     set_letter: gv('set-cfg-letter'),
     hint: gv('set-cfg-hint'),
     unlock_page: gv('set-cfg-page') || 'characters',
-    unlock_target: gv('set-cfg-target'),
+    unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
     unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,
     unlock_mode: mode,
-    unlock_sequence: gv('set-cfg-sequence'),
+    unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
   };
   var r = await apiPost('/api/admin/emote-set/save', body);
@@ -1825,6 +1883,12 @@ function setupEmoteSetUI() {
   if (modeSel2) {
     modeSel2.addEventListener('change', function() {
       updateSetCfgModeUI(modeSel2.value);
+    });
+  }
+  var waiCharSel = document.getElementById('set-cfg-wai-char');
+  if (waiCharSel) {
+    waiCharSel.addEventListener('change', function() {
+      refreshWAIPortrait(waiCharSel.value);
     });
   }
   loadEmoteSets();
