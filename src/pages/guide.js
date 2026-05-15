@@ -487,6 +487,11 @@ document.addEventListener('mouseover', function(e) {
   popup.style.display = 'block';
   popup.style.position = 'fixed';
   popup.style.zIndex = '99999';
+  // Clear CSS defaults that fight our inline positioning
+  popup.style.transform = 'none';
+  popup.style.bottom = 'auto';
+  popup.style.right = 'auto';
+  popup.style.width = 'auto';
   popup.style.left = '0px';
   popup.style.top = '0px';
   popup.style.background = '#0f0f18';
@@ -499,7 +504,6 @@ document.addEventListener('mouseover', function(e) {
   popup.style.textAlign = 'center';
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
-  // Use the skill icon box for centering, not the full skill-wrap
   var iconBox = wrap.querySelector('.skill-icon-box') || wrap;
   var rect = iconBox.getBoundingClientRect();
   var left = rect.left + rect.width / 2 - pw / 2;

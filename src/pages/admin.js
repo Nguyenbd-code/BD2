@@ -1164,14 +1164,15 @@ function selectComp() {
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
 
-  loadCompData(_compId);
-  loadCompChars();
-  loadCompMedia(_compTier);
-  loadCompRotation();
-  loadHowToPlay(_compTier);
-  loadPreemptive(_compTier);
-  loadMatchups(_compTier);
+  try { loadCompData(_compId);     } catch(e) { console.error('loadCompData', e); }
+  try { loadCompChars();           } catch(e) { console.error('loadCompChars', e); }
+  try { loadCompMedia(_compTier);  } catch(e) { console.error('loadCompMedia', e); }
+  try { loadCompRotation();        } catch(e) { console.error('loadCompRotation', e); }
+  try { loadHowToPlay(_compTier);  } catch(e) { console.error('loadHowToPlay', e); }
+  try { loadPreemptive(_compTier); } catch(e) { console.error('loadPreemptive', e); }
+  try { loadMatchups(_compTier);   } catch(e) { console.error('loadMatchups', e); }
 }
+window.selectComp = selectComp;
 
 async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
   suffix    = suffix    || '';
@@ -3061,6 +3062,7 @@ document.addEventListener('click', function(e) {
   var action = b.dataset.action;
   var id     = b.dataset.id;
   var key    = b.dataset.key;
+  try {
   if (action === 'coupon-delete')   deleteCoupon(id);
   if (action === 'comp-delete')     deleteComp(id);
   if (action === 'comp-move-up')    moveComp(id, 'up');
@@ -3112,6 +3114,11 @@ document.addEventListener('click', function(e) {
       var le = (label.dataset.elem || '').toLowerCase();
       label.style.display = (filterEl === 'all' || le === filterEl) ? '' : 'none';
     });
+  }
+  } catch(err) {
+    console.error('[admin click handler]', action, err);
+    var dbg = document.getElementById('admin-debug');
+    if (dbg) dbg.textContent = 'Click error on ' + action + ': ' + (err && err.message);
   }
 });
 
