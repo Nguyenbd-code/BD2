@@ -55,9 +55,9 @@ export async function handleHome(request, env) {
 
   return layout('Home', `
 <div class="hero">
-  <div class="hero-tag">GrandMasters PvP Resource</div>
+  <div class="hero-tag">PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
-  <p>Curated PvP team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu.</p>
+  <p>team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu. Mamonir Lover.</p>
   <div class="hero-disclaimer">⚠ These compositions are intended for Top 30 to Rank 1 ranked play. Meta may shift with balance updates.</div>
 </div>
 

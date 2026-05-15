@@ -146,19 +146,19 @@ export async function handleAdmin(request, env) {
   </div>
 
   <div class="admin-tabs">
-    <button class="tab-btn active" data-action="tab-switch" data-tab="coupons">Coupons</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="coupons">Coupons</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
 
   <!-- ═══════════════════════════════════════════════════════════ COUPONS -->
-  <div class="admin-section active" id="tab-coupons">
+  <div class="admin-section" id="tab-coupons">
     <div class="admin-form">
       <h3>Add Coupon Code</h3>
       <div id="coupon-alert"></div>
@@ -725,7 +725,7 @@ export async function handleAdmin(request, env) {
   </div>
 
   <!-- ══════════════════════════════════════════════════ HOME PAGE -->
-  <div class="admin-section" id="tab-homepage">
+  <div class="admin-section active" id="tab-homepage">
     <div class="admin-form">
       <h3>Home Page Strategy Notes</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the 4 strategy note cards shown on the home page.</p>
@@ -1923,10 +1923,10 @@ async function loadChars() {
     elemOrder.forEach(function(el) {
       var grp = grouped[el];
       if (!grp || !grp.length) return;
-      html += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
+      html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
           + '<span class="elem-dot" style="background:' + col + '"></span>'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
