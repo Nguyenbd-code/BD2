@@ -17,7 +17,7 @@ async function ensureSchema(env) {
 
   const set2Riddle = "Six marks lie hidden where expressions live.\nFive belong to the name you seek. One does not.\nPress what feels out of place last.\nBefore it, trace the name that was always there: not spoken in order, but remembered in feeling.\nBegin where silence feels sharp, not soft, and end with what does not belong.";
   const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
-  const set6Hint = "One character keeps something unusual by their side. The octopus there isn't just decoration—it belongs to someone.\nSearch the Characters page for a portrait that does not belong in the game — then ask it who it is.";
+  const set6Hint = "Among the many who are remembered, one does not belong to memory.\nNot in strength, not in name… but in presence.\n\nLook carefully through those who should feel familiar.\nSomething exists that was never meant to be part of them.\n\nA portrait that does not match the world around it.\nA face that does not answer to any story.\n\nWhen you find what should not exist, do not treat it as a character.\nOpen it. Listen. Then ask the question it offers you.\n\n\"Who am I?\"\n\nThe answer is already known, it only forgot its shape.";
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
@@ -43,6 +43,8 @@ async function ensureSchema(env) {
       await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=4 AND (name='Set 4' OR name IS NULL)").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M', hint=?, unlock_mode='sequence', unlock_sequence='water,fire,light,dark,wind', unlock_count=0 WHERE set_num=5").bind(set5Riddle).run().catch(()=>{});
       await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
+      // Force update set 6 hint to new text
+      await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=6").bind(set6Hint).run().catch(()=>{});
     }
     // Always ensure set 6 exists
     await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
@@ -119,14 +121,35 @@ export async function handleEmotes(request, env) {
   }).join('');
 
   return layout("Kitsu's Emotes", `
+<!-- Page lock screen — shown until secret code is entered on Home page -->
+<div id="emote-lock-screen" style="position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
+  <div style="max-width:460px;width:100%;text-align:center">
+    <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:3.5rem">&#128274;</span>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
+    <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cinzel',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
+      <div style="font-size:0.72rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
+      <div style="font-size:0.85rem;color:var(--text2);line-height:1.6">One character keeps something unusual by their side. The octopus there isn&rsquo;t just decoration.</div>
+    </div>
+    <input type="text" id="emote-unlock-code" placeholder="Enter secret code..." autocomplete="off"
+      style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:0.7rem 1rem;border-radius:6px;font-size:0.95rem;text-align:center;outline:none;margin-bottom:0.5rem;font-family:inherit">
+    <div id="emote-unlock-error" style="font-size:0.8rem;color:#e74c3c;min-height:1.4em;margin-bottom:0.5rem"></div>
+    <button id="emote-unlock-btn" style="width:100%;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em">Unlock</button>
+  </div>
+</div>
+
+<!-- Main page content (hidden until unlocked) -->
+<div id="emote-page-content">
 <div class="hero" style="padding-bottom:2rem">
   <div class="hero-tag">Secret Sets</div>
   <h1>Kitsu's <span>Emotes</span></h1>
   <p>Six locked sets. Each one hides behind a small secret somewhere on the site.</p>
-  <div style="margin-top:0.75rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:6px 14px;cursor:help" id="page-unlock-hint" title="Click for a hint">
-    <span style="color:var(--gold);font-size:0.88rem;font-family:'Cinzel',serif">Find the Secret to Unlock</span>
-    <span class="set-hint-icon" style="flex-shrink:0">?</span>
-  </div>
+  <button id="page-unlock-hint" style="margin-top:0.75rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:7px 14px;cursor:pointer;font-family:'Cinzel',serif;color:var(--gold);font-size:0.88rem;letter-spacing:0.04em">
+    Find the Secret to Unlock
+    <span class="set-hint-icon" style="flex-shrink:0;pointer-events:none">?</span>
+  </button>
 </div>
 
 <div id="hint-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
@@ -148,6 +171,7 @@ export async function handleEmotes(request, env) {
 </div>
 
 <div class="sets-grid">${setCards}</div>
+</div><!-- /emote-page-content -->
 
 <style>
 .sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;max-width:1200px;margin:0 auto;padding:0 1.5rem 3rem; }
@@ -190,6 +214,55 @@ export async function handleEmotes(request, env) {
 (function() {
   var SETS = ${setsJson};
   var LOCK_IMG = ${JSON.stringify(lockImgSrc)};
+
+  /* ── Page lock screen ── */
+  var lockScreen = document.getElementById('emote-lock-screen');
+  var pageContent = document.getElementById('emote-page-content');
+
+  function showPage() {
+    if (lockScreen) { lockScreen.style.display = 'none'; }
+    if (pageContent) { pageContent.style.display = ''; }
+  }
+
+  if (localStorage.getItem('kitsu_unlocked') === 'true') {
+    showPage();
+  } else {
+    if (pageContent) pageContent.style.display = 'none';
+    // Apply lock image to lock screen
+    if (LOCK_IMG) {
+      var lockImgWrap = document.getElementById('emote-lock-img-wrap');
+      if (lockImgWrap) lockImgWrap.innerHTML = '<img src="' + LOCK_IMG + '" style="width:100%;height:100%;object-fit:contain">';
+    }
+    var unlockInput = document.getElementById('emote-unlock-code');
+    var unlockBtn   = document.getElementById('emote-unlock-btn');
+    var unlockErr   = document.getElementById('emote-unlock-error');
+    function tryUnlock() {
+      var code = unlockInput ? unlockInput.value.trim() : '';
+      if (!code) return;
+      if (unlockBtn) unlockBtn.disabled = true;
+      if (unlockErr) { unlockErr.textContent = '...'; unlockErr.style.color = 'var(--text3)'; }
+      fetch('/api/secret/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: code }) })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.success) {
+            localStorage.setItem('kitsu_unlocked', 'true');
+            if (lockScreen) { lockScreen.style.transition = 'opacity 0.4s'; lockScreen.style.opacity = '0'; }
+            setTimeout(showPage, 400);
+          } else {
+            if (unlockErr) { unlockErr.textContent = 'Incorrect code. Head to the Home page for a hint.'; unlockErr.style.color = '#e74c3c'; }
+            if (unlockBtn) unlockBtn.disabled = false;
+            if (unlockInput) { unlockInput.value = ''; unlockInput.focus(); }
+          }
+        })
+        .catch(function() {
+          if (unlockErr) { unlockErr.textContent = 'Network error. Try again.'; unlockErr.style.color = '#e74c3c'; }
+          if (unlockBtn) unlockBtn.disabled = false;
+        });
+    }
+    if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
+    if (unlockInput) unlockInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryUnlock(); });
+  }
+
   function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
   function paint() {
     SETS.forEach(function(s) {
@@ -227,7 +300,7 @@ export async function handleEmotes(request, env) {
 
   document.getElementById('page-unlock-hint').addEventListener('click', function(e) {
     e.stopPropagation();
-    showHintModal('HOW TO UNLOCK', 'Each of the six sets is hidden behind a small secret somewhere on the site.\\n\\nLook closely at each set\'s hint (the ? icon) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page a certain number of times. Others hide their secret in a specific order or place you must discover yourself.');
+    showHintModal('HOW TO UNLOCK', 'Each of the six sets is hidden behind a small secret somewhere on the site.\\n\\nLook closely at each set\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
   });
 
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }

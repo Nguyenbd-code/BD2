@@ -67,7 +67,7 @@ export async function handleCoupons(request, env) {
     <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-family:'Cinzel',serif;letter-spacing:0.04em">MANUAL CODE REDEEM</div>
     <div style="display:flex;gap:0.5rem;align-items:stretch;flex-wrap:wrap">
       <input type="text" id="manual-code" placeholder="Enter code manually..." autocomplete="off"
-        style="flex:1;min-width:160px;font-size:0.95rem">
+        style="flex:1;min-width:160px;font-size:0.95rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;outline:none">
       <button class="btn" data-action="redeem-manual" style="white-space:nowrap;flex-shrink:0">
         Redeem Code
       </button>
