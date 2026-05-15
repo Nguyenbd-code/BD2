@@ -124,12 +124,12 @@ function showToast(kind, title, msg) {
 
 function toastForResult(code, result) {
   var s = result.status;
-  if (s === 'Success')       return showToast('success', code + ' — Redeemed!', result.message || 'Check your in-game mailbox.');
-  if (s === 'AlreadyUsed')   return showToast('warn',    code + ' — Already Used', result.message || '');
-  if (s === 'ExpiredCode')   return showToast('warn',    code + ' — Expired', result.message || '');
-  if (s === 'InvalidCode')   return showToast('error',   code + ' — Invalid Code', result.message || '');
+  if (s === 'Success')       return showToast('success', code + '  -  Redeemed!', result.message || 'Check your in-game mailbox.');
+  if (s === 'AlreadyUsed')   return showToast('warn',    code + '  -  Already Used', result.message || '');
+  if (s === 'ExpiredCode')   return showToast('warn',    code + '  -  Expired', result.message || '');
+  if (s === 'InvalidCode')   return showToast('error',   code + '  -  Invalid Code', result.message || '');
   if (s === 'IncorrectUser') return showToast('error',   'Wrong Nickname', result.message || 'Check your in-game name.');
-  return showToast('error', code + ' — Error', result.message || 'Unknown error');
+  return showToast('error', code + '  -  Error', result.message || 'Unknown error');
 }
 
 function escH(s) {
@@ -151,7 +151,7 @@ function statusClass(status) {
 
 function statusLabel(status) {
   return {
-    Success:      '✓ Redeemed!',
+    Success:      'OK Redeemed!',
     AlreadyUsed:  'Already Used',
     ExpiredCode:  'Expired',
     InvalidCode:  'Invalid Code',
@@ -165,7 +165,7 @@ function getNickname() {
   return (document.getElementById('nickname').value || '').trim();
 }
 
-// Call Worker proxy — avoids CORS by making request server-side
+// Call Worker proxy  -  avoids CORS by making request server-side
 async function redeemViaProxy(nickname, code) {
   var res = await fetch('/api/redeem', {
     method: 'POST',
@@ -181,13 +181,13 @@ function renderDebug(row, result) {
   if (!row) return;
   if (row.querySelector('.rb-debug')) return;
   var lines = [];
-  lines.push('msg: ' + (result.message || '—'));
-  lines.push('http: ' + (result.http != null ? result.http : '—') + ' · via: ' + (result.via || '—'));
+  lines.push('msg: ' + (result.message || ' - '));
+  lines.push('http: ' + (result.http != null ? result.http : ' - ') + ' | via: ' + (result.via || ' - '));
   if (result.raw) lines.push('raw: ' + result.raw);
   if (result.debug && result.debug.length) {
     lines.push('attempts:');
     result.debug.forEach(function(a) {
-      lines.push('  [' + a.label + '] ' + a.status + ' · ' + (a.snippet || '').replace(/\s+/g, ' '));
+      lines.push('  [' + a.label + '] ' + a.status + ' | ' + (a.snippet || '').replace(/\s+/g, ' '));
     });
   }
   var div = document.createElement('div');
@@ -212,7 +212,7 @@ async function redeemAll() {
 
   var btn = document.getElementById('redeem-btn');
   btn.disabled = true;
-  btn.textContent = 'Redeeming…';
+  btn.textContent = 'Redeeming...';
   document.getElementById('redeem-status').textContent = '';
 
   var resultsList = document.getElementById('results-list');
@@ -224,7 +224,7 @@ async function redeemAll() {
     return '<div class="result-row" id="r-' + escH(c.code) + '">'
       + '<span class="result-code">' + escH(c.code) + '</span>'
       + (c.rewards ? '<span class="result-rewards">' + escH(c.rewards) + '</span>' : '')
-      + '<span class="result-badge rb-pending">Pending…</span>'
+      + '<span class="result-badge rb-pending">Pending...</span>'
       + '</div>';
   }).join('');
 
@@ -234,7 +234,7 @@ async function redeemAll() {
     var code = CODES[i].code;
     var row  = document.getElementById('r-' + escH(code));
     var badge = row ? row.querySelector('.result-badge') : null;
-    if (badge) badge.textContent = 'Trying…';
+    if (badge) badge.textContent = 'Trying...';
 
     await delay(300);
 
@@ -253,7 +253,7 @@ async function redeemAll() {
       else counts.other++;
     } catch(e) {
       if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
-      showToast('error', code + ' — Error', e.message || 'Request failed');
+      showToast('error', code + '  -  Error', e.message || 'Request failed');
       counts.other++;
     }
   }
@@ -265,8 +265,8 @@ async function redeemAll() {
   if (counts.success) parts.push(counts.success + ' redeemed');
   if (counts.used)    parts.push(counts.used + ' already used');
   if (counts.other)   parts.push(counts.other + ' failed');
-  summary.textContent = parts.join(' · ');
-  showToast(counts.success ? 'success' : (counts.other ? 'warn' : 'info'), 'Done', parts.join(' · ') || 'Nothing to do');
+  summary.textContent = parts.join(' | ');
+  showToast(counts.success ? 'success' : (counts.other ? 'warn' : 'info'), 'Done', parts.join(' | ') || 'Nothing to do');
 }
 
 async function redeemOne(code) {
@@ -285,12 +285,12 @@ async function redeemOne(code) {
     var div = document.createElement('div');
     div.id = rowId;
     div.className = 'result-row';
-    div.innerHTML = '<span class="result-code">' + escH(code) + '</span><span class="result-badge rb-pending">Trying…</span>';
+    div.innerHTML = '<span class="result-code">' + escH(code) + '</span><span class="result-badge rb-pending">Trying...</span>';
     resultsList.prepend(div);
   }
   var row   = document.getElementById(rowId);
   var badge = row.querySelector('.result-badge');
-  if (badge) { badge.className = 'result-badge rb-pending'; badge.textContent = 'Trying…'; }
+  if (badge) { badge.className = 'result-badge rb-pending'; badge.textContent = 'Trying...'; }
 
   // Clear any previous debug block
   var prev = row.querySelector('.rb-debug');
@@ -308,7 +308,7 @@ async function redeemOne(code) {
     toastForResult(code, result);
   } catch(e) {
     if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
-    showToast('error', code + ' — Error', e.message || 'Request failed');
+    showToast('error', code + '  -  Error', e.message || 'Request failed');
   }
 }
 
