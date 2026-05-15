@@ -216,6 +216,18 @@ function renderComp(comp, mediaMap) {
   const counters    = comp.counters || [];
   const counteredBy = comp.countered_by || [];
 
+  // Parse card label (stored as "green:text" or "red:text" in short_description)
+  let cardLabelHtml = '';
+  const sdRaw = comp.short_description || '';
+  if (sdRaw) {
+    const sdMatch = sdRaw.match(/^(green|red):(.+)$/s);
+    const labelColor = sdMatch ? (sdMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
+    const labelBg    = sdMatch ? (sdMatch[1] === 'green' ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)') : 'rgba(201,168,76,0.1)';
+    const labelBorder= sdMatch ? (sdMatch[1] === 'green' ? 'rgba(46,204,113,0.3)' : 'rgba(231,76,60,0.3)') : 'rgba(201,168,76,0.3)';
+    const labelText  = sdMatch ? sdMatch[2] : sdRaw;
+    cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
+  }
+
   return `
 <div class="comp-section" id="${anchorId}">
   <div class="comp-header">
@@ -226,6 +238,7 @@ function renderComp(comp, mediaMap) {
         <span class="${typeCls}">${typeLabel}</span>
       </div>
       ${comp.warning ? `<div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">⚠ ${esc(comp.warning)}</div>` : ''}
+      ${cardLabelHtml}
     </div>
   </div>
 
