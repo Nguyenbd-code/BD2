@@ -54,12 +54,6 @@ export async function handleCoupons(request, env) {
   </div>
 </div>
 
-<div style="max-width:1200px;margin:0 auto;padding:0 2rem 1rem">
-  <div class="section-title" style="margin-bottom:0.5rem">Active Codes</div>
-  <div class="section-sub">All codes below are tried automatically when you enter your nickname above</div>
-</div>
-<div class="code-grid">${codeCards}</div>
-
 <style>
 .rb-success  { background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3); }
 .rb-used     { background:rgba(243,156,18,0.12);color:#f39c12;border:1px solid rgba(243,156,18,0.3); }
@@ -86,8 +80,8 @@ export async function handleCoupons(request, env) {
   white-space:pre-wrap;word-break:break-all;line-height:1.5;
 }
 #toast-stack {
-  position:fixed;top:1rem;right:1rem;z-index:9999;
-  display:flex;flex-direction:column;gap:0.5rem;max-width:340px;pointer-events:none;
+  position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;
+  display:flex;flex-direction:column;gap:0.5rem;width:340px;pointer-events:none;align-items:stretch;
 }
 .toast {
   pointer-events:auto;padding:0.75rem 1rem;border-radius:6px;
@@ -100,7 +94,7 @@ export async function handleCoupons(request, env) {
 .toast.t-error   { background:rgba(231,76,60,0.95);  color:#fff; border:1px solid rgba(231,76,60,1); }
 .toast.t-info    { background:rgba(52,73,94,0.95);   color:#fff; border:1px solid rgba(52,73,94,1); }
 .toast b { font-family:'Cinzel',serif;display:block;margin-bottom:0.15rem;font-size:0.78rem;letter-spacing:0.04em; }
-@keyframes toast-in { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
 <div id="toast-stack"></div>
@@ -201,7 +195,6 @@ async function redeemAll() {
   resultsList.innerHTML = CODES.map(function(c) {
     return '<div class="result-row" id="r-' + escH(c.code) + '">'
       + '<span class="result-code">' + escH(c.code) + '</span>'
-      + (c.rewards ? '<span class="result-rewards">' + escH(c.rewards) + '</span>' : '')
       + '<span class="result-badge rb-pending">Pending...</span>'
       + '</div>';
   }).join('');
@@ -220,7 +213,7 @@ async function redeemAll() {
         badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
         badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
       }
-      if (result.status !== 'Success' && result.status !== 'AlreadyUsed') renderDebug(row, result);
+      if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
       toastForResult(code, result);
       if (result.success) counts.success++;
       else if (result.status === 'AlreadyUsed') counts.used++;
@@ -274,7 +267,7 @@ async function redeemOne(code) {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
     }
-    if (result.status !== 'Success' && result.status !== 'AlreadyUsed') renderDebug(row, result);
+    if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
     toastForResult(code, result);
   } catch(e) {
     if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }

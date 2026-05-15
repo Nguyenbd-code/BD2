@@ -103,7 +103,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .rot-table{display:flex;flex-direction:column;}
 .rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;}
 .rot-row:last-child{border-bottom:none;}
-.rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;}
+.rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;text-align:center;}
 .rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:visible;}
 .skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}

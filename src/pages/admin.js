@@ -402,7 +402,7 @@ export async function handleAdmin(request, env) {
       <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
         <label style="margin:0;white-space:nowrap">Set</label>
         <select id="emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
-          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option>
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option><option value="6">Set 6</option>
         </select>
       </div>
 
@@ -442,39 +442,6 @@ export async function handleAdmin(request, env) {
         <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.75rem"></div>
       </div>
 
-      <!-- Settings (hint & unlock) -->
-      <details style="margin-top:1.25rem">
-        <summary style="cursor:pointer;font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);padding:0.5rem 0">Set Settings (Hint &amp; Unlock)</summary>
-        <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
-          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
-          <div class="form-group">
-            <label>Hint (shown in modal on Emotes page)</label>
-            <textarea id="es-hint" rows="3" placeholder="Phrase as a riddle..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Unlock Mode</label>
-            <select id="es-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
-              <option value="count">Count (click N times)</option>
-              <option value="sequence">Sequence (click in order)</option>
-            </select>
-          </div>
-          <div id="es-mode-count" class="form-row">
-            <div class="form-group">
-              <label>Unlock Element (Characters page)</label>
-              <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-                <option value="water">Water</option><option value="fire">Fire</option><option value="wind">Wind</option><option value="light">Light</option><option value="dark">Dark</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="99" value="7"></div>
-          </div>
-          <div id="es-mode-sequence" class="form-group" style="display:none">
-            <label>Element Sequence <span style="color:var(--text3);font-weight:400">(comma-separated; user must click in this exact order)</span></label>
-            <input type="text" id="es-sequence" placeholder="water,fire,light,dark,wind">
-            <div style="font-size:0.72rem;color:var(--text3);margin-top:0.3rem">Valid: water, fire, light, dark, wind</div>
-          </div>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Settings</button>
-        </div>
-      </details>
     </div>
   </div>
 
@@ -792,6 +759,71 @@ export async function handleAdmin(request, env) {
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
 
+    <div class="admin-form" style="margin-top:1.5rem">
+      <h3>Emote Set Configuration</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1.25rem">Configure the unlock mechanic, hint, and letter for each of the six emote sets.</p>
+      <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
+        <label style="margin:0;white-space:nowrap">Set</label>
+        <select id="settings-emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:220px">
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option>
+          <option value="4">Set 4</option><option value="5">Set 5</option><option value="6">Set 6</option>
+        </select>
+      </div>
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Display Name <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown on emotes page)</span></label>
+            <input type="text" id="set-cfg-name" placeholder="S">
+          </div>
+          <div class="form-group">
+            <label>Set Letter <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(used in sequence mechanic)</span></label>
+            <input type="text" id="set-cfg-letter" placeholder="S" maxlength="4">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
+          <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unlock Page</label>
+            <select id="set-cfg-page" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="characters">Characters</option>
+              <option value="emotes">Emotes</option>
+              <option value="home">Home</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Unlock Mode</label>
+            <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="count">Count (click element N times)</option>
+              <option value="sequence">Sequence (elements in exact order)</option>
+              <option value="letter_sequence">Letter Sequence (click set cards)</option>
+              <option value="who_am_i">Who Am I? (ghost portrait)</option>
+            </select>
+          </div>
+        </div>
+        <div id="set-cfg-target-wrap" class="form-row">
+          <div class="form-group">
+            <label id="set-cfg-target-label">Element Target</label>
+            <input type="text" id="set-cfg-target" placeholder="water">
+            <div id="set-cfg-target-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">water / fire / wind / light / dark</div>
+          </div>
+          <div id="set-cfg-count-wrap" class="form-group">
+            <label>Click Count</label>
+            <input type="number" id="set-cfg-count" min="1" max="99" value="7">
+          </div>
+        </div>
+        <div id="set-cfg-sequence-wrap" class="form-group" style="display:none">
+          <label id="set-cfg-sequence-label">Sequence</label>
+          <input type="text" id="set-cfg-sequence" placeholder="water,fire,light,dark,wind">
+          <div id="set-cfg-sequence-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem"></div>
+        </div>
+        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -884,6 +916,7 @@ function showTab(name) {
   if (name === 'chars')    loadChars();
   if (name === 'images')   updateImgKey();
   if (name === 'homepage') loadHomeNotes();
+  if (name === 'settings') loadEmoteSets();
 }
 
 /* ══════════════════════════════════════════════════════════ COUPONS ══ */
@@ -1463,6 +1496,7 @@ async function deleteEmote(id) {
 var _esSets = {};
 var _esCurrentSet = 1;
 var _esPendingCover = '';
+var _settingsCurrentSet = 1;
 
 async function loadEmoteSets() {
   try {
@@ -1473,6 +1507,25 @@ async function loadEmoteSets() {
     arr.forEach(function(s) { _esSets[s.set_num] = s; });
     renderEmoteSet(_esCurrentSet);
     loadEmoteSetEmotes(_esCurrentSet);
+    // Update emote tab selector with set names
+    var sel = document.getElementById('emote-set-select');
+    if (sel) {
+      sel.innerHTML = [1,2,3,4,5,6].map(function(n) {
+        var sv = _esSets[n];
+        var lbl = sv ? (sv.name || ('Set '+n)) : ('Set '+n);
+        return '<option value="'+n+'"'+(String(n)===String(_esCurrentSet)?' selected':'')+'>'+n+' ('+escH(lbl)+')</option>';
+      }).join('');
+    }
+    // Update settings tab selector with set names
+    var settingsSel = document.getElementById('settings-emote-set-select');
+    if (settingsSel) {
+      settingsSel.innerHTML = [1,2,3,4,5,6].map(function(n) {
+        var sv = _esSets[n];
+        var lbl = sv ? (sv.name || ('Set '+n)) : ('Set '+n);
+        return '<option value="'+n+'"'+(String(n)===String(_settingsCurrentSet)?' selected':'')+'>'+n+' ('+escH(lbl)+')</option>';
+      }).join('');
+    }
+    renderSetConfig(_settingsCurrentSet || 1);
   } catch(e) {}
 }
 
@@ -1542,6 +1595,62 @@ async function saveEmoteSet() {
   var alertEl = document.getElementById('es-alert');
   if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
   if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
+}
+
+function renderSetConfig(sn) {
+  var s = _esSets[sn] || {};
+  function g(id) { return document.getElementById(id); }
+  if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
+  if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
+  if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
+  if (g('set-cfg-page')) g('set-cfg-page').value = s.unlock_page || 'characters';
+  if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
+  if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
+  if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
+  updateSetCfgModeUI(s.unlock_mode || 'count');
+}
+
+function updateSetCfgModeUI(mode) {
+  function g(id) { return document.getElementById(id); }
+  var isCount = mode === 'count';
+  var isWho = mode === 'who_am_i';
+  var needsSeq = mode === 'sequence' || mode === 'letter_sequence' || isWho;
+  if (g('set-cfg-target-wrap')) g('set-cfg-target-wrap').style.display = (isCount || isWho) ? '' : 'none';
+  if (g('set-cfg-count-wrap')) g('set-cfg-count-wrap').style.display = isCount ? '' : 'none';
+  if (g('set-cfg-sequence-wrap')) g('set-cfg-sequence-wrap').style.display = needsSeq ? '' : 'none';
+  if (g('set-cfg-target-label')) g('set-cfg-target-label').textContent = isWho ? 'Ghost Portrait Slug' : 'Element Target';
+  if (g('set-cfg-target')) g('set-cfg-target').placeholder = isWho ? 'synae' : 'water';
+  if (g('set-cfg-target-note')) g('set-cfg-target-note').textContent = isWho ? 'The character slug of the ghost portrait on the Characters page.' : 'water / fire / wind / light / dark';
+  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = isWho ? 'Correct Answer' : (mode === 'letter_sequence' ? 'Letter Sequence (comma-separated)' : 'Element Sequence (comma-separated)');
+  if (g('set-cfg-sequence')) g('set-cfg-sequence').placeholder = isWho ? 'Synae' : (mode === 'letter_sequence' ? 'K,I,T,S,U' : 'water,fire,light,dark,wind');
+  if (g('set-cfg-sequence-note')) g('set-cfg-sequence-note').textContent = isWho ? 'Case-insensitive. What the player must type in the Who Am I input.' : (mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.');
+}
+
+async function saveSetConfig() {
+  var sn = _settingsCurrentSet || 1;
+  function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+  var mode = gv('set-cfg-mode') || 'count';
+  var body = {
+    set_num: sn,
+    name: gv('set-cfg-name') || ('Set ' + sn),
+    set_letter: gv('set-cfg-letter'),
+    hint: gv('set-cfg-hint'),
+    unlock_page: gv('set-cfg-page') || 'characters',
+    unlock_target: gv('set-cfg-target'),
+    unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,
+    unlock_mode: mode,
+    unlock_sequence: gv('set-cfg-sequence'),
+    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+  };
+  var r = await apiPost('/api/admin/emote-set/save', body);
+  var alertEl = document.getElementById('set-cfg-alert');
+  if (alertEl) {
+    alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error');
+    setTimeout(function() { alertEl.textContent = ''; }, 3000);
+  }
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderSetConfig(sn); }
 }
 
 async function bulkAddEmotes() {
@@ -1614,6 +1723,19 @@ function setupEmoteSetUI() {
         }
       }
       if (added) pz.textContent = _esPasteBuffer.length + ' pasted image(s) queued. Click "Upload Selected Files" to save.';
+    });
+  }
+  var settingsSel = document.getElementById('settings-emote-set-select');
+  if (settingsSel) {
+    settingsSel.addEventListener('change', function() {
+      _settingsCurrentSet = parseInt(settingsSel.value, 10) || 1;
+      renderSetConfig(_settingsCurrentSet);
+    });
+  }
+  var modeSel2 = document.getElementById('set-cfg-mode');
+  if (modeSel2) {
+    modeSel2.addEventListener('change', function() {
+      updateSetCfgModeUI(modeSel2.value);
     });
   }
   loadEmoteSets();
@@ -2465,6 +2587,7 @@ document.addEventListener('click', function(e) {
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
   if (action === 'save-emote-set')   saveEmoteSet();
+  if (action === 'save-set-cfg')     saveSetConfig();
   if (action === 'bulk-add-emotes')  bulkAddEmotes();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
