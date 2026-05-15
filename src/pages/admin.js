@@ -202,13 +202,17 @@ export async function handleAdmin(request, env) {
         <!-- Card Label -->
         <div class="form-group">
           <label>CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short line shown under the comp title on the guide page</span></label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <select id="comp-card-label-color" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:5px;min-width:105px">
+          <div style="display:flex;gap:0.5rem;align-items:stretch">
+            <select id="comp-card-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
               <option value="">None</option>
               <option value="green">● Green</option>
               <option value="red">● Red</option>
             </select>
-            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1">
+            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1;min-width:0">
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Card Label</button>
+            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
           </div>
         </div>
 
@@ -720,24 +724,6 @@ export async function handleAdmin(request, env) {
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
 
-    <div class="admin-form">
-      <h3>Element Icons</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload icons for the 5 elements — shown on character cards across the site. Auto-compressed to 80px PNG/JPEG.</p>
-      <div id="element-icon-alert"></div>
-      <canvas id="element-icon-canvas" style="display:none"></canvas>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem">
-        ${['dark','light','fire','water','wind'].map(el =>
-          '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.75rem">'
-          + '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">'
-          + '<img src="/img/element_' + el + '" class="img-err-hide" style="width:36px;height:36px;object-fit:contain;background:var(--bg2);border-radius:4px">'
-          + '<div style="font-family:Cinzel,serif;font-size:0.85rem;color:var(--gold);text-transform:capitalize">' + el + '</div>'
-          + '</div>'
-          + '<input type="file" id="elem-file-' + el + '" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;width:100%;font-size:0.75rem;margin-bottom:0.4rem">'
-          + '<button class="btn" style="width:100%;padding:5px;font-size:0.78rem" data-action="upload-element" data-element="' + el + '">Upload</button>'
-          + '</div>'
-        ).join('')}
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1000,24 +986,6 @@ async function saveMatchups() {
   }
 }
 
-async function uploadElementIcon(element) {
-  var fileEl = document.getElementById('elem-file-' + element);
-  var file   = fileEl && fileEl.files && fileEl.files[0];
-  if (!file) { showAlert('element-icon-alert', false, 'Select an image file for ' + element); return; }
-  showAlert('element-icon-alert', true, 'Uploading...');
-  try {
-    var data = await compressToDataUrl(file, 'element-icon-canvas', 80, 0.9);
-    var r    = await apiPost('/api/admin/image/upload', { key: 'element_' + element, data: data });
-    showAlert('element-icon-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
-    if (r.success) {
-      if (fileEl) fileEl.value = '';
-      document.querySelectorAll('img[src*="element_' + element + '"]').forEach(function(img) {
-        img.src = '/img/element_' + element + '?t=' + Date.now();
-        img.classList.remove('errored');
-      });
-    }
-  } catch(e) { showAlert('element-icon-alert', false, 'Upload failed'); }
-}
 
 async function uploadSkillTile(skillId) {
   if (!_selectedCharSlug) { showAlert('skill-alert', false, 'Select a character first'); return; }
@@ -1182,6 +1150,29 @@ async function loadCompData(id) {
       }).join('');
     }
   } catch(e) {}
+}
+
+async function saveCardLabel() {
+  if (!_compId) { showAlert('comp-card-label-alert', false, 'Select a composition first'); return; }
+  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
+  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var sel  = document.getElementById('comp-select');
+  var opt  = sel ? sel.options[sel.selectedIndex] : null;
+  var name = opt ? opt.dataset.name  || '' : '';
+  var type = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var color= opt ? opt.dataset.color || '#c9a84c' : '#c9a84c';
+  var cby  = opt ? opt.dataset.cby   || '' : '';
+  var notes= opt ? opt.dataset.notes || '' : '';
+  var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success && opt) opt.dataset.shortDesc = sd;
+  var el = document.getElementById('comp-card-label-alert');
+  if (el) {
+    el.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    el.textContent = r.success ? '✓ Saved — refresh the guide to see' : (r.message || 'Error');
+    setTimeout(function() { el.textContent = ''; }, 3500);
+  }
 }
 
 async function saveCompMeta() {
@@ -2230,7 +2221,7 @@ document.addEventListener('click', function(e) {
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
   if (action === 'save-matchups')    saveMatchups();
-  if (action === 'upload-element')   uploadElementIcon(b.dataset.element);
+  if (action === 'save-card-label')  saveCardLabel();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });

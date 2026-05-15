@@ -77,6 +77,12 @@ export async function handleCoupons(request, env) {
 }
 .result-code { font-family:monospace;font-size:0.85rem;color:var(--text);flex:1;min-width:120px; }
 .result-rewards { font-size:0.72rem;color:var(--text3);flex:2; }
+.rb-debug {
+  flex-basis:100%;margin-top:0.4rem;padding:0.5rem 0.7rem;
+  background:rgba(0,0,0,0.35);border:1px dashed rgba(231,76,60,0.4);border-radius:4px;
+  font-family:'Courier New',monospace;font-size:0.7rem;color:#e67e22;
+  white-space:pre-wrap;word-break:break-all;line-height:1.5;
+}
 </style>
 
 <script>
@@ -125,6 +131,27 @@ async function redeemViaProxy(nickname, code) {
   return await res.json();
 }
 
+// Inject a small visible debug block below a result row so we can see
+// exactly what the redemption server replied with.
+function renderDebug(row, result) {
+  if (!row) return;
+  if (row.querySelector('.rb-debug')) return;
+  var lines = [];
+  lines.push('msg: ' + (result.message || '—'));
+  lines.push('http: ' + (result.http != null ? result.http : '—') + ' · via: ' + (result.via || '—'));
+  if (result.raw) lines.push('raw: ' + result.raw);
+  if (result.debug && result.debug.length) {
+    lines.push('attempts:');
+    result.debug.forEach(function(a) {
+      lines.push('  [' + a.label + '] ' + a.status + ' · ' + (a.snippet || '').replace(/\s+/g, ' '));
+    });
+  }
+  var div = document.createElement('div');
+  div.className = 'rb-debug';
+  div.textContent = lines.join('\n');
+  row.appendChild(div);
+}
+
 async function redeemAll() {
   var nickname = getNickname();
   if (!nickname) { document.getElementById('redeem-status').textContent = 'Please enter your in-game nickname.'; document.getElementById('nickname').focus(); return; }
@@ -163,9 +190,8 @@ async function redeemAll() {
       if (!badge) continue;
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
-      if (result.message && result.status !== 'Success' && result.status !== 'AlreadyUsed') {
-        var dbg = result.raw ? ' [HTTP ' + result.http + ': ' + result.raw + ']' : '';
-        badge.title = result.message + dbg;
+      if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
+        renderDebug(row, result);
       }
       if (result.success) counts.success++;
       else if (result.status === 'AlreadyUsed') counts.used++;
@@ -204,12 +230,18 @@ async function redeemOne(code) {
   var badge = row.querySelector('.result-badge');
   if (badge) { badge.className = 'result-badge rb-pending'; badge.textContent = 'Trying…'; }
 
+  // Clear any previous debug block
+  var prev = row.querySelector('.rb-debug');
+  if (prev) prev.remove();
+
   try {
     var result = await redeemViaProxy(nickname, code);
     if (badge) {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
-      if (result.message) badge.title = result.message;
+    }
+    if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
+      renderDebug(row, result);
     }
   } catch(e) {
     if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
