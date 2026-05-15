@@ -50,6 +50,40 @@ export default {
         });
       }
 
+      // Special code unlock
+      if (path === '/api/special-code/unlock' && method === 'POST') {
+        let sb = {};
+        try { sb = await request.json(); } catch {}
+        const enteredPasscode = sb.passcode || '';
+        try {
+          const scRow = await env.DB.prepare("SELECT data FROM images WHERE key='special_code_config'").first().catch(() => null);
+          if (!scRow || !scRow.data) {
+            return new Response(JSON.stringify({ success: false, message: 'Not configured.' }), { headers: { 'Content-Type': 'application/json' } });
+          }
+          const sc = JSON.parse(scRow.data);
+          if (!sc.passcode || !sc.code) {
+            return new Response(JSON.stringify({ success: false, message: 'Not configured.' }), { headers: { 'Content-Type': 'application/json' } });
+          }
+          if (enteredPasscode !== sc.passcode) {
+            return new Response(JSON.stringify({ success: false, message: 'Incorrect passcode.' }), { headers: { 'Content-Type': 'application/json' } });
+          }
+          return new Response(JSON.stringify({ success: true, code: sc.code }), { headers: { 'Content-Type': 'application/json' } });
+        } catch(e) {
+          return new Response(JSON.stringify({ success: false, message: 'Error.' }), { headers: { 'Content-Type': 'application/json' } });
+        }
+      }
+
+      // Public emotes by set
+      if (path === '/api/emotes/by-set' && method === 'GET') {
+        const sn = parseInt(new URL(request.url).searchParams.get('set_num') || '1', 10);
+        try {
+          const r = await env.DB.prepare('SELECT * FROM emotes WHERE set_num=? ORDER BY created_at DESC').bind(sn).all();
+          return new Response(JSON.stringify({ emotes: r.results || [] }), { headers: { 'Content-Type': 'application/json' } });
+        } catch(e) {
+          return new Response(JSON.stringify({ emotes: [] }), { headers: { 'Content-Type': 'application/json' } });
+        }
+      }
+
       // Redeem API
       if (path === '/api/redeem' && method === 'POST') return handleRedeem(request);
 

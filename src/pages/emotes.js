@@ -52,6 +52,9 @@ async function ensureSchema(env) {
 export async function handleEmotes(request, env) {
   await ensureSchema(env);
 
+  const lockImgRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null);
+  const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
+
   let sets = [];
   let emotes = [];
   try {
@@ -98,6 +101,7 @@ export async function handleEmotes(request, env) {
       <div class="set-cover">
         ${cover ? `<img src="${cover}" alt="${displayName}" class="img-err-hide">` : `<span class="set-cover-placeholder">${displayName}</span>`}
         <div class="set-lock-overlay">
+          <div class="set-lock-img-wrap"></div>
           <div class="set-lock-icon">&#128274;</div>
           <div class="set-lock-text">Locked</div>
         </div>
@@ -133,6 +137,16 @@ export async function handleEmotes(request, env) {
   </div>
 </div>
 
+<div id="emote-modal-overlay" class="emote-modal-overlay">
+  <div class="emote-modal">
+    <div class="emote-modal-header">
+      <div class="emote-modal-title" id="emote-modal-title">Set</div>
+      <button class="emote-modal-close" id="emote-modal-close">&#10005;</button>
+    </div>
+    <div id="emote-modal-body"></div>
+  </div>
+</div>
+
 <div class="sets-grid">${setCards}</div>
 
 <style>
@@ -160,11 +174,22 @@ export async function handleEmotes(request, env) {
 .emote-name { font-size:0.7rem;color:var(--text2);margin-top:0.25rem;word-break:break-word; }
 .emote-dl { display:inline-block;font-size:0.65rem;color:var(--gold);margin-top:0.25rem;text-decoration:none; }
 .emote-dl:hover { text-decoration:underline; }
+.set-lock-img-wrap { width:80px;height:80px;margin-bottom:0.5rem;display:none; }
+.set-lock-img-wrap img { width:100%;height:100%;object-fit:contain; }
+.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto; }
+.emote-modal-overlay.open { display:flex; }
+.emote-modal { background:var(--bg2);border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:1.5rem;max-width:800px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative; }
+.emote-modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem; }
+.emote-modal-title { font-family:'Cinzel',serif;color:var(--gold);font-size:1.1rem; }
+.emote-modal-close { background:none;border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center; }
+.emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;margin-top:1rem; }
+.emote-dl-all { font-size:0.7rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:3px 10px;border-radius:4px;cursor:pointer;white-space:nowrap; }
 </style>
 
 <script>
 (function() {
   var SETS = ${setsJson};
+  var LOCK_IMG = ${JSON.stringify(lockImgSrc)};
   function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
   function paint() {
     SETS.forEach(function(s) {
@@ -175,6 +200,17 @@ export async function handleEmotes(request, env) {
     });
   }
   paint();
+
+  function applyLockImg() {
+    if (!LOCK_IMG) return;
+    document.querySelectorAll('.set-lock-img-wrap').forEach(function(w) {
+      w.innerHTML = '<img src="' + LOCK_IMG + '" alt="Locked">';
+      w.style.display = 'block';
+      var icon = w.nextElementSibling;
+      if (icon && icon.classList.contains('set-lock-icon')) icon.style.display = 'none';
+    });
+  }
+  applyLockImg();
 
   function showHintModal(title, body) {
     var m = document.getElementById('hint-modal');
@@ -211,13 +247,79 @@ export async function handleEmotes(request, env) {
     });
   }
 
+  function escH2(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function openEmoteModal(sn, setData) {
+    var overlay = document.getElementById('emote-modal-overlay');
+    var title = document.getElementById('emote-modal-title');
+    var body = document.getElementById('emote-modal-body');
+    if (!overlay || !body) return;
+    if (title) title.textContent = (setData ? (setData.name || 'Set ' + sn) : 'Set ' + sn) + "'s Emotes";
+    body.innerHTML = '<div style="color:var(--text3);font-size:0.82rem">Loading emotes...</div>';
+    overlay.classList.add('open');
+    fetch('/api/emotes/by-set?set_num=' + sn)
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var emotes = d.emotes || [];
+        if (!emotes.length) {
+          body.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem">No emotes in this set yet.</p>';
+          return;
+        }
+        var html = '<div class="emote-items-grid">';
+        emotes.forEach(function(e) {
+          html += '<div class="emote-card">'
+            + '<img src="' + escH2(e.image_url) + '" alt="' + escH2(e.name) + '" loading="lazy">'
+            + '<div class="emote-name">' + escH2(e.name) + '</div>'
+            + '<a href="' + escH2(e.image_url) + '" download="' + escH2(e.name) + '" class="emote-dl">Download</a>'
+            + '</div>';
+        });
+        html += '</div>';
+        html += '<div style="margin-top:1rem;text-align:center">'
+          + '<button class="emote-dl-all" data-action="download-all-emotes" style="font-size:0.8rem;padding:6px 18px">&#11015; Download All</button>'
+          + '</div>';
+        body.innerHTML = html;
+        body._emotes = emotes;
+      })
+      .catch(function() {
+        body.innerHTML = '<p style="color:#e74c3c">Failed to load emotes.</p>';
+      });
+  }
+
+  document.getElementById('emote-modal-close').addEventListener('click', function() {
+    document.getElementById('emote-modal-overlay').classList.remove('open');
+  });
+  document.getElementById('emote-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
   document.addEventListener('click', function(e) {
+    var dlBtn = e.target.closest('[data-action="download-all-emotes"]');
+    if (dlBtn) {
+      var modalBody = document.getElementById('emote-modal-body');
+      var emotes = modalBody && modalBody._emotes;
+      if (emotes && emotes.length) {
+        emotes.forEach(function(em, i) {
+          setTimeout(function() {
+            var a = document.createElement('a');
+            a.href = em.image_url;
+            a.download = em.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }, i * 150);
+        });
+      }
+      return;
+    }
+
     var hintBtn = e.target.closest('.set-hint-icon');
     if (hintBtn && hintBtn.dataset.set) {
       e.stopPropagation();
       var n = parseInt(hintBtn.dataset.set, 10);
       var s = SETS.find(function(x) { return x.set_num === n; });
-      showHintModal('HINT — ' + (s ? (s.name || n) : n), (s && s.hint) ? s.hint : 'No hint available yet.');
+      var loc = (s && s.unlock_page) ? s.unlock_page.charAt(0).toUpperCase() + s.unlock_page.slice(1) : 'Unknown';
+      var hintBody = 'Location: ' + loc + '\n\n' + ((s && s.hint) ? s.hint : 'No hint available yet.');
+      showHintModal('HINT — ' + (s ? (s.name || n) : n), hintBody);
       return;
     }
 
@@ -241,10 +343,13 @@ export async function handleEmotes(request, env) {
 
     if (!isUnlocked(sn)) {
       var s2 = SETS.find(function(x) { return x.set_num === sn; });
-      showHintModal('LOCKED — ' + (s2 ? (s2.name || sn) : sn), (s2 && s2.hint) ? s2.hint : 'Find the secret to unlock this set.');
+      var loc2 = (s2 && s2.unlock_page) ? s2.unlock_page.charAt(0).toUpperCase() + s2.unlock_page.slice(1) : 'Unknown';
+      var hintBody2 = 'Location: ' + loc2 + '\n\n' + ((s2 && s2.hint) ? s2.hint : 'Find the secret to unlock this set.');
+      showHintModal('LOCKED — ' + (s2 ? (s2.name || sn) : sn), hintBody2);
       return;
     }
-    card.classList.toggle('open');
+    // Open emote modal
+    openEmoteModal(sn, setData);
   });
 
   document.addEventListener('error', function(e) {

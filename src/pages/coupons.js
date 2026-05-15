@@ -7,6 +7,16 @@ export async function handleCoupons(request, env) {
     codes = res.results || [];
   } catch(e) {}
 
+  let specialConfig = { enabled: false, passcode: '', code: '' };
+  try {
+    const scRow = await env.DB.prepare("SELECT data FROM images WHERE key='special_code_config'").first().catch(() => null);
+    if (scRow && scRow.data) {
+      const sc = JSON.parse(scRow.data);
+      // Only expose: whether it's enabled and whether there's a code (not the passcode or code itself)
+      specialConfig.enabled = !!(sc.code && sc.passcode);
+    }
+  } catch(e) {}
+
   const codeCards = codes.length
     ? codes.map(c => `
 <div class="code-card">
@@ -52,7 +62,49 @@ export async function handleCoupons(request, env) {
     <div id="results-list"></div>
     <div id="redeem-summary" style="margin-top:0.75rem;font-size:0.82rem;color:var(--text3)"></div>
   </div>
+
+  <div style="margin-top:1.25rem;border-top:1px solid var(--border2);padding-top:1.25rem">
+    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-family:'Cinzel',serif;letter-spacing:0.04em">MANUAL CODE REDEEM</div>
+    <div style="display:flex;gap:0.5rem;align-items:stretch;flex-wrap:wrap">
+      <input type="text" id="manual-code" placeholder="Enter code manually..." autocomplete="off"
+        style="flex:1;min-width:160px;font-size:0.95rem">
+      <button class="btn" data-action="redeem-manual" style="white-space:nowrap;flex-shrink:0">
+        Redeem Code
+      </button>
+    </div>
+  </div>
 </div>
+
+${specialConfig.enabled ? `
+<div class="coupon-form" style="margin-top:1.5rem" id="special-redeem-section">
+  <h3 style="display:flex;align-items:center;gap:0.75rem">
+    <span>Special Code</span>
+    <span style="font-size:0.72rem;color:var(--text3);font-family:inherit;font-weight:400">— Passcode required</span>
+  </h3>
+  <div id="special-locked-view">
+    <div style="text-align:center;padding:1.5rem 0">
+      <div style="width:100px;height:100px;margin:0 auto 1rem;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <img src="/img/special_code_lock_image" class="img-err-hide" style="width:100%;height:100%;object-fit:contain" id="special-lock-img">
+        <span id="special-lock-fallback" style="font-size:3rem">&#128274;</span>
+      </div>
+      <div style="font-size:0.85rem;color:var(--text3);margin-bottom:1rem">Enter the passcode to access the special code</div>
+      <div class="form-group" style="max-width:300px;margin:0 auto">
+        <input type="password" id="special-passcode" placeholder="Enter passcode..." autocomplete="off" style="text-align:center;font-size:1rem;letter-spacing:0.1em">
+      </div>
+      <div id="special-passcode-error" style="font-size:0.8rem;color:#e74c3c;margin-top:0.4rem;min-height:1.2em"></div>
+      <button class="btn" data-action="check-special-passcode" style="margin-top:0.5rem">Unlock</button>
+    </div>
+  </div>
+  <div id="special-unlocked-view" style="display:none">
+    <div style="font-size:0.82rem;color:var(--text3);margin-bottom:1rem">Your special code is ready. Enter your in-game nickname above, then click Redeem.</div>
+    <div class="code-card" id="special-code-display" style="font-size:1.1rem;letter-spacing:0.08em;font-family:monospace;text-align:center;padding:1rem">
+      <span id="special-code-value">Loading...</span>
+      <button class="copy-btn" data-action="copy-special-code" style="margin-left:0.75rem">Copy</button>
+    </div>
+    <button class="btn" data-action="redeem-special-code" style="width:100%;margin-top:0.75rem">Redeem Special Code</button>
+    <div id="special-redeem-result" style="margin-top:0.5rem;min-height:1.2em;font-size:0.82rem"></div>
+  </div>
+</div>` : ''}
 
 <style>
 .rb-success  { background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3); }
@@ -275,6 +327,100 @@ async function redeemOne(code) {
   }
 }
 
+async function redeemManual() {
+  var nickname = getNickname();
+  var codeEl = document.getElementById('manual-code');
+  var code = codeEl ? (codeEl.value || '').trim() : '';
+  if (!nickname) {
+    showToast('warn', 'Nickname required', 'Enter your in-game nickname first.');
+    document.getElementById('nickname').focus();
+    return;
+  }
+  if (!code) {
+    showToast('warn', 'Code required', 'Enter a code to redeem manually.');
+    if (codeEl) codeEl.focus();
+    return;
+  }
+  document.getElementById('redeem-results').style.display = 'block';
+  var resultsList = document.getElementById('results-list');
+  var rowId = 'r-manual-' + code.replace(/[^a-z0-9]/gi, '');
+  var existing = document.getElementById(rowId);
+  if (existing) existing.remove();
+  var div = document.createElement('div');
+  div.id = rowId;
+  div.className = 'result-row';
+  div.innerHTML = '<span class="result-code">' + escH(code) + '</span><span class="result-badge rb-pending">Trying...</span>';
+  resultsList.prepend(div);
+  var row = document.getElementById(rowId);
+  var badge = row.querySelector('.result-badge');
+  try {
+    var result = await redeemViaProxy(nickname, code);
+    if (badge) {
+      badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
+      badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
+    }
+    if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
+    toastForResult(code, result);
+    if (result.success && codeEl) codeEl.value = '';
+  } catch(e) {
+    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
+    showToast('error', code + ' - Error', e.message || 'Request failed');
+  }
+}
+
+var _specialCodeUnlocked = false;
+var _specialCode = '';
+
+async function checkSpecialPasscode() {
+  var passcode = (document.getElementById('special-passcode') || {}).value || '';
+  if (!passcode) { setSpecialError('Enter the passcode.'); return; }
+  var errEl = document.getElementById('special-passcode-error');
+  if (errEl) { errEl.textContent = 'Checking...'; errEl.style.color = 'var(--text3)'; }
+  try {
+    var res = await fetch('/api/special-code/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode: passcode }),
+    });
+    var data = await res.json();
+    if (data.success) {
+      _specialCode = data.code || '';
+      var valEl = document.getElementById('special-code-value');
+      if (valEl) valEl.textContent = _specialCode;
+      document.getElementById('special-locked-view').style.display = 'none';
+      document.getElementById('special-unlocked-view').style.display = 'block';
+      _specialCodeUnlocked = true;
+    } else {
+      setSpecialError(data.message || 'Incorrect passcode.');
+    }
+  } catch(e) {
+    setSpecialError('Network error. Try again.');
+  }
+}
+
+function setSpecialError(msg) {
+  var errEl = document.getElementById('special-passcode-error');
+  if (errEl) { errEl.textContent = msg; errEl.style.color = '#e74c3c'; }
+}
+
+async function redeemSpecialCode() {
+  var nickname = getNickname();
+  if (!nickname) { showToast('warn', 'Nickname required', 'Enter your in-game nickname first.'); return; }
+  if (!_specialCode) { showToast('error', 'No code', 'Unlock the special code first.'); return; }
+  var resultEl = document.getElementById('special-redeem-result');
+  if (resultEl) { resultEl.textContent = 'Redeeming...'; resultEl.style.color = 'var(--text3)'; }
+  try {
+    var result = await redeemViaProxy(nickname, _specialCode);
+    toastForResult(_specialCode, result);
+    if (resultEl) {
+      resultEl.style.color = result.success ? '#2ecc71' : '#e74c3c';
+      resultEl.textContent = result.message || (result.success ? 'Redeemed!' : 'Error');
+    }
+  } catch(e) {
+    if (resultEl) { resultEl.style.color = '#e74c3c'; resultEl.textContent = 'Network error.'; }
+  }
+}
+
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
@@ -292,7 +438,23 @@ document.addEventListener('click', function(e) {
   }
   if (action === 'redeem-all') redeemAll();
   if (action === 'redeem-one') redeemOne(code);
+  if (action === 'redeem-manual') redeemManual();
+  if (action === 'check-special-passcode') checkSpecialPasscode();
+  if (action === 'copy-special-code') {
+    navigator.clipboard.writeText(_specialCode).then(function() {
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    });
+  }
+  if (action === 'redeem-special-code') redeemSpecialCode();
 });
+
+var manualInput = document.getElementById('manual-code');
+if (manualInput) manualInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') redeemManual(); });
+
+var specialInput = document.getElementById('special-passcode');
+if (specialInput) specialInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkSpecialPasscode(); });
 </script>
 `, 'coupons');
 }

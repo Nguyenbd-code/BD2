@@ -146,19 +146,19 @@ export async function handleAdmin(request, env) {
   </div>
 
   <div class="admin-tabs">
-    <button class="tab-btn active" data-action="tab-switch" data-tab="coupons">Coupons</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="coupons">Coupons</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
 
   <!-- ═══════════════════════════════════════════════════════════ COUPONS -->
-  <div class="admin-section active" id="tab-coupons">
+  <div class="admin-section" id="tab-coupons">
     <div class="admin-form">
       <h3>Add Coupon Code</h3>
       <div id="coupon-alert"></div>
@@ -179,6 +179,37 @@ export async function handleAdmin(request, env) {
         + '<button class="btn-danger" data-action="coupon-delete" data-id="' + c.id + '">Delete</button>'
         + '</div>'
       ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No coupons yet.</p>'}
+    </div>
+
+    <!-- Special Code Config -->
+    <div class="admin-form" style="margin-top:1.5rem">
+      <h3>Special Code Configuration</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Set a special passcode-gated code and its lock image. Users enter the passcode on the Coupons page to reveal it.</p>
+      <div id="special-cfg-alert"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Special Code <span style="color:var(--text3);font-size:0.7rem">(the code users will redeem)</span></label>
+          <input type="text" id="sc-code" placeholder="SPECIALCODE2026" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Passcode <span style="color:var(--text3);font-size:0.7rem">(required to unlock)</span></label>
+          <input type="text" id="sc-passcode" placeholder="SecretPass123" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Lock Image <span style="color:var(--text3);font-size:0.7rem">(shown as lock icon on coupons page)</span></label>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div style="width:80px;height:80px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <img src="/img/special_code_lock_image" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+          </div>
+          <div style="flex:1;min-width:180px">
+            <input type="file" id="sc-lock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="sc-lock-img-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;margin-top:0.4rem" data-action="upload-special-lock-img">Upload Lock Image</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-special-code-config">Save Special Code</button>
     </div>
   </div>
 
@@ -421,6 +452,23 @@ export async function handleAdmin(request, env) {
             </div>
             <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Cover</button>
             <span id="es-alert" style="font-size:0.78rem;margin-left:0.5rem"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lock Image -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Page Lock Image</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Shown on locked sets. Upload the lock emote image here.</p>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div id="lock-img-preview" style="width:80px;height:80px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <img src="/img/emote_lock_image" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+          </div>
+          <div style="flex:1;min-width:200px">
+            <input type="file" id="lock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="lock-img-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-lock-img">Upload Lock Image</button>
+            <span id="lock-img-alert" style="font-size:0.78rem;margin-left:0.5rem"></span>
           </div>
         </div>
       </div>
@@ -725,7 +773,7 @@ export async function handleAdmin(request, env) {
   </div>
 
   <!-- ══════════════════════════════════════════════════ HOME PAGE -->
-  <div class="admin-section" id="tab-homepage">
+  <div class="admin-section active" id="tab-homepage">
     <div class="admin-form">
       <h3>Home Page Strategy Notes</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the 4 strategy note cards shown on the home page.</p>
@@ -780,6 +828,7 @@ export async function handleAdmin(request, env) {
             <input type="text" id="set-cfg-letter" placeholder="S" maxlength="4">
           </div>
         </div>
+        <div style="font-size:0.78rem;color:var(--gold);font-family:'Cinzel',serif;margin-bottom:0.4rem" id="set-cfg-location-display">Location: Characters</div>
         <div class="form-group">
           <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
           <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
@@ -1605,6 +1654,11 @@ function renderSetConfig(sn) {
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
   if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
   if (g('set-cfg-page')) g('set-cfg-page').value = s.unlock_page || 'characters';
+  if (g('set-cfg-location-display')) {
+    var page = s.unlock_page || 'characters';
+    var loc = page.charAt(0).toUpperCase() + page.slice(1);
+    g('set-cfg-location-display').textContent = 'Location: ' + loc;
+  }
   if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
   if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
   if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
@@ -1677,6 +1731,41 @@ async function bulkAddEmotes() {
     if (pz) pz.textContent = 'Click here, then paste images with Ctrl+V (or Cmd+V)';
     loadEmoteSetEmotes(sn);
   }
+}
+
+async function uploadLockImg() {
+  var fileEl = document.getElementById('lock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('lock-img-alert', false, 'Select an image file'); return; }
+  showAlert('lock-img-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'lock-img-canvas', 200, 0.9);
+  var r = await apiPost('/api/admin/image/upload', { key: 'emote_lock_image', data: data });
+  var alertEl = document.getElementById('lock-img-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Uploaded!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
+  if (r.success) {
+    var prev = document.getElementById('lock-img-preview');
+    if (prev) prev.innerHTML = '<img src="' + escH(data) + '" style="width:100%;height:100%;object-fit:contain">';
+    if (fileEl) fileEl.value = '';
+  }
+}
+
+async function saveSpecialCodeConfig() {
+  var code = ((document.getElementById('sc-code') || {}).value || '').trim();
+  var passcode = ((document.getElementById('sc-passcode') || {}).value || '').trim();
+  if (!code || !passcode) { showAlert('special-cfg-alert', false, 'Both code and passcode are required'); return; }
+  var config = JSON.stringify({ code: code, passcode: passcode });
+  var r = await apiPost('/api/admin/image/upload', { key: 'special_code_config', data: config });
+  showAlert('special-cfg-alert', r.success, r.success ? 'Special code saved! Reload coupons page to see it.' : (r.message || 'Error'));
+}
+
+async function uploadSpecialLockImg() {
+  var fileEl = document.getElementById('sc-lock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('special-cfg-alert', false, 'Select an image file'); return; }
+  showAlert('special-cfg-alert', true, 'Uploading…');
+  var data = await compressToDataUrl(file, 'sc-lock-img-canvas', 200, 0.9);
+  var r = await apiPost('/api/admin/image/upload', { key: 'special_code_lock_image', data: data });
+  showAlert('special-cfg-alert', r.success, r.success ? 'Lock image uploaded!' : (r.message || 'Error'));
 }
 
 var _esPasteBuffer = [];
@@ -1923,10 +2012,10 @@ async function loadChars() {
     elemOrder.forEach(function(el) {
       var grp = grouped[el];
       if (!grp || !grp.length) return;
-      html += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
+      html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
           + '<span class="elem-dot" style="background:' + col + '"></span>'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -2589,6 +2678,9 @@ document.addEventListener('click', function(e) {
   if (action === 'save-emote-set')   saveEmoteSet();
   if (action === 'save-set-cfg')     saveSetConfig();
   if (action === 'bulk-add-emotes')  bulkAddEmotes();
+  if (action === 'upload-lock-img')  uploadLockImg();
+  if (action === 'save-special-code-config') saveSpecialCodeConfig();
+  if (action === 'upload-special-lock-img') uploadSpecialLockImg();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
