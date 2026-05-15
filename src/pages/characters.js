@@ -53,7 +53,10 @@ export async function handleCharacters(request, env) {
     <div class="char-card-name-row">
       <div class="char-card-name">${esc(char.name)}</div>
     </div>
-    <div class="char-card-elem" style="color:${elemColor}">${esc(el)}</div>
+    <div class="char-card-elem" style="display:inline-flex;align-items:center;gap:4px;color:${elemColor}">
+      <img src="/img/element_${esc(el.toLowerCase())}" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">
+      <span>${esc(el)}</span>
+    </div>
     ${costumes.length
       ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
           ${costumeOpts}
@@ -227,8 +230,11 @@ function setupWhoAmI() {
   });
 }
 
-document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
+// Delegated element-filter handler — survives if KITSU_SETS load fails
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.elem-filter-btn');
+  if (!btn) return;
+  try {
     document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     var el = (btn.dataset.element || '').toLowerCase();
@@ -270,7 +276,7 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
         // letter_sequence and who_am_i handled elsewhere
       });
     }
-  });
+  } catch(err) {}
 });
 
 function showUnlockToast(n) {
@@ -281,16 +287,23 @@ function showUnlockToast(n) {
   setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
 }
 
-/* Costume picker */
-document.querySelectorAll('.char-costume-picker').forEach(function(sel) {
-  sel.addEventListener('change', function() {
-    var slug       = sel.dataset.slug;
-    var cosSlug    = sel.value;
+/* Costume picker — delegated so it works even if some cards render late */
+document.addEventListener('change', function(e) {
+  var sel = e.target;
+  if (!sel || !sel.classList || !sel.classList.contains('char-costume-picker')) return;
+  try {
+    var slug    = sel.dataset.slug;
+    var cosSlug = sel.value;
     var portraitEl = document.getElementById('cp-portrait-' + slug);
-    if (!portraitEl || !cosSlug) return;
+    if (!portraitEl) return;
     portraitEl.classList.remove('errored');
-    portraitEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
-  });
+    portraitEl.style.display = '';
+    if (cosSlug && cosSlug !== '__who_am_i__') {
+      portraitEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
+    } else if (!cosSlug) {
+      portraitEl.src = '/img/char_' + slug + '_portrait';
+    }
+  } catch(err) {}
 });
 </script>
 `, 'characters');
