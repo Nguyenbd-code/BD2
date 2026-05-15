@@ -79,6 +79,13 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/comp/reorder' && method === 'POST') {
       await env.DB.prepare('ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0').run().catch(() => {});
+      // Drag-drop bulk reorder: ids array
+      if (Array.isArray(body.ids)) {
+        for (let i = 0; i < body.ids.length; i++) {
+          await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind((i+1)*10, body.ids[i]).run().catch(()=>{});
+        }
+        return json({ success: true });
+      }
       const comp = await env.DB.prepare('SELECT id, type, sort_order FROM compositions WHERE id=?').bind(body.id).first();
       if (!comp) return json({ success:false, message:'Not found' }, 404);
       const allOfType = await env.DB.prepare(
