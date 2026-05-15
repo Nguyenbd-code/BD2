@@ -53,7 +53,10 @@ export async function handleCharacters(request, env) {
     <div class="char-card-name-row">
       <div class="char-card-name">${esc(char.name)}</div>
     </div>
-    <div class="char-card-elem" style="color:${elemColor}">${esc(el)}</div>
+    <div class="char-card-elem" style="display:inline-flex;align-items:center;gap:4px;color:${elemColor}">
+      <img src="/img/element_${esc(el.toLowerCase())}" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">
+      <span>${esc(el)}</span>
+    </div>
     ${costumes.length
       ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
           ${costumeOpts}
@@ -175,10 +178,63 @@ document.addEventListener('error', function(e) {
 
 /* Element filter */
 var KITSU_SETS = null;
-fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d) { KITSU_SETS = d.sets || []; }).catch(function() {});
+fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d) {
+  KITSU_SETS = d.sets || [];
+  setupWhoAmI();
+}).catch(function() {});
 
-document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
+function setupWhoAmI() {
+  if (!KITSU_SETS) return;
+  KITSU_SETS.forEach(function(s) {
+    if ((s.unlock_mode || '') !== 'who_am_i') return;
+    if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+    var targetSlug = (s.unlock_target || '').toLowerCase();
+    if (!targetSlug) return;
+    var picker = document.querySelector('.char-costume-picker[data-slug="' + targetSlug + '"]');
+    if (!picker) return;
+    var opt = document.createElement('option');
+    opt.value = '__who_am_i__';
+    opt.textContent = '~ Who Am I? ~';
+    picker.appendChild(opt);
+    var inputDiv = document.createElement('div');
+    inputDiv.style.cssText = 'display:none;margin-top:0.4rem';
+    var answer = (s.unlock_sequence || '').trim();
+    var setNum = s.set_num;
+    inputDiv.innerHTML = '<input type="text" placeholder="Enter name..." autocomplete="off" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-size:0.82rem;font-family:inherit">'
+      + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:\'Cinzel\',serif;letter-spacing:0.04em">Submit</button>'
+      + '<div style="font-size:0.7rem;color:#e74c3c;margin-top:0.2rem;min-height:1rem" class="wai-err"></div>';
+    picker.parentNode.insertBefore(inputDiv, picker.nextSibling);
+    picker.addEventListener('change', function() {
+      inputDiv.style.display = picker.value === '__who_am_i__' ? 'block' : 'none';
+    });
+    var btn = inputDiv.querySelector('button');
+    var inp = inputDiv.querySelector('input');
+    var errEl = inputDiv.querySelector('.wai-err');
+    function checkWhoAmI() {
+      var val = (inp ? inp.value : '').trim();
+      if (val.toLowerCase() === answer.toLowerCase()) {
+        localStorage.setItem('kitsu_set_' + setNum, '1');
+        inputDiv.style.display = 'none';
+        for (var i = picker.options.length - 1; i >= 0; i--) {
+          if (picker.options[i].value === '__who_am_i__') { picker.remove(i); break; }
+        }
+        picker.selectedIndex = 0;
+        showUnlockToast(setNum);
+      } else {
+        if (errEl) { errEl.textContent = 'Incorrect. Try again.'; setTimeout(function() { if (errEl) errEl.textContent = ''; }, 2000); }
+        if (inp) { inp.value = ''; inp.focus(); }
+      }
+    }
+    if (btn) btn.addEventListener('click', checkWhoAmI);
+    if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkWhoAmI(); });
+  });
+}
+
+// Delegated element-filter handler — survives if KITSU_SETS load fails
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.elem-filter-btn');
+  if (!btn) return;
+  try {
     document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     var el = (btn.dataset.element || '').toLowerCase();
@@ -188,7 +244,6 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
       card.style.display = (el === 'all' || ce === el) ? '' : 'none';
     });
     if (el && el !== 'all' && KITSU_SETS) {
-      // Track recent click sequence for sequence-mode sets
       var recent = [];
       try { recent = JSON.parse(localStorage.getItem('kitsu_recent_clicks') || '[]'); } catch(e) {}
       recent.push(el);
@@ -198,18 +253,17 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
       KITSU_SETS.forEach(function(s) {
         if ((s.unlock_page || '') !== 'characters') return;
         if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
-
         var mode = s.unlock_mode || 'count';
         if (mode === 'sequence') {
           var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean);
           if (!seq.length) return;
           var tail = recent.slice(-seq.length);
-          var match = tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; });
-          if (match) {
+          if (tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; })) {
             localStorage.setItem('kitsu_set_' + s.set_num, '1');
             showUnlockToast(s.set_num);
           }
-        } else {
+        } else if (mode === 'count') {
+          if (!(s.unlock_target || '')) return;
           if ((s.unlock_target || '').toLowerCase() !== el) return;
           var key = 'kitsu_set_' + s.set_num + '_count';
           var c = parseInt(localStorage.getItem(key) || '0', 10) + 1;
@@ -219,29 +273,37 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
             showUnlockToast(s.set_num);
           }
         }
+        // letter_sequence and who_am_i handled elsewhere
       });
     }
-  });
+  } catch(err) {}
 });
 
 function showUnlockToast(n) {
   var t = document.createElement('div');
-  t.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.2rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.9rem;box-shadow:0 8px 32px rgba(0,0,0,0.6)';
-  t.textContent = "Set " + n + " unlocked! Visit Kitsu's Emotes to see.";
+  t.style.cssText = 'position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.4rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.88rem;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap';
+  t.textContent = "Unlocked! Visit Kitsu's Emotes to see set " + n + '.';
   document.body.appendChild(t);
   setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
 }
 
-/* Costume picker */
-document.querySelectorAll('.char-costume-picker').forEach(function(sel) {
-  sel.addEventListener('change', function() {
-    var slug       = sel.dataset.slug;
-    var cosSlug    = sel.value;
+/* Costume picker — delegated so it works even if some cards render late */
+document.addEventListener('change', function(e) {
+  var sel = e.target;
+  if (!sel || !sel.classList || !sel.classList.contains('char-costume-picker')) return;
+  try {
+    var slug    = sel.dataset.slug;
+    var cosSlug = sel.value;
     var portraitEl = document.getElementById('cp-portrait-' + slug);
-    if (!portraitEl || !cosSlug) return;
+    if (!portraitEl) return;
     portraitEl.classList.remove('errored');
-    portraitEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
-  });
+    portraitEl.style.display = '';
+    if (cosSlug && cosSlug !== '__who_am_i__') {
+      portraitEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
+    } else if (!cosSlug) {
+      portraitEl.src = '/img/char_' + slug + '_portrait';
+    }
+  } catch(err) {}
 });
 </script>
 `, 'characters');

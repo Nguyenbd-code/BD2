@@ -490,17 +490,24 @@ document.addEventListener('mouseover', function(e) {
   popup.style.left = '0px';
   popup.style.top = '0px';
   popup.style.background = '#0f0f18';
-  popup.style.border = '1px solid rgba(201,168,76,0.2)';
+  popup.style.border = '1px solid rgba(201,168,76,0.35)';
+  popup.style.borderRadius = '6px';
   popup.style.boxShadow = '0 8px 32px rgba(0,0,0,0.8)';
+  popup.style.padding = '6px 10px';
+  popup.style.whiteSpace = 'nowrap';
+  popup.style.minWidth = '80px';
+  popup.style.textAlign = 'center';
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
-  var rect = wrap.getBoundingClientRect();
+  // Use the skill icon box for centering, not the full skill-wrap
+  var iconBox = wrap.querySelector('.skill-icon-box') || wrap;
+  var rect = iconBox.getBoundingClientRect();
   var left = rect.left + rect.width / 2 - pw / 2;
-  left = Math.min(left, window.innerWidth - pw - 8);
-  var top = rect.top - ph - 8;
-  if (top < 4) top = rect.bottom + 8;
-  popup.style.left = Math.max(4, left) + 'px';
-  popup.style.top = Math.max(4, top) + 'px';
+  left = Math.max(4, Math.min(left, window.innerWidth - pw - 8));
+  var top = rect.top - ph - 6;
+  if (top < 4) top = rect.bottom + 6;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
   popup.style.visibility = 'visible';
 });
 document.addEventListener('mouseout', function(e) {

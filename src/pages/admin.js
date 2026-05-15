@@ -79,7 +79,8 @@ export async function handleAdmin(request, env) {
       : 'background:rgba(39,174,96,0.2);color:#2ecc71;border:1px solid rgba(39,174,96,0.35)';
     const badgeText = isAtk ? '&#9876; ATK' : '&#128737; DEF';
     const color = c.color || '#c9a84c';
-    return '<div class="admin-item" id="comp-' + c.id + '">'
+    return '<div class="admin-item" id="comp-' + c.id + '" draggable="true" style="cursor:grab">'
+      + '<span style="color:var(--text3);font-size:1rem;cursor:grab;user-select:none;margin-right:6px;flex-shrink:0">&#10783;</span>'
       + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
       + '<span style="display:inline-block;width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + color + '"></span>'
       + '<strong>' + esc(c.tier) + ' &mdash; ' + esc(c.name) + '</strong>'
@@ -145,20 +146,43 @@ export async function handleAdmin(request, env) {
     <a href="/admin/logout" style="font-size:0.82rem;color:var(--text3)">Logout</a>
   </div>
 
+  <!-- Early, isolated tab-switching script: always wires tabs even if later JS errors -->
+  <script>
+  (function(){
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.tab-btn[data-tab]');
+      if (!btn) return;
+      var name = btn.dataset.tab;
+      document.querySelectorAll('.admin-section').forEach(function(s){ s.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      var t = document.getElementById('tab-' + name);
+      if (t) t.classList.add('active');
+      btn.classList.add('active');
+      // Defer load* calls — they're defined in the main script which loads later
+      try {
+        if (name === 'chars'    && typeof loadChars     === 'function') loadChars();
+        if (name === 'images'   && typeof updateImgKey  === 'function') updateImgKey();
+        if (name === 'homepage' && typeof loadHomeNotes === 'function') loadHomeNotes();
+        if (name === 'settings' && typeof loadEmoteSets === 'function') loadEmoteSets();
+      } catch(err) {}
+    });
+  })();
+  </script>
+
   <div class="admin-tabs">
-    <button class="tab-btn active" data-action="tab-switch" data-tab="coupons">Coupons</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="coupons">Coupons</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
 
   <!-- ═══════════════════════════════════════════════════════════ COUPONS -->
-  <div class="admin-section active" id="tab-coupons">
+  <div class="admin-section" id="tab-coupons">
     <div class="admin-form">
       <h3>Add Coupon Code</h3>
       <div id="coupon-alert"></div>
@@ -179,6 +203,37 @@ export async function handleAdmin(request, env) {
         + '<button class="btn-danger" data-action="coupon-delete" data-id="' + c.id + '">Delete</button>'
         + '</div>'
       ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No coupons yet.</p>'}
+    </div>
+
+    <!-- Special Code Config -->
+    <div class="admin-form" style="margin-top:1.5rem">
+      <h3>Special Code Configuration</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Set a special passcode-gated code and its lock image. Users enter the passcode on the Coupons page to reveal it.</p>
+      <div id="special-cfg-alert"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Special Code <span style="color:var(--text3);font-size:0.7rem">(the code users will redeem)</span></label>
+          <input type="text" id="sc-code" placeholder="SPECIALCODE2026" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Passcode <span style="color:var(--text3);font-size:0.7rem">(required to unlock)</span></label>
+          <input type="text" id="sc-passcode" placeholder="SecretPass123" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Lock Image <span style="color:var(--text3);font-size:0.7rem">(shown as lock icon on coupons page)</span></label>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div style="width:80px;height:80px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <img src="/img/special_code_lock_image" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+          </div>
+          <div style="flex:1;min-width:180px">
+            <input type="file" id="sc-lock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="sc-lock-img-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;margin-top:0.4rem" data-action="upload-special-lock-img">Upload Lock Image</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-special-code-config">Save Special Code</button>
     </div>
   </div>
 
@@ -255,45 +310,46 @@ export async function handleAdmin(request, env) {
           <div id="comp-meta-alert"></div>
         </div>
 
-        <!-- Unit Order (all tiers) -->
+        <!-- Character Bonds -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>CHARACTER BONDS</label>
+          <!-- 5 portrait summary slots -->
+          <div id="bonds-summary" style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap">
+            <span style="color:var(--text3);font-size:0.82rem">Select a composition to set bonds</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <button class="btn" style="width:auto;padding:8px 20px" id="open-bonds-modal-btn">Edit Bonds</button>
+            <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Bonds</button>
+            <div id="comp-bonds-alert" style="font-size:0.78rem"></div>
+          </div>
+        </div>
+
+        <!-- Unit Order -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem" id="unit-order-section">
           <label>UNIT ORDER</label>
-          <div id="unit-order-slots" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
-            <span style="color:var(--text3);font-size:0.82rem">Select a composition to load unit order</span>
+          <div id="unit-order-gated" style="pointer-events:none;opacity:0.35;transition:opacity 0.2s">
+            <p style="font-size:0.8rem;color:var(--text3);margin-bottom:0.6rem">Set Character Bonds first to enable unit ordering.</p>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0" onclick="saveCompUnitOrder()">Save Unit Order</button>
-          <div id="comp-order-alert"></div>
+          <div id="unit-order-active" style="display:none">
+            <!-- Summary of chosen order -->
+            <div id="unit-order-summary" style="display:flex;gap:0.5rem;margin-bottom:0.6rem;flex-wrap:wrap"></div>
+            <button class="btn" style="width:auto;padding:8px 20px" id="open-unit-order-btn">Configure Order</button>
+            <button class="btn" style="width:auto;padding:8px 20px;margin-left:0.5rem" onclick="saveCompUnitOrder()">Save Unit Order</button>
+            <div id="comp-order-alert" style="font-size:0.78rem;margin-top:0.4rem"></div>
+          </div>
         </div>
 
-        <!-- Board images (front / back) -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>Board Image — Front</label>
-          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
-          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
-        </div>
-        <div class="form-group">
-          <label>Board Image — Back</label>
-          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas-back" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
-          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
-        </div>
-
-        <!-- Video URL -->
-        <div class="form-group">
-          <label>Battle Video URL</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
+        <!-- Skill Rotation (all tiers) -->
+        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem" id="skill-rotation-section">
+          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.4rem">Skill Rotation</h4>
+          <div id="skill-rotation-gated" style="pointer-events:none;opacity:0.35;transition:opacity 0.2s">
+            <p style="font-size:0.8rem;color:var(--text3)">Set Character Bonds first to enable skill rotation.</p>
           </div>
-          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
-            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
-            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          <div id="skill-rotation-active" style="display:none">
+            <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
+            <div id="rot-alert" style="margin-bottom:0.5rem"></div>
+            <div id="rot-grid"></div>
           </div>
-          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
-          <div id="comp-video-alert"></div>
         </div>
 
         <!-- How and When to Play -->
@@ -321,6 +377,22 @@ export async function handleAdmin(request, env) {
           <div id="comp-matchups-alert"></div>
         </div>
 
+        <!-- Board images (front / back) -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>Board Image — Front</label>
+          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
+          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
+        </div>
+        <div class="form-group">
+          <label>Board Image — Back</label>
+          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
+          <canvas id="comp-canvas-back" style="display:none"></canvas>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
+          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
+        </div>
+
         <!-- Preemptive Skills -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>PREEMPTIVE SKILLS</label>
@@ -331,22 +403,19 @@ export async function handleAdmin(request, env) {
           <div id="comp-preemptive-alert"></div>
         </div>
 
-        <!-- Character Bonds -->
-        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Character Bonds</h4>
-          <div id="comp-bonds-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:0.75rem">
-            <span style="color:var(--text3);font-size:0.82rem;grid-column:1/-1">Select a composition to edit character bonds</span>
+        <!-- Video URL -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>Battle Video URL</label>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
           </div>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-comp-bonds">Save Character Bonds</button>
-          <div id="comp-bonds-alert"></div>
-        </div>
-
-        <!-- Skill Rotation (all tiers) -->
-        <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem">
-          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Skill Rotation</h4>
-          <div id="rot-char-selectors" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.75rem"></div>
-          <div id="rot-alert" style="margin-bottom:0.5rem"></div>
-          <div id="rot-grid"></div>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+            <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
+            <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
+          <div id="comp-video-alert"></div>
         </div>
 
         <div id="comp-editor-alert"></div>
@@ -379,6 +448,72 @@ export async function handleAdmin(request, env) {
       </div>
     </div>
 
+    <!-- Bonds Picker Modal -->
+    <div id="bonds-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:700px;width:100%;margin:auto;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Select Character Bonds</div>
+          <button id="close-bonds-modal-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <!-- 5 bond slots at top -->
+        <div id="bonds-modal-slots" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
+        <!-- Element filter -->
+        <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
+          <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif"><span style="font-size:0.9rem">✦</span>All</button>
+          <button class="bond-elem-btn" data-elem="water" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Water</button>
+          <button class="bond-elem-btn" data-elem="fire" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Fire</button>
+          <button class="bond-elem-btn" data-elem="light" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Light</button>
+          <button class="bond-elem-btn" data-elem="dark" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Dark</button>
+          <button class="bond-elem-btn" data-elem="wind" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Wind</button>
+        </div>
+        <!-- Search -->
+        <input id="bonds-char-search" type="text" placeholder="Search characters..." style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:5px;font-size:0.88rem;outline:none;margin-bottom:0.75rem">
+        <!-- Character grid -->
+        <div id="bonds-char-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:0.6rem;max-height:360px;overflow-y:auto"></div>
+        <!-- Costume select -->
+        <div id="bonds-costume-area" style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border2);display:none">
+          <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.4rem" id="bonds-costume-label">Costume for slot:</div>
+          <select id="bonds-costume-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.85rem">
+            <option value="">&#8212; Default &#8212;</option>
+          </select>
+          <button class="btn" style="width:auto;padding:6px 16px;margin-top:0.5rem;font-size:0.82rem" id="bonds-confirm-slot-btn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unit Order Modal -->
+    <div id="unit-order-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:420px;width:100%;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Unit Order</div>
+          <button id="close-unit-order-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Arrange positions 1&#8211;5. Only bonded characters are available.</p>
+        <div id="unit-order-slots" style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem">
+          <!-- slots populated by JS -->
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompUnitOrder();closeUnitOrderModal()">Save &amp; Close</button>
+        </div>
+        <div id="comp-order-alert-modal" style="font-size:0.78rem;margin-top:0.4rem"></div>
+      </div>
+    </div>
+
+    <!-- Skill Rotation Edit Modal -->
+    <div id="rot-edit-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:100%;margin:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div id="rot-edit-title" style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Skill Rotation</div>
+          <button id="close-rot-edit-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Pick a costume for each of the 10 rotation slots. Changes save automatically.</p>
+        <div id="rot-edit-body"></div>
+        <div style="margin-top:1rem">
+          <button class="btn" style="width:auto;padding:8px 20px" onclick="closeRotEditModal()">Done</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Comp list -->
     <div class="admin-form">
       <h3>Compositions (DB)</h3>
@@ -402,7 +537,7 @@ export async function handleAdmin(request, env) {
       <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
         <label style="margin:0;white-space:nowrap">Set</label>
         <select id="emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
-          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option>
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option><option value="6">Set 6</option>
         </select>
       </div>
 
@@ -425,6 +560,23 @@ export async function handleAdmin(request, env) {
         </div>
       </div>
 
+      <!-- Lock Image -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Page Lock Image</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Shown on locked sets. Upload the lock emote image here.</p>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div id="lock-img-preview" style="width:80px;height:80px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <img src="/img/emote_lock_image" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+          </div>
+          <div style="flex:1;min-width:200px">
+            <input type="file" id="lock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <canvas id="lock-img-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-lock-img">Upload Lock Image</button>
+            <span id="lock-img-alert" style="font-size:0.78rem;margin-left:0.5rem"></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Emote Bundle -->
       <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Emote Bundle</div>
@@ -442,39 +594,6 @@ export async function handleAdmin(request, env) {
         <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.75rem"></div>
       </div>
 
-      <!-- Settings (hint & unlock) -->
-      <details style="margin-top:1.25rem">
-        <summary style="cursor:pointer;font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);padding:0.5rem 0">Set Settings (Hint &amp; Unlock)</summary>
-        <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
-          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
-          <div class="form-group">
-            <label>Hint (shown in modal on Emotes page)</label>
-            <textarea id="es-hint" rows="3" placeholder="Phrase as a riddle..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Unlock Mode</label>
-            <select id="es-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
-              <option value="count">Count (click N times)</option>
-              <option value="sequence">Sequence (click in order)</option>
-            </select>
-          </div>
-          <div id="es-mode-count" class="form-row">
-            <div class="form-group">
-              <label>Unlock Element (Characters page)</label>
-              <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-                <option value="water">Water</option><option value="fire">Fire</option><option value="wind">Wind</option><option value="light">Light</option><option value="dark">Dark</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="99" value="7"></div>
-          </div>
-          <div id="es-mode-sequence" class="form-group" style="display:none">
-            <label>Element Sequence <span style="color:var(--text3);font-weight:400">(comma-separated; user must click in this exact order)</span></label>
-            <input type="text" id="es-sequence" placeholder="water,fire,light,dark,wind">
-            <div style="font-size:0.72rem;color:var(--text3);margin-top:0.3rem">Valid: water, fire, light, dark, wind</div>
-          </div>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Settings</button>
-        </div>
-      </details>
     </div>
   </div>
 
@@ -758,7 +877,7 @@ export async function handleAdmin(request, env) {
   </div>
 
   <!-- ══════════════════════════════════════════════════ HOME PAGE -->
-  <div class="admin-section" id="tab-homepage">
+  <div class="admin-section active" id="tab-homepage">
     <div class="admin-form">
       <h3>Home Page Strategy Notes</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Edit the 4 strategy note cards shown on the home page.</p>
@@ -790,6 +909,98 @@ export async function handleAdmin(request, env) {
         <input type="text" id="new-secret-code" placeholder="e.g. Seji404" autocomplete="off">
       </div>
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
+    </div>
+
+    <div class="admin-form" style="margin-top:1.5rem">
+      <h3>Emote Set Configuration</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1.25rem">Configure the unlock mechanic, hint, and letter for each of the six emote sets.</p>
+      <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
+        <label style="margin:0;white-space:nowrap">Set</label>
+        <select id="settings-emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:220px">
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option>
+          <option value="4">Set 4</option><option value="5">Set 5</option><option value="6">Set 6</option>
+        </select>
+      </div>
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Display Name <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown on emotes page)</span></label>
+            <input type="text" id="set-cfg-name" placeholder="S">
+          </div>
+          <div class="form-group">
+            <label>Set Letter <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(used in sequence mechanic)</span></label>
+            <input type="text" id="set-cfg-letter" placeholder="S" maxlength="4">
+          </div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--gold);font-family:'Cinzel',serif;margin-bottom:0.4rem" id="set-cfg-location-display">Location: Characters</div>
+        <div class="form-group">
+          <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
+          <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
+        </div>
+        <!-- Hidden page field — auto-set by JS, not editable (placements are fixed) -->
+        <input type="hidden" id="set-cfg-page" value="characters">
+
+        <div class="form-group">
+          <label>Unlock Mode</label>
+          <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            <option value="count">Count (click element N times)</option>
+            <option value="sequence">Sequence (elements in exact order)</option>
+            <option value="letter_sequence">Letter Sequence (click set cards)</option>
+            <option value="who_am_i">Who Am I? (ghost portrait)</option>
+          </select>
+        </div>
+
+        <!-- Count / sequence fields -->
+        <div id="set-cfg-target-wrap" class="form-row">
+          <div class="form-group">
+            <label id="set-cfg-target-label">Element Target</label>
+            <select id="set-cfg-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="">— Select Element —</option>
+              <option value="water">💧 Water</option>
+              <option value="fire">🔥 Fire</option>
+              <option value="light">✨ Light</option>
+              <option value="dark">🌑 Dark</option>
+              <option value="wind">🌿 Wind</option>
+            </select>
+          </div>
+          <div id="set-cfg-count-wrap" class="form-group">
+            <label>Click Count</label>
+            <input type="number" id="set-cfg-count" min="1" max="99" value="7">
+          </div>
+        </div>
+        <div id="set-cfg-sequence-wrap" class="form-group" style="display:none">
+          <label id="set-cfg-sequence-label">Sequence</label>
+          <!-- Hidden input keeps the comma-separated value for saving -->
+          <input type="hidden" id="set-cfg-sequence">
+          <div id="set-cfg-sequence-selects" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.25rem">
+            <!-- 5 positional selects built by updateSetCfgModeUI -->
+          </div>
+          <div id="set-cfg-sequence-note" style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem"></div>
+        </div>
+
+        <!-- Who Am I fields (shown for who_am_i mode) -->
+        <div id="set-cfg-who-am-i-wrap" style="display:none">
+          <div class="form-group">
+            <label>Ghost Portrait Character <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(character whose dropdown shows "Who Am I?")</span></label>
+            <select id="set-cfg-wai-char" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <option value="">— Loading characters... —</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem">
+            <div id="set-cfg-wai-portrait" style="width:90px;height:90px;border:1px solid var(--border2);border-radius:8px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <span style="font-size:0.65rem;color:var(--text3);text-align:center">No portrait</span>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text3);line-height:1.6">Portrait preview — change above to update</div>
+          </div>
+          <div class="form-group">
+            <label>Correct Answer <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(what player must type to unlock)</span></label>
+            <input type="text" id="set-cfg-wai-answer" placeholder="e.g. Synae">
+            <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
+          </div>
+        </div>
+        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
+      </div>
     </div>
 
   </div>
@@ -824,6 +1035,14 @@ var _compTier = '';
 var _compId = 0;
 var _compBoardKey = '';
 var _imgCat = 'all';
+
+var _bondedCharNames  = [];   // names of currently set bond chars (for gating)
+var _bondsPendingSlot = null; // which slot index (0-4) is being assigned in modal
+var _bondsPendingChar = null; // { name, slug } being confirmed
+var _bondsModalChars  = [];   // all chars loaded for bonds modal
+var _bondsSelections  = [null,null,null,null,null]; // {name, slug, costume} per slot
+var _currentUnitOrder = [];
+var _bondsCurElem     = 'all';
 
 var elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
 
@@ -884,6 +1103,7 @@ function showTab(name) {
   if (name === 'chars')    loadChars();
   if (name === 'images')   updateImgKey();
   if (name === 'homepage') loadHomeNotes();
+  if (name === 'settings') loadEmoteSets();
 }
 
 /* ══════════════════════════════════════════════════════════ COUPONS ══ */
@@ -1203,20 +1423,8 @@ async function loadCompData(id) {
 
     var currentOrder = [];
     try { currentOrder = JSON.parse(opt.dataset.unitOrder || '[]'); } catch(e) {}
-
-    var slotsEl = document.getElementById('unit-order-slots');
-    if (slotsEl) {
-      slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
-        var cur = currentOrder[n-1] || '';
-        var opts = '<option value="">— Select —</option>' + allChars.map(function(c) {
-          return '<option value="' + escH(c.name) + '"' + (c.name === cur ? ' selected' : '') + '>' + escH(c.name) + '</option>';
-        }).join('');
-        return '<div style="text-align:center">'
-          + '<div style="font-size:0.65rem;color:var(--text3);margin-bottom:3px">' + n + '</div>'
-          + '<select id="uorder-sel-' + n + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;width:120px;font-size:0.82rem">'
-          + opts + '</select></div>';
-      }).join('');
-    }
+    _currentUnitOrder = currentOrder.slice(0, 5);
+    updateUnitOrderSummary();
   } catch(e) {}
 }
 
@@ -1283,11 +1491,9 @@ async function saveCompMeta() {
 
 async function saveCompUnitOrder() {
   if (!_compId) { showAlert('comp-order-alert', false, 'Select a composition first'); return; }
-  var order = [];
-  for (var i = 1; i <= 5; i++) {
-    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
-    if (v) order.push(v);
-  }
+  // Sync from modal selects if open
+  onUnitOrderChange();
+  var order = (_currentUnitOrder||[]).filter(Boolean);
   var sel  = document.getElementById('comp-select');
   var opt  = sel ? sel.options[sel.selectedIndex] : null;
   var name = opt ? opt.dataset.name  || '' : '';
@@ -1305,111 +1511,264 @@ async function saveCompUnitOrder() {
 /* ══════════════════════════════════════════════════ COMP CHAR BONDS ══ */
 async function loadCompChars() {
   if (!_compTier) return;
-  var grid = document.getElementById('comp-bonds-grid');
-  if (!grid) return;
   try {
-    var charsRes = await fetch('/api/admin/chars/list');
-    var charsData = await charsRes.json();
-    var allChars = charsData.chars || [];
+    if (_bondsModalChars.length === 0) {
+      var charsRes = await fetch('/api/admin/chars/list');
+      var charsData = await charsRes.json();
+      _bondsModalChars = charsData.chars || [];
+    }
     var existingRes = await fetch('/api/admin/comp/chars/get?tier=' + encodeURIComponent(_compTier));
     var existingData = await existingRes.json();
     var existingChars = existingData.chars || [];
-
-    var charOptions = '<option value="">— None —</option>' + allChars.map(function(c) {
-      return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + '</option>';
-    }).join('');
-
-    grid.innerHTML = [1,2,3,4,5].map(function(n) {
-      var ex = existingChars.find(function(c) { return c.position === n; }) || {};
-      var charOpts = '<option value="">— None —</option>' + allChars.map(function(c) {
-        return '<option value="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '"' + (c.name === (ex.char_name||'') ? ' selected' : '') + '>' + escH(c.name) + '</option>';
-      }).join('');
-      var portraitSrc = ex.char_slug ? '/img/char_' + ex.char_slug + '_portrait' : '';
-      return '<div style="border:1px solid var(--border2);border-radius:8px;padding:0.75rem;background:var(--bg4)">'
-        + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:0.4rem;font-family:Cinzel,serif">SLOT ' + n + '</div>'
-        + '<select id="bond-char-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
-        + charOpts + '</select>'
-        + '<select id="bond-cost-' + n + '" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.8rem;margin-bottom:0.4rem">'
-        + '<option value="">— Costume —</option></select>'
-        + '<div style="height:50px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative">'
-        + (portraitSrc ? '<img id="bond-portrait-' + n + '" src="' + escH(portraitSrc) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">' : '<img id="bond-portrait-' + n + '" src="" style="width:100%;height:100%;object-fit:cover;display:none" class="img-err-hide">')
-        + '</div></div>';
-    }).join('');
-
-    for (var n = 1; n <= 5; n++) {
-      (function(slot) {
-        var ex = existingChars.find(function(c) { return c.position === slot; }) || {};
-        var charSel = document.getElementById('bond-char-' + slot);
-        var costSel = document.getElementById('bond-cost-' + slot);
-        function refreshPortrait() {
-          var img = document.getElementById('bond-portrait-' + slot);
-          if (!img) return;
-          var charOpt = charSel ? charSel.options[charSel.selectedIndex] : null;
-          var slug = charOpt ? (charOpt.dataset.slug || '') : '';
-          if (!slug) { img.src = ''; img.style.display = 'none'; return; }
-          var costName = costSel ? costSel.value : '';
-          var cosSlug  = (costName||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-          var url = cosSlug
-            ? '/img/char_' + slug + '_' + cosSlug + '_icon'
-            : '/img/char_' + slug + '_portrait';
-          img.onerror = function() {
-            img.onerror = null;
-            img.src = '/img/char_' + slug + '_portrait?t=' + Date.now();
-          };
-          img.src = url + '?t=' + Date.now();
-          img.style.display = 'block';
-        }
-        if (charSel) {
-          if (ex.char_slug) loadBondCostumes(slot, ex.char_slug, ex.costume_name || '', refreshPortrait);
-          charSel.addEventListener('change', function() {
-            var opt = charSel.options[charSel.selectedIndex];
-            var slug = opt ? (opt.dataset.slug || '') : '';
-            loadBondCostumes(slot, slug, '', refreshPortrait);
-            refreshPortrait();
-          });
-        }
-        if (costSel) costSel.addEventListener('change', refreshPortrait);
-      })(n);
-    }
+    _bondsSelections = [null,null,null,null,null];
+    existingChars.forEach(function(ex) {
+      var idx = (ex.position || 1) - 1;
+      if (idx >= 0 && idx < 5) {
+        _bondsSelections[idx] = { name: ex.char_name, slug: ex.char_slug || '', costume: ex.costume_name || '' };
+      }
+    });
+    _bondedCharNames = _bondsSelections.filter(Boolean).map(function(s) { return s.name; });
+    renderBondsSummary();
+    updateBondGating();
+    updateUnitOrderSummary();
   } catch(e) {}
 }
 
-async function loadBondCostumes(slot, charSlug, selectedCostume, done) {
-  var sel = document.getElementById('bond-cost-' + slot);
-  if (!sel || !charSlug) { if (done) done(); return; }
-  try {
-    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(charSlug));
-    var data = await res.json();
-    sel.innerHTML = '<option value="">— Costume —</option>' + (data.costumes||[]).map(function(c) {
-      return '<option value="' + escH(c.costume_name) + '"' + (c.costume_name === selectedCostume ? ' selected' : '') + '>' + escH(c.costume_name) + '</option>';
-    }).join('');
-  } catch(e) {
-    sel.innerHTML = '<option value="">— No costumes —</option>';
+function updateBondGating() {
+  var hasBonds = _bondedCharNames.length > 0;
+  var gated  = document.getElementById('unit-order-gated');
+  var active = document.getElementById('unit-order-active');
+  var rotGated  = document.getElementById('skill-rotation-gated');
+  var rotActive = document.getElementById('skill-rotation-active');
+  if (gated)    gated.style.display    = hasBonds ? 'none' : 'block';
+  if (active)   active.style.display   = hasBonds ? 'block' : 'none';
+  if (rotGated)  rotGated.style.display  = hasBonds ? 'none' : 'block';
+  if (rotActive) rotActive.style.display = hasBonds ? 'block' : 'none';
+  if (hasBonds) refreshRotationWithBonds();
+}
+
+function refreshRotationWithBonds() {
+  buildRotationSelectors(_bondedCharNames.map(function(n) {
+    var found = _bondsModalChars.find(function(c) { return c.name === n; });
+    return found || { name: n, slug: n.toLowerCase().replace(/[^a-z0-9]/g,'') };
+  }));
+}
+
+function openBondsModal() {
+  if (!_compTier) { alert('Select a composition first'); return; }
+  var modal = document.getElementById('bonds-modal');
+  if (modal) { modal.style.display = 'flex'; }
+  loadBondsModalChars();
+}
+function closeBondsModal() {
+  var modal = document.getElementById('bonds-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadBondsModalChars() {
+  if (_bondsModalChars.length === 0) {
+    try {
+      var res = await fetch('/api/admin/chars/list');
+      var data = await res.json();
+      _bondsModalChars = data.chars || [];
+    } catch(e) {}
   }
-  if (done) done();
+  renderBondsCharGrid('all');
+  renderBondsModalSlots();
+}
+
+function renderBondsCharGrid(elemFilter) {
+  var grid = document.getElementById('bonds-char-grid');
+  var search = (document.getElementById('bonds-char-search')||{}).value || '';
+  if (!grid) return;
+  var chars = _bondsModalChars.filter(function(c) {
+    if (elemFilter && elemFilter !== 'all' && (c.element||'').toLowerCase() !== elemFilter) return false;
+    if (search && c.name.toLowerCase().indexOf(search.toLowerCase()) < 0) return false;
+    return true;
+  });
+  var selectedNames = _bondsSelections.filter(Boolean).map(function(s) { return s.name; });
+  grid.innerHTML = chars.map(function(c) {
+    var isSelected = selectedNames.indexOf(c.name) >= 0;
+    var elem = (c.element||'').toLowerCase();
+    return '<div class="bond-char-card" data-slug="' + escH(c.slug) + '" data-name="' + escH(c.name) + '" data-elem="' + escH(c.element||'') + '" style="border:2px solid ' + (isSelected ? 'var(--gold)' : 'var(--border2)') + ';border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg3);text-align:center;padding-bottom:0.35rem;transition:border-color 0.15s;position:relative">'
+      + (elem ? '<img src="/img/element_' + escH(elem) + '" class="img-err-hide" style="position:absolute;top:4px;right:4px;width:18px;height:18px;object-fit:contain;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8))">' : '')
+      + '<div style="height:70px;overflow:hidden;background:var(--bg4)">'
+      + '<img src="/img/char_' + escH(c.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '</div>'
+      + '<div style="font-size:0.68rem;padding:0.25rem 0.15rem 0;color:' + (isSelected ? 'var(--gold)' : 'var(--text)') + ';line-height:1.2">' + escH(c.name) + '</div>'
+      + '<div style="display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;color:var(--text3);text-transform:capitalize">'
+      + (elem ? '<img src="/img/element_' + escH(elem) + '" class="img-err-hide" style="width:10px;height:10px;object-fit:contain">' : '')
+      + escH(c.element||'') + '</div>'
+      + '</div>';
+  }).join('');
+  grid.querySelectorAll('.bond-char-card').forEach(function(card) {
+    card.addEventListener('click', function() { onBondsCharClick(card.dataset.name, card.dataset.slug); });
+  });
+}
+
+function renderBondsModalSlots() {
+  var slotsEl = document.getElementById('bonds-modal-slots');
+  if (!slotsEl) return;
+  slotsEl.innerHTML = _bondsSelections.map(function(s, i) {
+    var isEmpty = !s;
+    var cosSlug = s && s.costume ? s.costume.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') : '';
+    var imgSrc = s ? (cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait') : '';
+    var fallback = s ? '/img/char_' + s.slug + '_portrait' : '';
+    return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '')) + '">'
+      + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
+      + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
+        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+          + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
+      + '</div>'
+      + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
+      + '</div>';
+  }).join('');
+  slotsEl.querySelectorAll('.bond-modal-slot').forEach(function(el) {
+    el.addEventListener('click', function() { _bondsPendingSlot = parseInt(el.dataset.slot, 10); });
+  });
+}
+
+function onBondsCharClick(name, slug) {
+  var existing = _bondsSelections.findIndex(function(s) { return s && s.name === name; });
+  if (existing >= 0) {
+    _bondsSelections[existing] = null;
+    renderBondsCharGrid(_bondsCurElem || 'all');
+    renderBondsModalSlots();
+    return;
+  }
+  var targetSlot = (_bondsPendingSlot !== null && !_bondsSelections[_bondsPendingSlot]) ? _bondsPendingSlot : _bondsSelections.findIndex(function(s) { return !s; });
+  if (targetSlot < 0) { alert('All 5 slots are filled. Click a slot above to replace it.'); return; }
+  _bondsPendingChar = { name: name, slug: slug };
+  _bondsPendingSlot = targetSlot;
+  showBondsCostumeArea(name, slug, targetSlot);
+}
+
+async function showBondsCostumeArea(name, slug, slot) {
+  var area = document.getElementById('bonds-costume-area');
+  var label = document.getElementById('bonds-costume-label');
+  var sel = document.getElementById('bonds-costume-sel');
+  var confirmBtn = document.getElementById('bonds-confirm-slot-btn');
+  if (!area || !sel) return;
+  area.style.display = 'block';
+  if (label) label.textContent = 'Costume for ' + name + ' (Slot ' + (slot+1) + '):';
+  sel.innerHTML = '<option value="">&#8212; Default &#8212;</option>';
+  try {
+    var res = await fetch('/api/admin/costumes/list?char_slug=' + encodeURIComponent(slug));
+    var data = await res.json();
+    (data.costumes||[]).forEach(function(c) {
+      sel.innerHTML += '<option value="' + escH(c.costume_name) + '">' + escH(c.costume_name) + '</option>';
+    });
+  } catch(e) {}
+  if (confirmBtn) confirmBtn.onclick = function() { confirmBondSlot(); };
+}
+
+function confirmBondSlot() {
+  if (_bondsPendingSlot === null || !_bondsPendingChar) return;
+  var sel = document.getElementById('bonds-costume-sel');
+  var costume = sel ? sel.value : '';
+  _bondsSelections[_bondsPendingSlot] = { name: _bondsPendingChar.name, slug: _bondsPendingChar.slug, costume: costume };
+  _bondsPendingChar = null;
+  var area = document.getElementById('bonds-costume-area');
+  if (area) area.style.display = 'none';
+  renderBondsCharGrid(_bondsCurElem || 'all');
+  renderBondsModalSlots();
+  renderBondsSummary();
+}
+
+function clearBondSlot(idx) {
+  _bondsSelections[idx] = null;
+  renderBondsModalSlots();
+  renderBondsCharGrid(_bondsCurElem || 'all');
+  renderBondsSummary();
+}
+
+function renderBondsSummary() {
+  var summary = document.getElementById('bonds-summary');
+  if (!summary) return;
+  var filled = _bondsSelections.filter(Boolean);
+  if (!filled.length) {
+    summary.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No bonds set &#8212; click Edit Bonds to pick characters</span>';
+    return;
+  }
+  summary.innerHTML = _bondsSelections.map(function(s, i) {
+    if (!s) return '<div style="width:48px;height:48px;border:1px dashed var(--border2);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.7rem">' + (i+1) + '</div>';
+    var cosSlug = s.costume ? s.costume.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') : '';
+    var imgSrc = cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait';
+    var fallback = '/img/char_' + s.slug + '_portrait';
+    return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '') + '">'
+      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '</div>';
+  }).join('');
 }
 
 async function saveCompBonds() {
   if (!_compTier) { showAlert('comp-bonds-alert', false, 'Select a composition first'); return; }
-  var charsRes = await fetch('/api/admin/chars/list').then(function(r) { return r.json(); }).catch(function() { return { chars: [] }; });
-  var allChars = charsRes.chars || [];
   var chars = [];
-  for (var n = 1; n <= 5; n++) {
-    var charSel = document.getElementById('bond-char-' + n);
-    var costSel = document.getElementById('bond-cost-' + n);
-    var charName = charSel ? charSel.value : '';
-    if (!charName) continue;
-    var charObj = allChars.find(function(c) { return c.name === charName; }) || {};
-    chars.push({
-      position: n,
-      char_name: charName,
-      char_slug: charObj.slug || charName.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      costume_name: costSel ? costSel.value : '',
-      bond_stats: '',
-    });
-  }
+  _bondsSelections.forEach(function(s, i) {
+    if (s) chars.push({ position: i+1, char_name: s.name, char_slug: s.slug, costume_name: s.costume || '', bond_stats: '' });
+  });
   var r = await apiPost('/api/admin/comp/chars/save', { tier: _compTier, chars: chars });
   showAlert('comp-bonds-alert', r.success, r.message);
+  if (r.success) {
+    _bondedCharNames = chars.map(function(c) { return c.char_name; });
+    updateBondGating();
+    updateUnitOrderSummary();
+  }
+}
+
+/* ══════════════════════════════════════════════ UNIT ORDER MODAL ══ */
+function openUnitOrderModal() {
+  if (!_compTier) { alert('Select a composition first'); return; }
+  var modal = document.getElementById('unit-order-modal');
+  if (modal) modal.style.display = 'flex';
+  renderUnitOrderSlots();
+}
+function closeUnitOrderModal() {
+  var modal = document.getElementById('unit-order-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderUnitOrderSlots() {
+  var slotsEl = document.getElementById('unit-order-slots');
+  if (!slotsEl) return;
+  var bondedNames = _bondedCharNames;
+  slotsEl.innerHTML = [1,2,3,4,5].map(function(n) {
+    var cur = _currentUnitOrder[n-1] || '';
+    var opts = '<option value="">&#8212; Select &#8212;</option>' + bondedNames.map(function(name) {
+      return '<option value="' + escH(name) + '"' + (name === cur ? ' selected' : '') + '>' + escH(name) + '</option>';
+    }).join('');
+    return '<div style="display:flex;align-items:center;gap:0.6rem">'
+      + '<div style="font-size:0.7rem;color:var(--text3);width:16px;text-align:right;flex-shrink:0">' + n + '</div>'
+      + '<select id="uorder-sel-' + n + '" style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;font-size:0.85rem" onchange="onUnitOrderChange()">'
+      + opts + '</select></div>';
+  }).join('');
+}
+
+function onUnitOrderChange() {
+  _currentUnitOrder = [];
+  for (var i = 1; i <= 5; i++) {
+    var v = ((document.getElementById('uorder-sel-' + i)||{}).value||'').trim();
+    _currentUnitOrder[i-1] = v || '';
+  }
+  updateUnitOrderSummary();
+}
+
+function updateUnitOrderSummary() {
+  var summary = document.getElementById('unit-order-summary');
+  if (!summary) return;
+  var filled = (_currentUnitOrder||[]).filter(Boolean);
+  if (!filled.length) {
+    summary.innerHTML = '<span style="color:var(--text3);font-size:0.82rem">No order set &#8212; click Configure Order</span>';
+    return;
+  }
+  summary.innerHTML = (_currentUnitOrder||[]).map(function(name, i) {
+    if (!name) return '<div style="width:40px;height:40px;border:1px dashed var(--border2);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.7rem">' + (i+1) + '</div>';
+    var found = _bondsModalChars.find(function(c) { return c.name === name; });
+    var slug = found ? found.slug : '';
+    return '<div style="width:40px;height:40px;border:1px solid var(--border2);border-radius:5px;overflow:hidden;display:inline-block" title="' + escH(name) + '">'
+      + (slug ? '<img src="/img/char_' + escH(slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">' : '<span style="font-size:0.6rem;color:var(--text);display:flex;align-items:center;justify-content:center;height:100%">' + escH(name.slice(0,4)) + '</span>')
+      + '</div>';
+  }).join('');
 }
 
 /* ══════════════════════════════════════════════════════════ EMOTES ══ */
@@ -1463,6 +1822,7 @@ async function deleteEmote(id) {
 var _esSets = {};
 var _esCurrentSet = 1;
 var _esPendingCover = '';
+var _settingsCurrentSet = 1;
 
 async function loadEmoteSets() {
   try {
@@ -1473,6 +1833,25 @@ async function loadEmoteSets() {
     arr.forEach(function(s) { _esSets[s.set_num] = s; });
     renderEmoteSet(_esCurrentSet);
     loadEmoteSetEmotes(_esCurrentSet);
+    // Update emote tab selector with set names
+    var sel = document.getElementById('emote-set-select');
+    if (sel) {
+      sel.innerHTML = [1,2,3,4,5,6].map(function(n) {
+        var sv = _esSets[n];
+        var lbl = sv ? (sv.name || ('Set '+n)) : ('Set '+n);
+        return '<option value="'+n+'"'+(String(n)===String(_esCurrentSet)?' selected':'')+'>'+n+' ('+escH(lbl)+')</option>';
+      }).join('');
+    }
+    // Update settings tab selector with set names
+    var settingsSel = document.getElementById('settings-emote-set-select');
+    if (settingsSel) {
+      settingsSel.innerHTML = [1,2,3,4,5,6].map(function(n) {
+        var sv = _esSets[n];
+        var lbl = sv ? (sv.name || ('Set '+n)) : ('Set '+n);
+        return '<option value="'+n+'"'+(String(n)===String(_settingsCurrentSet)?' selected':'')+'>'+n+' ('+escH(lbl)+')</option>';
+      }).join('');
+    }
+    renderSetConfig(_settingsCurrentSet || 1);
   } catch(e) {}
 }
 
@@ -1544,6 +1923,157 @@ async function saveEmoteSet() {
   if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
 }
 
+function renderSetConfig(sn) {
+  var s = _esSets[sn] || {};
+  function g(id) { return document.getElementById(id); }
+  if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
+  if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
+  if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
+  // Auto-set page based on set number (Set 2 = emotes, all others = characters)
+  var fixedPage = (sn === 2) ? 'emotes' : 'characters';
+  if (g('set-cfg-page')) g('set-cfg-page').value = fixedPage;
+  if (g('set-cfg-location-display')) {
+    var loc = fixedPage.charAt(0).toUpperCase() + fixedPage.slice(1);
+    g('set-cfg-location-display').textContent = 'Location: ' + loc;
+  }
+  if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
+  if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
+  if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
+  // who_am_i fields
+  if ((s.unlock_mode || 'count') === 'who_am_i') {
+    if (g('set-cfg-wai-answer')) g('set-cfg-wai-answer').value = s.unlock_sequence || '';
+  }
+  updateSetCfgModeUI(s.unlock_mode || 'count');
+  // If who_am_i, load char list with preselect AFTER updateSetCfgModeUI shows the wrap
+  if ((s.unlock_mode || 'count') === 'who_am_i') {
+    loadWAICharList(s.unlock_target);
+  }
+  // Rebuild sequence selects with current value (after updateSetCfgModeUI built them)
+  buildSequenceSelects(s.unlock_mode || 'count');
+}
+
+function updateSetCfgModeUI(mode) {
+  function g(id) { return document.getElementById(id); }
+  var isCount = mode === 'count';
+  var isWho   = mode === 'who_am_i';
+  var isSeq   = mode === 'sequence' || mode === 'letter_sequence';
+  // Show/hide standard fields
+  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = isCount ? '' : 'none';
+  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq   ? '' : 'none';
+  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = isCount ? '' : 'none';
+  // Show/hide who_am_i block
+  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
+  // Update sequence labels
+  if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
+  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.';
+  // Build the 5 positional selects for the sequence
+  buildSequenceSelects(mode);
+  // (who_am_i char list loaded by renderSetConfig after this runs)
+}
+
+function buildSequenceSelects(mode) {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  var hidden = document.getElementById('set-cfg-sequence');
+  var curVal = hidden ? hidden.value : '';
+  var curParts = curVal ? curVal.split(',').map(function(x){return x.trim();}) : [];
+
+  var elemOpts = ['water','fire','light','dark','wind'].map(function(el) {
+    return '<option value="' + el + '">' + el.charAt(0).toUpperCase() + el.slice(1) + '</option>';
+  }).join('');
+
+  // For letter_sequence, get currently configured set letters
+  var letterOpts = '';
+  if (mode === 'letter_sequence' && typeof _esSets !== 'undefined') {
+    Object.keys(_esSets).forEach(function(sn) {
+      var s = _esSets[sn];
+      var ltr = (s && (s.set_letter || s.name || '')).toUpperCase();
+      if (ltr) letterOpts += '<option value="' + ltr + '">' + ltr + '</option>';
+    });
+  }
+
+  var opts = mode === 'letter_sequence' ? letterOpts : elemOpts;
+  container.innerHTML = [1,2,3,4,5].map(function(pos) {
+    var cur = curParts[pos-1] || '';
+    var selOpts = '<option value="">—</option>' + opts;
+    // Mark selected
+    selOpts = selOpts.replace('value="' + cur + '"', 'value="' + cur + '" selected');
+    return '<div style="text-align:center">'
+      + '<div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">' + pos + '</div>'
+      + '<select class="seq-pos-sel" data-pos="' + pos + '" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.82rem;width:90px">'
+      + selOpts + '</select>'
+      + '</div>';
+  }).join('');
+
+  // Wire change events to sync hidden input
+  container.querySelectorAll('.seq-pos-sel').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var vals = Array.from(container.querySelectorAll('.seq-pos-sel')).map(function(s){return s.value;}).filter(Boolean);
+      if (hidden) hidden.value = vals.join(',');
+    });
+  });
+}
+
+var _waiCharsLoaded = false;
+async function loadWAICharList(preselect) {
+  var sel = document.getElementById('set-cfg-wai-char');
+  if (!sel) return;
+  if (!_waiCharsLoaded) {
+    try {
+      var res = await fetch('/api/admin/chars/list');
+      var data = await res.json();
+      var chars = data.chars || [];
+      sel.innerHTML = '<option value="">— Select character —</option>' + chars.map(function(c) {
+        return '<option value="' + escH(c.slug) + '" data-slug="' + escH(c.slug) + '">' + escH(c.name) + ' (' + escH(c.element||'?') + ')</option>';
+      }).join('');
+      _waiCharsLoaded = true;
+    } catch(e) {
+      sel.innerHTML = '<option value="">— Failed to load —</option>';
+    }
+  }
+  if (preselect) {
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === preselect) { sel.selectedIndex = i; break; }
+    }
+  }
+  refreshWAIPortrait(sel.value);
+}
+
+function refreshWAIPortrait(slug) {
+  var prev = document.getElementById('set-cfg-wai-portrait');
+  if (!prev) return;
+  if (!slug) { prev.innerHTML = '<span style="font-size:0.65rem;color:var(--text3);text-align:center">No portrait</span>'; return; }
+  prev.innerHTML = '<img src="/img/char_' + escH(slug) + '_portrait?t=' + Date.now() + '" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">';
+}
+
+async function saveSetConfig() {
+  var sn = _settingsCurrentSet || 1;
+  function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+  var mode = gv('set-cfg-mode') || 'count';
+  var isWho = mode === 'who_am_i';
+  var body = {
+    set_num: sn,
+    name: gv('set-cfg-name') || ('Set ' + sn),
+    set_letter: gv('set-cfg-letter'),
+    hint: gv('set-cfg-hint'),
+    unlock_page: gv('set-cfg-page') || 'characters',
+    unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
+    unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,
+    unlock_mode: mode,
+    unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
+    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+  };
+  var r = await apiPost('/api/admin/emote-set/save', body);
+  var alertEl = document.getElementById('set-cfg-alert');
+  if (alertEl) {
+    alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error');
+    setTimeout(function() { alertEl.textContent = ''; }, 3000);
+  }
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderSetConfig(sn); }
+}
+
 async function bulkAddEmotes() {
   var sn = _esCurrentSet;
   var fileEl = document.getElementById('es-bulk-files');
@@ -1568,6 +2098,41 @@ async function bulkAddEmotes() {
     if (pz) pz.textContent = 'Click here, then paste images with Ctrl+V (or Cmd+V)';
     loadEmoteSetEmotes(sn);
   }
+}
+
+async function uploadLockImg() {
+  var fileEl = document.getElementById('lock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('lock-img-alert', false, 'Select an image file'); return; }
+  showAlert('lock-img-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'lock-img-canvas', 200, 0.9);
+  var r = await apiPost('/api/admin/image/upload', { key: 'emote_lock_image', data: data });
+  var alertEl = document.getElementById('lock-img-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Uploaded!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
+  if (r.success) {
+    var prev = document.getElementById('lock-img-preview');
+    if (prev) prev.innerHTML = '<img src="' + escH(data) + '" style="width:100%;height:100%;object-fit:contain">';
+    if (fileEl) fileEl.value = '';
+  }
+}
+
+async function saveSpecialCodeConfig() {
+  var code = ((document.getElementById('sc-code') || {}).value || '').trim();
+  var passcode = ((document.getElementById('sc-passcode') || {}).value || '').trim();
+  if (!code || !passcode) { showAlert('special-cfg-alert', false, 'Both code and passcode are required'); return; }
+  var config = JSON.stringify({ code: code, passcode: passcode });
+  var r = await apiPost('/api/admin/image/upload', { key: 'special_code_config', data: config });
+  showAlert('special-cfg-alert', r.success, r.success ? 'Special code saved! Reload coupons page to see it.' : (r.message || 'Error'));
+}
+
+async function uploadSpecialLockImg() {
+  var fileEl = document.getElementById('sc-lock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('special-cfg-alert', false, 'Select an image file'); return; }
+  showAlert('special-cfg-alert', true, 'Uploading…');
+  var data = await compressToDataUrl(file, 'sc-lock-img-canvas', 200, 0.9);
+  var r = await apiPost('/api/admin/image/upload', { key: 'special_code_lock_image', data: data });
+  showAlert('special-cfg-alert', r.success, r.success ? 'Lock image uploaded!' : (r.message || 'Error'));
 }
 
 var _esPasteBuffer = [];
@@ -1614,6 +2179,25 @@ function setupEmoteSetUI() {
         }
       }
       if (added) pz.textContent = _esPasteBuffer.length + ' pasted image(s) queued. Click "Upload Selected Files" to save.';
+    });
+  }
+  var settingsSel = document.getElementById('settings-emote-set-select');
+  if (settingsSel) {
+    settingsSel.addEventListener('change', function() {
+      _settingsCurrentSet = parseInt(settingsSel.value, 10) || 1;
+      renderSetConfig(_settingsCurrentSet);
+    });
+  }
+  var modeSel2 = document.getElementById('set-cfg-mode');
+  if (modeSel2) {
+    modeSel2.addEventListener('change', function() {
+      updateSetCfgModeUI(modeSel2.value);
+    });
+  }
+  var waiCharSel = document.getElementById('set-cfg-wai-char');
+  if (waiCharSel) {
+    waiCharSel.addEventListener('change', function() {
+      refreshWAIPortrait(waiCharSel.value);
     });
   }
   loadEmoteSets();
@@ -1801,10 +2385,10 @@ async function loadChars() {
     elemOrder.forEach(function(el) {
       var grp = grouped[el];
       if (!grp || !grp.length) return;
-      html += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
+      html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
           + '<span class="elem-dot" style="background:' + col + '"></span>'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -2333,45 +2917,85 @@ async function loadRotCostumes(charName, charSlug) {
 function buildRotationGrid() {
   var grid = document.getElementById('rot-grid');
   if (!grid) return;
-  // Collect selected chars from selectors
   var sels = document.querySelectorAll('.rot-char-sel');
   var selected = [];
-  sels.forEach(function(s) { if (s.value) selected.push(s.value); });
+  sels.forEach(function(s) {
+    if (s.value) {
+      var opt = s.options[s.selectedIndex];
+      selected.push({ name: s.value, slug: opt ? (opt.dataset.slug || '') : '' });
+    }
+  });
   if (!selected.length) { grid.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">Select characters above to build the rotation grid.</p>'; return; }
 
-  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.75rem;padding:2px 4px;width:100%';
-  var html = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(selected.length, 5) + ',1fr);gap:0.75rem">';
-  selected.forEach(function(charName) {
-    var costumes  = _rotCostMap[charName] || [];
-    var saved     = _rotSaved[charName]   || {};
-    var costOpts  = '<option value="">— None —</option>' + costumes.map(function(cn) {
-      return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
-    }).join('');
-    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem">';
-    html += '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);margin-bottom:0.4rem;text-align:center">' + escH(charName) + '</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem">';
-    for (var slot = 1; slot <= 10; slot++) {
-      var cur = saved[slot] || '';
-      var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
-      html += '<div style="display:flex;align-items:center;gap:0.2rem">';
-      html += '<span style="font-size:0.65rem;color:var(--text3);width:12px;flex-shrink:0;text-align:right">' + slot + '</span>';
-      html += '<select style="' + selStyle + '"'
-            + ' data-action="rot-slot-change"'
-            + ' data-char="' + escH(charName) + '"'
-            + ' data-slot="' + slot + '">'
-            + selOpts + '</select>';
-      if (cur) {
-        html += '<button class="btn-danger" style="font-size:0.65rem;padding:1px 4px;flex-shrink:0;line-height:1"'
-              + ' data-action="rot-delete"'
-              + ' data-char="' + escH(charName) + '"'
-              + ' data-slot="' + slot + '">×</button>';
-      }
-      html += '</div>';
-    }
-    html += '</div></div>';
+  // Show summary cards per character with an "Edit Rotation" button
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.6rem">';
+  selected.forEach(function(c) {
+    var saved   = _rotSaved[c.name] || {};
+    var filled  = Object.keys(saved).filter(function(k){ return saved[k]; }).length;
+    var portrait = c.slug ? '/img/char_' + escH(c.slug) + '_portrait' : '';
+    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;display:flex;flex-direction:column;align-items:center;gap:0.4rem">'
+         + (portrait ? '<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--bg2);border:1px solid var(--border2)"><img src="' + portrait + '" class="img-err-dim" style="width:100%;height:100%;object-fit:cover"></div>' : '')
+         + '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);text-align:center">' + escH(c.name) + '</div>'
+         + '<div style="font-size:0.7rem;color:var(--text3)">' + filled + ' / 10 slots</div>'
+         + '<button class="btn" style="width:auto;padding:5px 12px;font-size:0.75rem" data-action="rot-edit-char" data-char="' + escH(c.name) + '">Edit Rotation</button>'
+         + '</div>';
   });
   html += '</div>';
   grid.innerHTML = html;
+}
+
+/* Rotation Edit Modal — single character, 10 slots */
+var _rotEditChar = null;
+
+function openRotEditModal(charName) {
+  _rotEditChar = charName;
+  var modal = document.getElementById('rot-edit-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderRotEditModal();
+}
+
+function closeRotEditModal() {
+  var modal = document.getElementById('rot-edit-modal');
+  if (modal) modal.style.display = 'none';
+  _rotEditChar = null;
+  buildRotationGrid();
+}
+
+function renderRotEditModal() {
+  var charName = _rotEditChar;
+  if (!charName) return;
+  var titleEl = document.getElementById('rot-edit-title');
+  if (titleEl) titleEl.textContent = charName + " — Skill Rotation";
+  var body = document.getElementById('rot-edit-body');
+  if (!body) return;
+  var costumes = _rotCostMap[charName] || [];
+  var saved    = _rotSaved[charName]   || {};
+  var costOpts = '<option value="">— None —</option>' + costumes.map(function(cn) {
+    return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
+  }).join('');
+  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.85rem;padding:6px 8px;flex:1';
+  var html = '<div style="display:flex;flex-direction:column;gap:0.5rem">';
+  for (var slot = 1; slot <= 10; slot++) {
+    var cur = saved[slot] || '';
+    var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
+    html += '<div style="display:flex;align-items:center;gap:0.5rem">'
+         + '<span style="font-size:0.8rem;color:var(--text3);width:24px;flex-shrink:0;text-align:right;font-family:Cinzel,serif">' + slot + '</span>'
+         + '<select style="' + selStyle + '"'
+         +   ' data-action="rot-slot-change"'
+         +   ' data-char="' + escH(charName) + '"'
+         +   ' data-slot="' + slot + '">'
+         +   selOpts + '</select>';
+    if (cur) {
+      html += '<button class="btn-danger" style="font-size:0.75rem;padding:4px 9px;flex-shrink:0"'
+           +   ' data-action="rot-delete"'
+           +   ' data-char="' + escH(charName) + '"'
+           +   ' data-slot="' + slot + '">×</button>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
 }
 
 async function saveRotationSlot(charName, slot, costumeName) {
@@ -2385,7 +3009,7 @@ async function saveRotationSlot(charName, slot, costumeName) {
   if (r.success) {
     if (!_rotSaved[charName]) _rotSaved[charName] = {};
     _rotSaved[charName][slot] = costumeName;
-    buildRotationGrid();
+    if (_rotEditChar === charName) renderRotEditModal();
   } else showAlert('rot-alert', false, r.message);
 }
 
@@ -2394,7 +3018,8 @@ async function deleteCompRotationSlot(charName, slot) {
   var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: +slot });
   if (r.success) {
     if (_rotSaved[charName]) delete _rotSaved[charName][slot];
-    buildRotationGrid();
+    if (_rotEditChar === charName) renderRotEditModal();
+    else buildRotationGrid();
   } else showAlert('rot-alert', false, r.message);
 }
 
@@ -2453,6 +3078,7 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-edit-char')    openRotEditModal(b.dataset.char);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
@@ -2465,7 +3091,11 @@ document.addEventListener('click', function(e) {
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
   if (action === 'save-emote-set')   saveEmoteSet();
+  if (action === 'save-set-cfg')     saveSetConfig();
   if (action === 'bulk-add-emotes')  bulkAddEmotes();
+  if (action === 'upload-lock-img')  uploadLockImg();
+  if (action === 'save-special-code-config') saveSpecialCodeConfig();
+  if (action === 'upload-special-lock-img') uploadSpecialLockImg();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
@@ -2502,8 +3132,83 @@ document.addEventListener('error', function(e) {
   if (t.classList.contains('img-err-hide')) t.classList.add('errored');
   if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
 }, true);
-updateImgKey();
-setupEmoteSetUI();
+try { updateImgKey(); } catch(_e) {}
+try { setupEmoteSetUI(); } catch(_e) {}
+
+/* ═══════════════════════════ BONDS / UNIT-ORDER MODAL WIRING ══ */
+try { (function() {
+  var openBondsBtn  = document.getElementById('open-bonds-modal-btn');
+  var closeBondsBtn = document.getElementById('close-bonds-modal-btn');
+  var openUOBtn     = document.getElementById('open-unit-order-btn');
+  var closeUOBtn    = document.getElementById('close-unit-order-btn');
+  if (openBondsBtn)  openBondsBtn.addEventListener('click',  openBondsModal);
+  if (closeBondsBtn) closeBondsBtn.addEventListener('click', closeBondsModal);
+  if (openUOBtn)     openUOBtn.addEventListener('click',     openUnitOrderModal);
+  if (closeUOBtn)    closeUOBtn.addEventListener('click',    closeUnitOrderModal);
+
+  // Close on backdrop click
+  var bm = document.getElementById('bonds-modal');
+  if (bm) bm.addEventListener('click', function(e) { if (e.target === bm) closeBondsModal(); });
+  var um = document.getElementById('unit-order-modal');
+  if (um) um.addEventListener('click', function(e) { if (e.target === um) closeUnitOrderModal(); });
+  var rm = document.getElementById('rot-edit-modal');
+  if (rm) rm.addEventListener('click', function(e) { if (e.target === rm) closeRotEditModal(); });
+  var closeRotBtn = document.getElementById('close-rot-edit-btn');
+  if (closeRotBtn) closeRotBtn.addEventListener('click', closeRotEditModal);
+
+  // Element filter buttons
+  document.querySelectorAll('.bond-elem-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _bondsCurElem = btn.dataset.elem || 'all';
+      document.querySelectorAll('.bond-elem-btn').forEach(function(b) {
+        b.style.background = b === btn ? 'var(--gold)' : 'var(--bg3)';
+        b.style.color      = b === btn ? '#0a0a0f'     : 'var(--text2)';
+      });
+      renderBondsCharGrid(_bondsCurElem);
+    });
+  });
+
+  // Character search
+  var cs = document.getElementById('bonds-char-search');
+  if (cs) cs.addEventListener('input', function() { renderBondsCharGrid(_bondsCurElem || 'all'); });
+})(); } catch(_e) {}
+
+/* ═══════════════════════════════════════ COMP LIST DRAG & DROP ══ */
+function initCompDragDrop() {
+  var list = document.getElementById('comp-list');
+  if (!list) return;
+  var dragging = null;
+  list.addEventListener('dragstart', function(e) {
+    dragging = e.target.closest('.admin-item[draggable]');
+    if (dragging) { setTimeout(function() { dragging.style.opacity = '0.4'; }, 0); e.dataTransfer.effectAllowed = 'move'; }
+  });
+  list.addEventListener('dragend', function() {
+    if (dragging) { dragging.style.opacity = ''; dragging = null; }
+  });
+  list.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    var over = e.target.closest('.admin-item[draggable]');
+    if (!over || over === dragging || !dragging) return;
+    var rect = over.getBoundingClientRect();
+    var insertBefore = e.clientY < rect.top + rect.height / 2 ? over : over.nextSibling;
+    list.insertBefore(dragging, insertBefore);
+  });
+  list.addEventListener('drop', async function(e) {
+    e.preventDefault();
+    var ids = Array.from(list.querySelectorAll('.admin-item[id^="comp-"]')).map(function(el) {
+      return parseInt(el.id.replace('comp-', ''), 10);
+    }).filter(Boolean);
+    if (!ids.length) return;
+    var r = await apiPost('/api/admin/comp/reorder', { ids: ids });
+    var alert = document.getElementById('normalize-alert');
+    if (alert) {
+      alert.style.color = r.success ? '#2ecc71' : '#e74c3c';
+      alert.textContent = r.success ? 'Order saved!' : 'Reorder failed';
+      setTimeout(function() { if (alert) alert.textContent = ''; }, 2500);
+    }
+  });
+}
+try { initCompDragDrop(); } catch(_e) {}
 </script>
 `);
 }
