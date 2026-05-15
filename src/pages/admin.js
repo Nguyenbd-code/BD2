@@ -436,12 +436,12 @@ export async function handleAdmin(request, env) {
         <div id="bonds-modal-slots" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
         <!-- Element filter -->
         <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
-          <button class="bond-elem-btn active" data-elem="all" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif">All</button>
-          <button class="bond-elem-btn" data-elem="water" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Water</button>
-          <button class="bond-elem-btn" data-elem="fire" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Fire</button>
-          <button class="bond-elem-btn" data-elem="light" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Light</button>
-          <button class="bond-elem-btn" data-elem="dark" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Dark</button>
-          <button class="bond-elem-btn" data-elem="wind" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer">Wind</button>
+          <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif"><span style="font-size:0.9rem">✦</span>All</button>
+          <button class="bond-elem-btn" data-elem="water" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Water</button>
+          <button class="bond-elem-btn" data-elem="fire" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Fire</button>
+          <button class="bond-elem-btn" data-elem="light" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Light</button>
+          <button class="bond-elem-btn" data-elem="dark" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Dark</button>
+          <button class="bond-elem-btn" data-elem="wind" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Wind</button>
         </div>
         <!-- Search -->
         <input id="bonds-char-search" type="text" placeholder="Search characters..." style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:5px;font-size:0.88rem;outline:none;margin-bottom:0.75rem">
@@ -473,6 +473,21 @@ export async function handleAdmin(request, env) {
           <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompUnitOrder();closeUnitOrderModal()">Save &amp; Close</button>
         </div>
         <div id="comp-order-alert-modal" style="font-size:0.78rem;margin-top:0.4rem"></div>
+      </div>
+    </div>
+
+    <!-- Skill Rotation Edit Modal -->
+    <div id="rot-edit-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:100%;margin:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div id="rot-edit-title" style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Skill Rotation</div>
+          <button id="close-rot-edit-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Pick a costume for each of the 10 rotation slots. Changes save automatically.</p>
+        <div id="rot-edit-body"></div>
+        <div style="margin-top:1rem">
+          <button class="btn" style="width:auto;padding:8px 20px" onclick="closeRotEditModal()">Done</button>
+        </div>
       </div>
     </div>
 
@@ -1551,12 +1566,16 @@ function renderBondsCharGrid(elemFilter) {
   var selectedNames = _bondsSelections.filter(Boolean).map(function(s) { return s.name; });
   grid.innerHTML = chars.map(function(c) {
     var isSelected = selectedNames.indexOf(c.name) >= 0;
-    return '<div class="bond-char-card" data-slug="' + escH(c.slug) + '" data-name="' + escH(c.name) + '" data-elem="' + escH(c.element||'') + '" style="border:2px solid ' + (isSelected ? 'var(--gold)' : 'var(--border2)') + ';border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg3);text-align:center;padding-bottom:0.35rem;transition:border-color 0.15s">'
+    var elem = (c.element||'').toLowerCase();
+    return '<div class="bond-char-card" data-slug="' + escH(c.slug) + '" data-name="' + escH(c.name) + '" data-elem="' + escH(c.element||'') + '" style="border:2px solid ' + (isSelected ? 'var(--gold)' : 'var(--border2)') + ';border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg3);text-align:center;padding-bottom:0.35rem;transition:border-color 0.15s;position:relative">'
+      + (elem ? '<img src="/img/element_' + escH(elem) + '" class="img-err-hide" style="position:absolute;top:4px;right:4px;width:18px;height:18px;object-fit:contain;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8))">' : '')
       + '<div style="height:70px;overflow:hidden;background:var(--bg4)">'
       + '<img src="/img/char_' + escH(c.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
       + '</div>'
       + '<div style="font-size:0.68rem;padding:0.25rem 0.15rem 0;color:' + (isSelected ? 'var(--gold)' : 'var(--text)') + ';line-height:1.2">' + escH(c.name) + '</div>'
-      + '<div style="font-size:0.6rem;color:var(--text3);text-transform:capitalize">' + escH(c.element||'') + '</div>'
+      + '<div style="display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;color:var(--text3);text-transform:capitalize">'
+      + (elem ? '<img src="/img/element_' + escH(elem) + '" class="img-err-hide" style="width:10px;height:10px;object-fit:contain">' : '')
+      + escH(c.element||'') + '</div>'
       + '</div>';
   }).join('');
   grid.querySelectorAll('.bond-char-card').forEach(function(card) {
@@ -1569,10 +1588,13 @@ function renderBondsModalSlots() {
   if (!slotsEl) return;
   slotsEl.innerHTML = _bondsSelections.map(function(s, i) {
     var isEmpty = !s;
-    return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name)) + '">'
+    var cosSlug = s && s.costume ? s.costume.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') : '';
+    var imgSrc = s ? (cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait') : '';
+    var fallback = s ? '/img/char_' + s.slug + '_portrait' : '';
+    return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '')) + '">'
       + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
       + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
-        : '<img src="/img/char_' + escH(s.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
           + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
       + '</div>'
       + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
@@ -1647,8 +1669,11 @@ function renderBondsSummary() {
   }
   summary.innerHTML = _bondsSelections.map(function(s, i) {
     if (!s) return '<div style="width:48px;height:48px;border:1px dashed var(--border2);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);font-size:0.7rem">' + (i+1) + '</div>';
-    return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + '">'
-      + '<img src="/img/char_' + escH(s.slug) + '_portrait" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+    var cosSlug = s.costume ? s.costume.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') : '';
+    var imgSrc = cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait';
+    var fallback = '/img/char_' + s.slug + '_portrait';
+    return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '') + '">'
+      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
       + '</div>';
   }).join('');
 }
@@ -2869,45 +2894,85 @@ async function loadRotCostumes(charName, charSlug) {
 function buildRotationGrid() {
   var grid = document.getElementById('rot-grid');
   if (!grid) return;
-  // Collect selected chars from selectors
   var sels = document.querySelectorAll('.rot-char-sel');
   var selected = [];
-  sels.forEach(function(s) { if (s.value) selected.push(s.value); });
+  sels.forEach(function(s) {
+    if (s.value) {
+      var opt = s.options[s.selectedIndex];
+      selected.push({ name: s.value, slug: opt ? (opt.dataset.slug || '') : '' });
+    }
+  });
   if (!selected.length) { grid.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">Select characters above to build the rotation grid.</p>'; return; }
 
-  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.75rem;padding:2px 4px;width:100%';
-  var html = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(selected.length, 5) + ',1fr);gap:0.75rem">';
-  selected.forEach(function(charName) {
-    var costumes  = _rotCostMap[charName] || [];
-    var saved     = _rotSaved[charName]   || {};
-    var costOpts  = '<option value="">— None —</option>' + costumes.map(function(cn) {
-      return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
-    }).join('');
-    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem">';
-    html += '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);margin-bottom:0.4rem;text-align:center">' + escH(charName) + '</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem">';
-    for (var slot = 1; slot <= 10; slot++) {
-      var cur = saved[slot] || '';
-      var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
-      html += '<div style="display:flex;align-items:center;gap:0.2rem">';
-      html += '<span style="font-size:0.65rem;color:var(--text3);width:12px;flex-shrink:0;text-align:right">' + slot + '</span>';
-      html += '<select style="' + selStyle + '"'
-            + ' data-action="rot-slot-change"'
-            + ' data-char="' + escH(charName) + '"'
-            + ' data-slot="' + slot + '">'
-            + selOpts + '</select>';
-      if (cur) {
-        html += '<button class="btn-danger" style="font-size:0.65rem;padding:1px 4px;flex-shrink:0;line-height:1"'
-              + ' data-action="rot-delete"'
-              + ' data-char="' + escH(charName) + '"'
-              + ' data-slot="' + slot + '">×</button>';
-      }
-      html += '</div>';
-    }
-    html += '</div></div>';
+  // Show summary cards per character with an "Edit Rotation" button
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.6rem">';
+  selected.forEach(function(c) {
+    var saved   = _rotSaved[c.name] || {};
+    var filled  = Object.keys(saved).filter(function(k){ return saved[k]; }).length;
+    var portrait = c.slug ? '/img/char_' + escH(c.slug) + '_portrait' : '';
+    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;display:flex;flex-direction:column;align-items:center;gap:0.4rem">'
+         + (portrait ? '<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--bg2);border:1px solid var(--border2)"><img src="' + portrait + '" class="img-err-dim" style="width:100%;height:100%;object-fit:cover"></div>' : '')
+         + '<div style="font-weight:700;font-size:0.78rem;color:var(--gold2);text-align:center">' + escH(c.name) + '</div>'
+         + '<div style="font-size:0.7rem;color:var(--text3)">' + filled + ' / 10 slots</div>'
+         + '<button class="btn" style="width:auto;padding:5px 12px;font-size:0.75rem" data-action="rot-edit-char" data-char="' + escH(c.name) + '">Edit Rotation</button>'
+         + '</div>';
   });
   html += '</div>';
   grid.innerHTML = html;
+}
+
+/* Rotation Edit Modal — single character, 10 slots */
+var _rotEditChar = null;
+
+function openRotEditModal(charName) {
+  _rotEditChar = charName;
+  var modal = document.getElementById('rot-edit-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderRotEditModal();
+}
+
+function closeRotEditModal() {
+  var modal = document.getElementById('rot-edit-modal');
+  if (modal) modal.style.display = 'none';
+  _rotEditChar = null;
+  buildRotationGrid();
+}
+
+function renderRotEditModal() {
+  var charName = _rotEditChar;
+  if (!charName) return;
+  var titleEl = document.getElementById('rot-edit-title');
+  if (titleEl) titleEl.textContent = charName + " — Skill Rotation";
+  var body = document.getElementById('rot-edit-body');
+  if (!body) return;
+  var costumes = _rotCostMap[charName] || [];
+  var saved    = _rotSaved[charName]   || {};
+  var costOpts = '<option value="">— None —</option>' + costumes.map(function(cn) {
+    return '<option value="' + escH(cn) + '">' + escH(cn) + '</option>';
+  }).join('');
+  var selStyle = 'background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:0.85rem;padding:6px 8px;flex:1';
+  var html = '<div style="display:flex;flex-direction:column;gap:0.5rem">';
+  for (var slot = 1; slot <= 10; slot++) {
+    var cur = saved[slot] || '';
+    var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
+    html += '<div style="display:flex;align-items:center;gap:0.5rem">'
+         + '<span style="font-size:0.8rem;color:var(--text3);width:24px;flex-shrink:0;text-align:right;font-family:Cinzel,serif">' + slot + '</span>'
+         + '<select style="' + selStyle + '"'
+         +   ' data-action="rot-slot-change"'
+         +   ' data-char="' + escH(charName) + '"'
+         +   ' data-slot="' + slot + '">'
+         +   selOpts + '</select>';
+    if (cur) {
+      html += '<button class="btn-danger" style="font-size:0.75rem;padding:4px 9px;flex-shrink:0"'
+           +   ' data-action="rot-delete"'
+           +   ' data-char="' + escH(charName) + '"'
+           +   ' data-slot="' + slot + '">×</button>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
 }
 
 async function saveRotationSlot(charName, slot, costumeName) {
@@ -2921,7 +2986,7 @@ async function saveRotationSlot(charName, slot, costumeName) {
   if (r.success) {
     if (!_rotSaved[charName]) _rotSaved[charName] = {};
     _rotSaved[charName][slot] = costumeName;
-    buildRotationGrid();
+    if (_rotEditChar === charName) renderRotEditModal();
   } else showAlert('rot-alert', false, r.message);
 }
 
@@ -2930,7 +2995,8 @@ async function deleteCompRotationSlot(charName, slot) {
   var r = await apiPost('/api/admin/comp/rotation/delete', { tier: _compTier, char_name: charName, slot: +slot });
   if (r.success) {
     if (_rotSaved[charName]) delete _rotSaved[charName][slot];
-    buildRotationGrid();
+    if (_rotEditChar === charName) renderRotEditModal();
+    else buildRotationGrid();
   } else showAlert('rot-alert', false, r.message);
 }
 
@@ -2989,6 +3055,7 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
+  if (action === 'rot-edit-char')    openRotEditModal(b.dataset.char);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
@@ -3061,6 +3128,10 @@ setupEmoteSetUI();
   if (bm) bm.addEventListener('click', function(e) { if (e.target === bm) closeBondsModal(); });
   var um = document.getElementById('unit-order-modal');
   if (um) um.addEventListener('click', function(e) { if (e.target === um) closeUnitOrderModal(); });
+  var rm = document.getElementById('rot-edit-modal');
+  if (rm) rm.addEventListener('click', function(e) { if (e.target === rm) closeRotEditModal(); });
+  var closeRotBtn = document.getElementById('close-rot-edit-btn');
+  if (closeRotBtn) closeRotBtn.addEventListener('click', closeRotEditModal);
 
   // Element filter buttons
   document.querySelectorAll('.bond-elem-btn').forEach(function(btn) {
