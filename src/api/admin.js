@@ -161,14 +161,56 @@ export async function handleAdminApi(request, env) {
     // ── Emotes ───────────────────────────────────────────────
     if (path === '/api/admin/emote/add' && method === 'POST') {
       if (!body.name || !body.image_url) return json({ success:false, message:'Name and image_url required' }, 400);
+      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
+      const sn = parseInt(body.set_num, 10) || 1;
       const r = await env.DB.prepare(
-        'INSERT INTO emotes (name, image_url) VALUES (?,?)'
-      ).bind(body.name.trim(), body.image_url.trim()).run();
+        'INSERT INTO emotes (name, image_url, set_num) VALUES (?,?,?)'
+      ).bind(body.name.trim(), body.image_url.trim(), sn).run();
       return json({ success:true, message:'Emote added!', id: r.meta.last_row_id });
     }
     if (path === '/api/admin/emote/delete' && method === 'POST') {
       await env.DB.prepare('DELETE FROM emotes WHERE id=?').bind(body.id).run();
       return json({ success:true, message:'Deleted.' });
+    }
+    if (path === '/api/admin/emote-set/list' && method === 'GET') {
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
+      const r = await env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all();
+      return json({ success:true, sets: r.results || [] });
+    }
+    if (path === '/api/admin/emote-set/save' && method === 'POST') {
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
+      const sn = parseInt(body.set_num, 10);
+      if (!sn) return json({ success:false, message:'set_num required' }, 400);
+      const mode = (body.unlock_mode === 'sequence') ? 'sequence' : 'count';
+      const sequence = (body.unlock_sequence || '').toString().toLowerCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
+      await env.DB.prepare(
+        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence) VALUES (?,?,?,?,?,?,?,?,?) ' +
+        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence'
+      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||'').toLowerCase(), parseInt(body.unlock_count,10)||7, body.cover_key||'', mode, sequence).run();
+      return json({ success:true, message:'Set saved.' });
+    }
+    if (path === '/api/admin/emote/list-by-set' && method === 'GET') {
+      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
+      const sn = parseInt(new URL(request.url).searchParams.get('set_num'), 10) || 1;
+      const r = await env.DB.prepare('SELECT * FROM emotes WHERE set_num=? ORDER BY created_at DESC').bind(sn).all();
+      return json({ success:true, emotes: r.results || [] });
+    }
+    if (path === '/api/admin/emote/bulk-add' && method === 'POST') {
+      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
+      const sn = parseInt(body.set_num, 10) || 1;
+      const items = Array.isArray(body.items) ? body.items : [];
+      let added = 0;
+      for (const it of items) {
+        if (!it || !it.name || !it.data) continue;
+        const safe = String(it.name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0,40);
+        const key = 'emote_' + sn + '_' + safe + '_' + Date.now() + '_' + added;
+        await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, it.data).run().catch(()=>{});
+        await env.DB.prepare('INSERT INTO emotes (name, image_url, set_num) VALUES (?,?,?)').bind(it.name, '/img/' + key, sn).run();
+        added++;
+      }
+      return json({ success:true, message:'Added ' + added + ' emote' + (added===1?'':'s') + '.', added });
     }
 
     // ── Images ───────────────────────────────────────────────
@@ -403,6 +445,22 @@ export async function handleAdminApi(request, env) {
     if (path === '/api/admin/rotations/reset' && method === 'POST') {
       await env.DB.prepare('DELETE FROM comp_rotations').run().catch(() => {});
       return json({ success:true, message:'All skill rotations deleted.' });
+    }
+
+    // ── Comp Matchups ──────────────────────────────────────────
+    if (path === '/api/admin/comp/matchups/save' && method === 'POST') {
+      if (!body.tier || !body.id) return json({ success:false, message:'tier and id required' }, 400);
+      const countersKey = 'counters_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(countersKey, body.counters || '').run();
+      await env.DB.prepare('UPDATE compositions SET countered_by=? WHERE id=?').bind(body.countered_by || '', body.id).run();
+      return json({ success:true, message:'Matchups saved.' });
+    }
+    if (path === '/api/admin/comp/matchups/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const id   = parseInt(url.searchParams.get('id') || '0', 10);
+      const countersRow = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('counters_' + tier.toLowerCase()).first().catch(()=>null);
+      const compRow     = id ? await env.DB.prepare('SELECT countered_by FROM compositions WHERE id=?').bind(id).first().catch(()=>null) : null;
+      return json({ counters: countersRow ? countersRow.data : '', countered_by: compRow ? (compRow.countered_by || '') : '' });
     }
 
     // ── Comp How To Play ──────────────────────────────────────

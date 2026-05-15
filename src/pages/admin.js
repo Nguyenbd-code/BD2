@@ -106,15 +106,21 @@ export async function handleAdmin(request, env) {
   const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
   const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
   const groupedChars     = {};
-  for (const c of chars) { const el = c.element||'Dark'; if (!groupedChars[el]) groupedChars[el]=[]; groupedChars[el].push(c); }
+  for (const c of chars) {
+    const raw = (c.element || 'Dark').toString().trim();
+    const norm = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const el = elemOrderServer.includes(norm) ? norm : 'Dark';
+    if (!groupedChars[el]) groupedChars[el]=[];
+    groupedChars[el].push(c);
+  }
   let charsListHtml = '';
   for (const el of elemOrderServer) {
     const grp = groupedChars[el];
     if (!grp || !grp.length) continue;
-    charsListHtml += '<div style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
+    charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
         + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -199,32 +205,43 @@ export async function handleAdmin(request, env) {
           <input type="text" id="comp-name" placeholder="Team name...">
         </div>
 
-        <!-- Color + Short Desc row -->
-        <div class="form-row">
-          <div class="form-group">
-            <label>TIER COLOR</label>
-            <div style="display:flex;gap:0.5rem;align-items:center">
-              <input type="color" id="comp-color" value="#c9a84c" style="width:44px;height:36px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:2px">
-              <span style="font-size:0.75rem;color:var(--text3)">Badge color</span>
-            </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem">
-              <button data-action="preset-color" data-color="#e74c3c" style="width:22px;height:22px;border-radius:3px;background:#e74c3c;border:none;cursor:pointer" title="T1 Red"></button>
-              <button data-action="preset-color" data-color="#3498db" style="width:22px;height:22px;border-radius:3px;background:#3498db;border:none;cursor:pointer" title="T2 Blue"></button>
-              <button data-action="preset-color" data-color="#9b59b6" style="width:22px;height:22px;border-radius:3px;background:#9b59b6;border:none;cursor:pointer" title="T3 Purple"></button>
-              <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
-              <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
-              <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
-              <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
-              <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
-              <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
-              <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
-              <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
-              <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
-            </div>
+        <!-- Card Label -->
+        <div class="form-group">
+          <label>CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short line shown under the comp title on the guide page</span></label>
+          <div style="display:flex;gap:0.5rem;align-items:stretch">
+            <select id="comp-card-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
+              <option value="">None</option>
+              <option value="green">● Green</option>
+              <option value="red">● Red</option>
+            </select>
+            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1;min-width:0">
           </div>
-          <div class="form-group">
-            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home page card tagline — max 80 chars)</span></label>
-            <input type="text" id="comp-short-desc" maxlength="80" placeholder="e.g. Best in slot carry composition...">
+          <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Card Label</button>
+            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
+          </div>
+        </div>
+
+        <!-- Color row -->
+        <div class="form-group">
+          <label>TIER COLOR</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.4rem">
+            <input type="color" id="comp-color" value="#c9a84c" style="width:44px;height:36px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:2px">
+            <span style="font-size:0.75rem;color:var(--text3)">Badge color</span>
+          </div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button data-action="preset-color" data-color="#e74c3c" style="width:22px;height:22px;border-radius:3px;background:#e74c3c;border:none;cursor:pointer" title="Red"></button>
+            <button data-action="preset-color" data-color="#3498db" style="width:22px;height:22px;border-radius:3px;background:#3498db;border:none;cursor:pointer" title="Blue"></button>
+            <button data-action="preset-color" data-color="#9b59b6" style="width:22px;height:22px;border-radius:3px;background:#9b59b6;border:none;cursor:pointer" title="Purple"></button>
+            <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="Green"></button>
+            <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="Orange"></button>
+            <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+            <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
+            <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
+            <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
+            <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
+            <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
+            <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
           </div>
         </div>
 
@@ -233,7 +250,7 @@ export async function handleAdmin(request, env) {
           <label>BUILD NOTES</label>
           <textarea id="comp-build-notes" rows="4" placeholder="One note per line..."></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompMeta()">Save Notes + Color + Short Desc</button>
+            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompMeta()">Save Notes + Color</button>
           </div>
           <div id="comp-meta-alert"></div>
         </div>
@@ -287,6 +304,23 @@ export async function handleAdmin(request, env) {
           <div id="comp-howtoplay-alert"></div>
         </div>
 
+        <!-- Matchups -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>MATCHUPS</label>
+          <div class="form-row" style="align-items:start;margin-top:0.5rem">
+            <div class="form-group">
+              <label style="font-size:0.75rem;color:#2ecc71">COUNTERS <span style="color:var(--text3);font-weight:400">(comma-separated)</span></label>
+              <textarea id="comp-counters" rows="2" placeholder="T3, Double Taunt Teams"></textarea>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem;color:#e74c3c">COUNTERED BY <span style="color:var(--text3);font-weight:400">(comma-separated)</span></label>
+              <textarea id="comp-countered-by" rows="2" placeholder="T2, T1, Schera teams"></textarea>
+            </div>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.1rem" data-action="save-matchups">Save Matchups</button>
+          <div id="comp-matchups-alert"></div>
+        </div>
+
         <!-- Preemptive Skills -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>PREEMPTIVE SKILLS</label>
@@ -316,6 +350,12 @@ export async function handleAdmin(request, env) {
         </div>
 
         <div id="comp-editor-alert"></div>
+
+        <!-- Save All -->
+        <div style="border-top:2px solid var(--border);padding-top:1.25rem;margin-top:0.5rem;display:flex;align-items:center;gap:1rem">
+          <button class="btn" style="width:auto;padding:10px 28px;font-size:0.95rem;font-weight:700" data-action="save-all-comp">Save All</button>
+          <span id="comp-save-all-alert" style="font-size:0.82rem"></span>
+        </div>
       </div>
 
       <!-- Add new comp form -->
@@ -356,29 +396,85 @@ export async function handleAdmin(request, env) {
   <!-- ═══════════════════════════════════════════════════════════ EMOTES -->
   <div class="admin-section" id="tab-emotes">
     <div class="admin-form">
-      <h3>Add Emote</h3>
-      <div id="emote-alert"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Happy Sylvia"></div>
-        <div class="form-group"><label>Image URL <span style="color:var(--text3);font-weight:400">(or upload below)</span></label><input type="text" id="e-url" placeholder="https://..."></div>
+      <h3>Emote Sets</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1.25rem">Pick a set to manage its cover image and emote bundle.</p>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
+        <label style="margin:0;white-space:nowrap">Set</label>
+        <select id="emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
+          <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option>
+        </select>
       </div>
-      <div class="form-group">
-        <label>Upload Image File <span style="color:var(--text3);font-weight:400">(optional — replaces URL)</span></label>
-        <input type="file" id="e-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-        <canvas id="emote-canvas" style="display:none"></canvas>
+
+      <!-- Cover Image -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Cover Image</div>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div id="es-cover-preview-img" style="width:120px;height:120px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <span style="font-size:0.7rem;color:var(--text3);text-align:center">No cover</span>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div class="form-group">
+              <label>Upload New Cover</label>
+              <input type="file" id="es-cover-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <canvas id="es-cover-canvas" style="display:none"></canvas>
+            </div>
+            <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Cover</button>
+            <span id="es-alert" style="font-size:0.78rem;margin-left:0.5rem"></span>
+          </div>
+        </div>
       </div>
-      <button class="btn" style="width:auto;padding:10px 24px" data-action="add-emote">Add Emote</button>
-    </div>
-    <div id="emote-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
-      ${emotes.map(e =>
-        '<div class="admin-item" id="emote-' + e.id + '">'
-        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.75rem">'
-        + '<img src="' + esc(e.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px" class="img-err-hide">'
-        + '<strong>' + esc(e.name) + '</strong>'
-        + '</div>'
-        + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '">Delete</button>'
-        + '</div>'
-      ).join('') || '<p style="color:var(--text3);font-size:0.83rem">No emotes yet.</p>'}
+
+      <!-- Emote Bundle -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Emote Bundle</div>
+        <div class="form-group">
+          <label>Upload Images <span style="color:var(--text3);font-weight:400">(select multiple files)</span></label>
+          <input type="file" id="es-bulk-files" accept="image/*" multiple style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+          <canvas id="es-bulk-canvas" style="display:none"></canvas>
+        </div>
+        <div class="form-group">
+          <label>Paste Images <span style="color:var(--text3);font-weight:400">(click below then Ctrl+V)</span></label>
+          <div id="es-paste-zone" tabindex="0" style="padding:1rem;border:2px dashed var(--border2);border-radius:6px;text-align:center;color:var(--text3);font-size:0.82rem;outline:none">Click here, then paste images with Ctrl+V</div>
+        </div>
+        <button class="btn" style="width:auto;padding:10px 24px" data-action="bulk-add-emotes">Upload to Set</button>
+        <div id="es-bulk-alert" style="margin-top:0.4rem"></div>
+        <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.75rem"></div>
+      </div>
+
+      <!-- Settings (hint & unlock) -->
+      <details style="margin-top:1.25rem">
+        <summary style="cursor:pointer;font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);padding:0.5rem 0">Set Settings (Hint &amp; Unlock)</summary>
+        <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
+          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
+          <div class="form-group">
+            <label>Hint (shown in modal on Emotes page)</label>
+            <textarea id="es-hint" rows="3" placeholder="Phrase as a riddle..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Unlock Mode</label>
+            <select id="es-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
+              <option value="count">Count (click N times)</option>
+              <option value="sequence">Sequence (click in order)</option>
+            </select>
+          </div>
+          <div id="es-mode-count" class="form-row">
+            <div class="form-group">
+              <label>Unlock Element (Characters page)</label>
+              <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <option value="water">Water</option><option value="fire">Fire</option><option value="wind">Wind</option><option value="light">Light</option><option value="dark">Dark</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="99" value="7"></div>
+          </div>
+          <div id="es-mode-sequence" class="form-group" style="display:none">
+            <label>Element Sequence <span style="color:var(--text3);font-weight:400">(comma-separated; user must click in this exact order)</span></label>
+            <input type="text" id="es-sequence" placeholder="water,fire,light,dark,wind">
+            <div style="font-size:0.72rem;color:var(--text3);margin-top:0.3rem">Valid: water, fire, light, dark, wind</div>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Settings</button>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -514,6 +610,12 @@ export async function handleAdmin(request, env) {
       <div class="admin-form">
         <h3>Characters</h3>
         <div id="char-alert"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
+          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all">All</button>
+          ${['Light','Dark','Fire','Water','Wind'].map(el =>
+            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '">' + esc(el) + '</button>'
+          ).join('')}
+        </div>
         <div id="char-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem">
           ${charsListHtml}
         </div>
@@ -547,6 +649,10 @@ export async function handleAdmin(request, env) {
             <label>Portrait Image <span style="color:var(--text3);font-size:0.7rem">(base character image)</span></label>
             <input type="file" id="new-char-portrait" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <canvas id="new-char-canvas" style="display:none"></canvas>
+          </div>
+          <div class="form-group">
+            <label>Base Costume Name <span style="color:var(--text3);font-size:0.7rem">(optional — the default costume name shown in bonds, e.g. "Red Riding Hood")</span></label>
+            <input id="new-char-base-costume" placeholder="Base costume name">
           </div>
           <button class="btn" onclick="addChar()">Add Character</button>
         </div>
@@ -614,6 +720,7 @@ export async function handleAdmin(request, env) {
               <div id="skill-alert"></div>
               <button class="btn" onclick="addSkill()">Add Skill</button>
             </div>
+            <canvas id="skill-tile-canvas" style="display:none"></canvas>
             <div id="skill-list" style="max-height:250px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem"></div>
           </div>
 
@@ -684,6 +791,7 @@ export async function handleAdmin(request, env) {
       </div>
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
+
   </div>
 </div>
 
@@ -692,6 +800,8 @@ export async function handleAdmin(request, env) {
 .img-cat-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
 .char-subtab-btn { display:inline-block; background:var(--bg4); border:1px solid var(--border2); color:var(--text2); padding:5px 12px; border-radius:4px; font-size:0.78rem; cursor:pointer; }
 .char-subtab-btn.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
+.elem-dot-btn { display:inline-block; background:var(--bg4); border:1px solid var(--el-c,var(--border2)); color:var(--el-c,var(--text2)); padding:3px 9px; border-radius:12px; font-size:0.72rem; cursor:pointer; opacity:0.65; transition:opacity 0.15s; }
+.elem-dot-btn.active { opacity:1; background:rgba(201,168,76,0.08); font-weight:700; }
 .char-row { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; background:var(--bg4); border-radius:5px; cursor:pointer; border:1px solid transparent; }
 .char-row:hover { border-color:var(--border2); }
 .char-row.selected { border-color:var(--gold); background:rgba(201,168,76,0.08); }
@@ -840,6 +950,7 @@ function selectComp() {
   loadCompRotation();
   loadHowToPlay(_compTier);
   loadPreemptive(_compTier);
+  loadMatchups(_compTier);
 }
 
 async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
@@ -917,6 +1028,53 @@ async function deletePreemptive(index) {
   var r = await apiPost('/api/admin/comp/preemptive/delete', { tier: _compTier, index: index });
   showAlert('comp-preemptive-alert', r.success, r.message);
   if (r.success) loadPreemptive(_compTier);
+}
+
+async function loadMatchups(tier) {
+  try {
+    var res = await fetch('/api/admin/comp/matchups/get?tier=' + encodeURIComponent(tier) + '&id=' + _compId);
+    var data = await res.json();
+    var countersEl = document.getElementById('comp-counters');
+    var cbyEl      = document.getElementById('comp-countered-by');
+    if (countersEl) countersEl.value = data.counters || '';
+    if (cbyEl)      cbyEl.value      = data.countered_by || '';
+  } catch(e) {}
+}
+
+async function saveMatchups() {
+  if (!_compId || !_compTier) { showAlert('comp-matchups-alert', false, 'Select a composition first'); return; }
+  var counters = ((document.getElementById('comp-counters')||{}).value||'').trim();
+  var cby      = ((document.getElementById('comp-countered-by')||{}).value||'').trim();
+  var r = await apiPost('/api/admin/comp/matchups/save', { tier: _compTier, id: _compId, counters: counters, countered_by: cby });
+  showAlert('comp-matchups-alert', r.success, r.message);
+  if (r.success) {
+    var sel = document.getElementById('comp-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
+    if (opt) opt.dataset.cby = cby;
+  }
+}
+
+
+async function uploadSkillTile(skillId) {
+  if (!_selectedCharSlug) { showAlert('skill-alert', false, 'Select a character first'); return; }
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async function() {
+    if (!input.files || !input.files[0]) return;
+    showAlert('skill-alert', true, 'Uploading tile...');
+    try {
+      var data = await compressToDataUrl(input.files[0], 'skill-tile-canvas', 128, 0.9);
+      var key  = 'char_skill_' + _selectedCharSlug + '_' + skillId;
+      var r    = await apiPost('/api/admin/image/upload', { key: key, data: data });
+      showAlert('skill-alert', r.success, r.message || (r.success ? 'Tile uploaded!' : 'Error'));
+      if (r.success) {
+        var img = document.querySelector('#skill-' + skillId + ' .skill-tile-img');
+        if (img) { img.src = '/img/' + key + '?t=' + Date.now(); img.classList.remove('errored'); }
+      }
+    } catch(e) { showAlert('skill-alert', false, 'Upload failed'); }
+  };
+  input.click();
 }
 
 async function saveCompVideo() {
@@ -1032,8 +1190,14 @@ async function loadCompData(id) {
     if (nameEl && opt.dataset.name !== undefined) nameEl.value = opt.dataset.name;
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
-    var sdEl = document.getElementById('comp-short-desc');
-    if (sdEl && opt.dataset.shortDesc !== undefined) sdEl.value = opt.dataset.shortDesc;
+    var sdRaw = opt.dataset.shortDesc || '';
+    var labelColorEl = document.getElementById('comp-card-label-color');
+    var labelTextEl  = document.getElementById('comp-card-label');
+    if (labelColorEl && labelTextEl) {
+      var sdMatch = sdRaw.match(/^(green|red):(.*)$/s);
+      if (sdMatch) { labelColorEl.value = sdMatch[1]; labelTextEl.value = sdMatch[2]; }
+      else { labelColorEl.value = ''; labelTextEl.value = sdRaw; }
+    }
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
 
@@ -1056,22 +1220,63 @@ async function loadCompData(id) {
   } catch(e) {}
 }
 
+async function saveAllComp() {
+  if (!_compId) { showAlert('comp-save-all-alert', false, 'Select a composition first'); return; }
+  var alertEl = document.getElementById('comp-save-all-alert');
+  if (alertEl) { alertEl.style.color = 'var(--text3)'; alertEl.textContent = 'Saving...'; }
+  var errors = [];
+  try { await saveCompMeta(); } catch(e) { errors.push('Notes/Color'); }
+  try { await saveCompUnitOrder(); } catch(e) { errors.push('Unit Order'); }
+  try { await saveMatchups(); } catch(e) { errors.push('Matchups'); }
+  try { await saveHowToPlay(); } catch(e) { errors.push('How To Play'); }
+  if (alertEl) {
+    alertEl.style.color = errors.length ? '#e74c3c' : '#2ecc71';
+    alertEl.textContent = errors.length ? 'Some saves failed: ' + errors.join(', ') : 'All saved! Refresh guide to see changes.';
+    setTimeout(function() { if (alertEl) alertEl.textContent = ''; }, 4000);
+  }
+}
+
+async function saveCardLabel() {
+  if (!_compId) { showAlert('comp-card-label-alert', false, 'Select a composition first'); return; }
+  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
+  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var sel  = document.getElementById('comp-select');
+  var opt  = sel ? sel.options[sel.selectedIndex] : null;
+  var name = opt ? opt.dataset.name  || '' : '';
+  var type = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var color= opt ? opt.dataset.color || '#c9a84c' : '#c9a84c';
+  var cby  = opt ? opt.dataset.cby   || '' : '';
+  var notes= opt ? opt.dataset.notes || '' : '';
+  var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success && opt) opt.dataset.shortDesc = sd;
+  var el = document.getElementById('comp-card-label-alert');
+  if (el) {
+    el.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    el.textContent = r.success ? '✓ Saved — refresh the guide to see' : (r.message || 'Error');
+    setTimeout(function() { el.textContent = ''; }, 3500);
+  }
+}
+
 async function saveCompMeta() {
   if (!_compId) { showAlert('comp-meta-alert', false, 'Select a composition first'); return; }
-  var color    = (document.getElementById('comp-color')      || {}).value || '#c9a84c';
-  var shortDesc= ((document.getElementById('comp-short-desc')|| {}).value || '').trim();
-  var notes    = ((document.getElementById('comp-build-notes')|| {}).value || '').trim();
-  var name     = ((document.getElementById('comp-name') || {}).value || '').trim();
-  var sel      = document.getElementById('comp-select');
-  var opt      = sel ? sel.options[sel.selectedIndex] : null;
+  var color  = (document.getElementById('comp-color')       || {}).value || '#c9a84c';
+  var notes  = ((document.getElementById('comp-build-notes') || {}).value || '').trim();
+  var name   = ((document.getElementById('comp-name') || {}).value || '').trim();
+  var sel    = document.getElementById('comp-select');
+  var opt    = sel ? sel.options[sel.selectedIndex] : null;
   if (!name && opt) name = opt.dataset.name || '';
-  var type     = opt ? opt.dataset.type  || 'ATK' : 'ATK';
-  var cby      = opt ? opt.dataset.cby   || '' : '';
-  var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  var type   = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var cby    = opt ? opt.dataset.cby   || '' : '';
+  var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
+  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
+  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
-    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
+    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.notes = notes; opt.dataset.shortDesc = sd; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
   }
   showAlert('comp-meta-alert', r.success, r.message);
 }
@@ -1250,8 +1455,168 @@ async function addEmote() {
 
 async function deleteEmote(id) {
   var r = await apiPost('/api/admin/emote/delete', { id: id });
-  if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); }
-  else showAlert('emote-alert', false, r.message);
+  if (r.success) { var el = document.getElementById('emote-' + id); if (el) el.remove(); var el2 = document.getElementById('es-emote-' + id); if (el2) el2.remove(); }
+  else showAlert('es-bulk-alert', false, r.message);
+}
+
+/* ══════════════════════════════════════════════════════ EMOTE SETS ══ */
+var _esSets = {};
+var _esCurrentSet = 1;
+var _esPendingCover = '';
+
+async function loadEmoteSets() {
+  try {
+    var r = await fetch('/api/admin/emote-set/list');
+    var d = await r.json();
+    var arr = (d && d.sets) || [];
+    _esSets = {};
+    arr.forEach(function(s) { _esSets[s.set_num] = s; });
+    renderEmoteSet(_esCurrentSet);
+    loadEmoteSetEmotes(_esCurrentSet);
+  } catch(e) {}
+}
+
+function renderEmoteSet(sn) {
+  var s = _esSets[sn] || { name: 'Set ' + sn, hint: '', unlock_page: 'characters', unlock_target: 'water', unlock_count: 7, cover_key: '', unlock_mode: 'count', unlock_sequence: '' };
+  var nameEl = document.getElementById('es-name'); if (nameEl) nameEl.value = s.name || ('Set ' + sn);
+  var pageEl = document.getElementById('es-page'); if (pageEl) pageEl.value = s.unlock_page || 'characters';
+  var tEl = document.getElementById('es-target'); if (tEl) tEl.value = (s.unlock_target || 'water').toLowerCase();
+  var cEl = document.getElementById('es-count'); if (cEl) cEl.value = s.unlock_count || 7;
+  var hEl = document.getElementById('es-hint'); if (hEl) hEl.value = s.hint || '';
+  var mEl = document.getElementById('es-mode'); if (mEl) mEl.value = s.unlock_mode || 'count';
+  var seqEl = document.getElementById('es-sequence'); if (seqEl) seqEl.value = s.unlock_sequence || '';
+  var modeCount = document.getElementById('es-mode-count');
+  var modeSeq = document.getElementById('es-mode-sequence');
+  var isSeq = (s.unlock_mode === 'sequence');
+  if (modeCount) modeCount.style.display = isSeq ? 'none' : '';
+  if (modeSeq) modeSeq.style.display = isSeq ? '' : 'none';
+  var prev = document.getElementById('es-cover-preview-img');
+  if (prev) {
+    if (s.cover_key) {
+      prev.innerHTML = '<img src="/img/' + escH(s.cover_key) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">';
+    } else {
+      prev.innerHTML = '<span style="font-size:0.7rem;color:var(--text3);text-align:center">No cover</span>';
+    }
+  }
+  _esPendingCover = '';
+}
+
+async function loadEmoteSetEmotes(sn) {
+  var listEl = document.getElementById('es-emote-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;grid-column:1/-1">Loading...</div>';
+  try {
+    var r = await fetch('/api/admin/emote/list-by-set?set_num=' + sn);
+    var d = await r.json();
+    var arr = (d && d.emotes) || [];
+    if (!arr.length) { listEl.innerHTML = '<div style="color:var(--text3);font-size:0.8rem;grid-column:1/-1">No emotes in this set yet.</div>'; return; }
+    listEl.innerHTML = arr.map(function(e) {
+      return '<div class="admin-item" id="es-emote-' + e.id + '" style="flex-direction:column;align-items:stretch;padding:0.5rem;gap:0.4rem">'
+        + '<img src="' + escH(e.image_url) + '" style="width:100%;height:80px;object-fit:contain;background:var(--bg4);border-radius:4px" class="img-err-hide">'
+        + '<div style="font-size:0.72rem;word-break:break-word">' + escH(e.name) + '</div>'
+        + '<button class="btn-danger" data-action="emote-delete" data-id="' + e.id + '" style="font-size:0.7rem;padding:3px 8px">Delete</button>'
+        + '</div>';
+    }).join('');
+  } catch(e) { listEl.innerHTML = '<div style="color:#e74c3c;font-size:0.8rem;grid-column:1/-1">Failed to load.</div>'; }
+}
+
+async function saveEmoteSet() {
+  var sn = _esCurrentSet;
+  var body = {
+    set_num: sn,
+    name: (document.getElementById('es-name')||{}).value || ('Set ' + sn),
+    hint: (document.getElementById('es-hint')||{}).value || '',
+    unlock_page: (document.getElementById('es-page')||{}).value || 'characters',
+    unlock_target: (document.getElementById('es-target')||{}).value || '',
+    unlock_count: parseInt((document.getElementById('es-count')||{}).value, 10) || 7,
+    unlock_mode: (document.getElementById('es-mode')||{}).value || 'count',
+    unlock_sequence: (document.getElementById('es-sequence')||{}).value || '',
+    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+  };
+  if (_esPendingCover) {
+    var key = 'emote_set_' + sn + '_cover';
+    var up = await apiPost('/api/admin/image/upload', { key: key, data: _esPendingCover });
+    if (up.success) body.cover_key = key;
+  }
+  var r = await apiPost('/api/admin/emote-set/save', body);
+  var alertEl = document.getElementById('es-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
+}
+
+async function bulkAddEmotes() {
+  var sn = _esCurrentSet;
+  var fileEl = document.getElementById('es-bulk-files');
+  var files = (fileEl && fileEl.files) ? Array.from(fileEl.files) : [];
+  if (_esPasteBuffer && _esPasteBuffer.length) files = files.concat(_esPasteBuffer);
+  if (!files.length) { showAlert('es-bulk-alert', false, 'Select files or paste images first'); return; }
+  showAlert('es-bulk-alert', true, 'Uploading ' + files.length + ' emote(s)...');
+  var items = [];
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var data = await compressToDataUrl(files[i], 'es-bulk-canvas', 200, 0.85);
+      var nm = (files[i].name || ('emote_' + (i+1))).replace(/\.[^.]+$/, '');
+      items.push({ name: nm, data: data });
+    } catch(e) {}
+  }
+  var r = await apiPost('/api/admin/emote/bulk-add', { set_num: sn, items: items });
+  showAlert('es-bulk-alert', r.success, r.message);
+  if (r.success) {
+    if (fileEl) fileEl.value = '';
+    _esPasteBuffer = [];
+    var pz = document.getElementById('es-paste-zone');
+    if (pz) pz.textContent = 'Click here, then paste images with Ctrl+V (or Cmd+V)';
+    loadEmoteSetEmotes(sn);
+  }
+}
+
+var _esPasteBuffer = [];
+function setupEmoteSetUI() {
+  var sel = document.getElementById('emote-set-select');
+  if (sel) {
+    sel.addEventListener('change', function() {
+      _esCurrentSet = parseInt(sel.value, 10) || 1;
+      renderEmoteSet(_esCurrentSet);
+      loadEmoteSetEmotes(_esCurrentSet);
+    });
+  }
+  var modeSel = document.getElementById('es-mode');
+  if (modeSel) {
+    modeSel.addEventListener('change', function() {
+      var isSeq = modeSel.value === 'sequence';
+      var modeCount = document.getElementById('es-mode-count');
+      var modeSeq = document.getElementById('es-mode-sequence');
+      if (modeCount) modeCount.style.display = isSeq ? 'none' : '';
+      if (modeSeq) modeSeq.style.display = isSeq ? '' : 'none';
+    });
+  }
+  var coverInput = document.getElementById('es-cover-file');
+  if (coverInput) {
+    coverInput.addEventListener('change', async function() {
+      if (!coverInput.files || !coverInput.files[0]) return;
+      try {
+        _esPendingCover = await compressToDataUrl(coverInput.files[0], 'es-cover-canvas', 400, 0.85);
+        var prev = document.getElementById('es-cover-preview');
+        if (prev) prev.innerHTML = 'New cover ready (save settings to apply)';
+      } catch(e) {}
+    });
+  }
+  var pz = document.getElementById('es-paste-zone');
+  if (pz) {
+    pz.addEventListener('paste', function(ev) {
+      var items = ev.clipboardData && ev.clipboardData.items;
+      if (!items) return;
+      var added = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) {
+          var f = items[i].getAsFile();
+          if (f) { _esPasteBuffer.push(f); added++; }
+        }
+      }
+      if (added) pz.textContent = _esPasteBuffer.length + ' pasted image(s) queued. Click "Upload Selected Files" to save.';
+    });
+  }
+  loadEmoteSets();
 }
 
 /* ══════════════════════════════════════════════════════════ IMAGES ══ */
@@ -1456,21 +1821,34 @@ async function addChar() {
   var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
   var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
   var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
+  var baseCostume = ((document.getElementById('new-char-base-costume') || {}).value || '').trim();
   var portraitEl = document.getElementById('new-char-portrait');
   var portraitFile = portraitEl && portraitEl.files && portraitEl.files[0];
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
+  var portraitData = '';
   if (r.success && portraitFile) {
     showAlert('char-alert', true, 'Uploading portrait…');
     try {
-      var data = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
-      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: data });
+      portraitData = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: portraitData });
     } catch(e) {}
+  }
+  if (r.success && baseCostume) {
+    var costumeSlug = baseCostume.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (costumeSlug) {
+      await apiPost('/api/admin/costumes/add', { char_slug: slug, costume_name: baseCostume, costume_slug: costumeSlug, bond_stats: '' });
+      if (portraitData) {
+        await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_' + costumeSlug + '_icon', data: portraitData });
+      }
+    }
   }
   showAlert('char-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('new-char-name').value = '';
     document.getElementById('new-char-slug').value = '';
+    var bcEl = document.getElementById('new-char-base-costume');
+    if (bcEl) bcEl.value = '';
     if (portraitEl) portraitEl.value = '';
     loadChars();
   }
@@ -1735,13 +2113,20 @@ async function loadSkills(costumeSlug) {
       list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No skills yet.</p>';
       return;
     }
+    var charSlug = _selectedCharSlug || '';
     list.innerHTML = data.skills.map(function(s) {
+      var tileKey = 'char_skill_' + charSlug + '_' + s.id;
       return '<div class="admin-item" id="skill-' + s.id + '">'
-        + '<div class="admin-item-info">'
+        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
+        + '<img src="/img/' + escH(tileKey) + '" class="img-err-dim skill-tile-img" style="width:32px;height:32px;object-fit:contain;border-radius:4px;background:var(--bg2);border:1px solid var(--border2);flex-shrink:0">'
+        + '<div>'
         + '<strong>' + escH(s.skill_name) + '</strong> \xb7 SP ' + s.sp_cost + ' \xb7 CD ' + s.cooldown + ' \xb7 ' + escH(s.tile_type)
         + (s.description ? '<span style="font-size:0.72rem;color:var(--text3);display:block">' + escH(s.description.substring(0,80)) + '</span>' : '')
-        + '</div>'
+        + '</div></div>'
+        + '<div style="display:flex;gap:0.3rem;align-items:center">'
+        + '<button class="btn" data-action="skill-tile-upload" data-skill-id="' + s.id + '" style="font-size:0.72rem;padding:3px 8px" title="Upload tile image">📷</button>'
         + '<button class="btn-danger" data-action="skill-delete" data-id="' + s.id + '">Delete</button>'
+        + '</div>'
         + '</div>';
     }).join('');
   } catch(e) {}
@@ -2068,8 +2453,6 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
-  if (action === 'rot-char-change')  onRotCharChange(b);
-  if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
@@ -2081,6 +2464,35 @@ document.addEventListener('click', function(e) {
   if (action === 'add-preemptive')   addPreemptive();
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
+  if (action === 'save-emote-set')   saveEmoteSet();
+  if (action === 'bulk-add-emotes')  bulkAddEmotes();
+  if (action === 'save-matchups')    saveMatchups();
+  if (action === 'save-card-label')  saveCardLabel();
+  if (action === 'save-all-comp')    saveAllComp();
+  if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+  if (action === 'admin-elem-filter') {
+    document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    var filterEl = (b.dataset.elem || '').toLowerCase();
+    document.querySelectorAll('#char-list .char-row').forEach(function(row) {
+      var re = (row.dataset.element || '').toLowerCase();
+      row.style.display = (filterEl === 'all' || re === filterEl) ? '' : 'none';
+    });
+    document.querySelectorAll('#char-list .elem-group-label').forEach(function(label) {
+      var le = (label.dataset.elem || '').toLowerCase();
+      label.style.display = (filterEl === 'all' || le === filterEl) ? '' : 'none';
+    });
+  }
+});
+
+/* ═════════════════════════════════ DELEGATED CHANGE LISTENER ══ */
+document.addEventListener('change', function(e) {
+  var sel = e.target;
+  if (!sel || sel.tagName !== 'SELECT') return;
+  var action = sel.dataset && sel.dataset.action;
+  if (!action) return;
+  if (action === 'rot-char-change') onRotCharChange(sel);
+  if (action === 'rot-slot-change') saveRotationSlot(sel.dataset.char, parseInt(sel.dataset.slot, 10), sel.value);
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
@@ -2091,6 +2503,7 @@ document.addEventListener('error', function(e) {
   if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
 }, true);
 updateImgKey();
+setupEmoteSetUI();
 </script>
 `);
 }

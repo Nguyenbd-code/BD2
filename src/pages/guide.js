@@ -123,29 +123,27 @@ function renderComp(comp, mediaMap) {
   let rotHtml;
   const rot = comp.rotation;
   if (rot && Object.keys(rot).length > 0) {
+    const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const slugByName = {};
+    for (const c of (comp.chars||[])) slugByName[c.name] = c.slug || cSlug(c.name);
     const charNames = (comp.chars||[]).length ? comp.chars.map(c=>c.name) : Object.keys(rot);
     const rows = charNames.map(name => {
       const skills = rot[name];
       if (!skills || !skills.length) return '';
+      const slug = slugByName[name] || cSlug(name);
       const icons = skills.map((sk, i) => {
-        const abbr = (sk.costume||'???').substring(0,3).toUpperCase();
-        const iconContent = sk.icon
-          ? `<img src="${SCHERA_ICONS[sk.icon]}" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid var(--border2)" class="img-err-hide">`
-          : `<div class="skill-abbr">${esc(abbr)}</div>`;
+        const cos = sk.costume || '';
+        const cosSlug = costumeSlug(cos);
+        const abbr = (cos || '???').substring(0,3).toUpperCase();
+        const portrait = cosSlug
+          ? `<div style="width:32px;height:32px;border-radius:50%;border:2px solid var(--border2);overflow:hidden;margin:0 auto"><img src="/img/char_${esc(slug)}_${esc(cosSlug)}_icon" alt="${esc(abbr)}" style="width:32px;height:32px;object-fit:cover;display:block;transform:scale(1.7);transform-origin:50% 22%" class="img-err-hide"></div>`
+          : `<div class="skill-abbr" style="border-radius:50%">${esc(abbr)}</div>`;
         return `<div class="skill-wrap">
   <div class="skill-icon-box" style="width:38px;flex-shrink:0">
     <div class="skill-num">${i+1}</div>
-    ${iconContent}
+    ${portrait}
   </div>
-  <div class="tt-popup">
-    <div class="tt-name">${esc(sk.name||'')}</div>
-    <div class="tt-stats">
-      <span class="tt-stat">${esc(sk.sp||'')}</span>
-      <span class="tt-stat">${esc(sk.cd||'')}</span>
-      <span class="tt-stat ${tileCls(sk.tile)}">${esc(sk.tile||'FRONT')}</span>
-    </div>
-    <div class="tt-desc">${esc(sk.desc||'')}</div>
-  </div>
+  ${cos ? `<div class="tt-popup"><div class="tt-name">${esc(cos)}</div></div>` : ''}
 </div>`;
       }).join('');
       return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;
@@ -211,12 +209,24 @@ function renderComp(comp, mediaMap) {
   // Preemptive skills
   const preemptive = comp.preemptive || [];
   const preemptiveHtml = preemptive.length
-    ? preemptive.slice(0, 3).map(src => `<img src="${esc(src)}" style="width:100%;height:auto;max-height:110px;object-fit:contain;border-radius:4px;border:1px solid var(--border2);display:block" class="img-err-hide">`).join('')
+    ? preemptive.slice(0, 3).map(src => `<img src="${esc(src)}" style="flex:1;min-height:0;width:100%;object-fit:contain;border-radius:4px;border:1px solid var(--border2);display:block" class="img-err-hide">`).join('')
     : '<span style="color:var(--gold);opacity:0.4;font-family:\'Cinzel\',serif;font-size:0.8rem">N/A</span>';
 
   // Matchups
   const counters    = comp.counters || [];
   const counteredBy = comp.countered_by || [];
+
+  // Parse card label (stored as "green:text" or "red:text" in short_description)
+  let cardLabelHtml = '';
+  const sdRaw = comp.short_description || '';
+  if (sdRaw) {
+    const sdMatch = sdRaw.match(/^(green|red):(.+)$/s);
+    const labelColor = sdMatch ? (sdMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
+    const labelBg    = sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
+    const labelBorder= sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
+    const labelText  = sdMatch ? sdMatch[2] : sdRaw;
+    cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
+  }
 
   return `
 <div class="comp-section" id="${anchorId}">
@@ -228,6 +238,7 @@ function renderComp(comp, mediaMap) {
         <span class="${typeCls}">${typeLabel}</span>
       </div>
       ${comp.warning ? `<div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">⚠ ${esc(comp.warning)}</div>` : ''}
+      ${cardLabelHtml}
     </div>
   </div>
 
@@ -235,8 +246,8 @@ function renderComp(comp, mediaMap) {
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
-    <div style="display:flex;flex-direction:column;gap:0.75rem;height:100%;min-width:0;overflow:hidden;">
-      <div class="card" style="flex:1;min-height:340px;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;overflow:hidden;">
+      <div class="card" style="height:430px;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
         ${rotHtml}
       </div>
@@ -247,30 +258,33 @@ function renderComp(comp, mediaMap) {
         <div class="card-title">Board Positioning</div>
         ${boardSectionHtml}
       </div>
-      <div class="card" style="padding:1.25rem;flex:1;display:flex;flex-direction:column;">
-        <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
-        <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
+        <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
+          <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:auto">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+        </div>
+        <div class="card" style="padding:1rem;overflow:hidden;display:flex;flex-direction:column;">
+          <div class="card-title" style="flex-shrink:0">Matchups</div>
+          <div style="margin-top:0.5rem;margin-bottom:0.4rem;flex-shrink:0">
+            <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
+            ${counters.length ? counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('') : '<span class="beats-tag" style="opacity:0.55">Need data</span>'}
+          </div>
+          <div style="flex-shrink:0">
+            <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Countered By</div>
+            ${counteredBy.length ? counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('') : '<span class="counter-tag" style="opacity:0.55">Need data</span>'}
+          </div>
+        </div>
       </div>
+      <div style="flex:1;min-height:0;border:1px dashed var(--border2);border-radius:6px;opacity:0.35"></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;">
-      <div class="card" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column">
-        <div class="card-title">Build Notes</div>
-        <ul class="notes-list">${notesHtml || `<li>${NA}</li>`}</ul>
+      <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+        <div class="card-title" style="flex-shrink:0">Build Notes</div>
+        <ul class="notes-list" style="flex:1;overflow:auto;">${notesHtml || `<li>${NA}</li>`}</ul>
       </div>
-      <div class="card" style="padding:1rem;">
-        <div class="card-title" style="margin-bottom:0.5rem">Preemptive Skills</div>
-        <div style="display:flex;flex-direction:column;gap:0.4rem;">${preemptiveHtml}</div>
-      </div>
-      <div class="card" style="padding:1rem;min-height:120px;display:flex;flex-direction:column">
-        <div class="card-title">Matchups</div>
-        <div style="margin-bottom:0.5rem">
-          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Counters</div>
-          ${counters.length ? counters.map(c=>`<span class="beats-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
-        </div>
-        <div>
-          <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Countered By</div>
-          ${counteredBy.length ? counteredBy.map(c=>`<span class="counter-tag">${esc(c)}</span>`).join('') : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif;font-size:0.8rem">N/A</span>'}
-        </div>
+      <div class="card" style="padding:1rem;flex-shrink:0;height:280px;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="card-title" style="margin-bottom:0.5rem;flex-shrink:0">Preemptive Skills</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:0.4rem;min-height:0;">${preemptiveHtml}</div>
       </div>
     </div>
   </div>
@@ -286,7 +300,7 @@ export async function handleGuide(request, env) {
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
-      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%' OR key LIKE 'counters_%'").all().catch(() => ({results:[]})),
     ]);
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
@@ -381,6 +395,8 @@ export async function handleGuide(request, env) {
     if (preemptiveRaw) { try { preemptive = JSON.parse(preemptiveRaw); } catch {} }
 
     const howToPlay = extraMap[`how_to_play_${tierLow}`] || '';
+    const countersRaw = extraMap[`counters_${tierLow}`] || '';
+    const dbCounters = countersRaw ? countersRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
 
     return renderComp({
       tier,
@@ -393,7 +409,7 @@ export async function handleGuide(request, env) {
       rotation,
       unitOrder,
       notes,
-      counters: staticMatchup.counters,
+      counters: dbCounters.length ? dbCounters : staticMatchup.counters,
       countered_by: counteredBy,
       warning: STATIC_WARNINGS[tier] || null,
       preemptive,
@@ -479,7 +495,8 @@ document.addEventListener('mouseover', function(e) {
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
   var rect = wrap.getBoundingClientRect();
-  var left = Math.min(rect.left, window.innerWidth - pw - 8);
+  var left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.min(left, window.innerWidth - pw - 8);
   var top = rect.top - ph - 8;
   if (top < 4) top = rect.bottom + 8;
   popup.style.left = Math.max(4, left) + 'px';

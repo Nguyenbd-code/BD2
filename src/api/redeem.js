@@ -1,47 +1,74 @@
 import { json } from '../layout/layout.js';
 
+const API_ENDPOINT = 'https://loj2urwaua.execute-api.ap-northeast-1.amazonaws.com/prod/coupon';
+const APP_ID = 'bd2-live';
+
+function mapError(err) {
+  switch (err) {
+    case 'ValidationFailed':
+    case 'InvalidCode':        return { status: 'InvalidCode',   message: 'Invalid code — please double-check the coupon code.' };
+    case 'ExpiredCode':        return { status: 'ExpiredCode',   message: 'This coupon code has expired.' };
+    case 'AlreadyUsed':        return { status: 'AlreadyUsed',   message: 'This coupon code has already been used.' };
+    case 'ExceededUses':       return { status: 'ExpiredCode',   message: 'This coupon has exceeded its number of uses.' };
+    case 'UnavailableCode':    return { status: 'InvalidCode',   message: 'Unable to use this coupon code.' };
+    case 'IncorrectUser':      return { status: 'IncorrectUser', message: 'Incorrect nickname — please double-check.' };
+    case 'ClaimRewardsFailed': return { status: 'Error',         message: 'Claim failed — please try again.' };
+    default:                   return { status: 'Error',         message: err ? ('Error: ' + err) : 'Unknown error.' };
+  }
+}
+
 export async function handleRedeem(request) {
   let body;
-  try { body = await request.json(); } catch { return json({ success: false, message: 'Invalid request body.' }, 400); }
+  try { body = await request.json(); } catch { return json({ success: false, status: 'Error', message: 'Invalid request body.' }, 400); }
 
   const { nickname, code } = body;
-  if (!nickname || !code) return json({ success: false, message: 'Missing nickname or code.' });
+  if (!nickname || !code) return json({ success: false, status: 'Error', message: 'Missing nickname or code.' });
 
-  let rawText = '';
-  let statusCode = 0;
+  let res, text;
   try {
-    const res = await fetch('https://redeem.bd2.pmang.cloud/bd2/coupon/use', {
+    res = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': '*/*',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Origin': 'https://redeem.bd2.pmang.cloud',
         'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
       },
-      body: new URLSearchParams({ nickname, coupon_code: code }).toString(),
+      body: JSON.stringify({ appId: APP_ID, userId: nickname, code }),
     });
-
-    statusCode = res.status;
-    rawText = await res.text();
-
-    let data;
-    try { data = JSON.parse(rawText); } catch { data = {}; }
-
-    const rc  = data.result_code ?? data.resultCode ?? data.code ?? null;
-    const msg = String(data.message || data.msg || data.result || '').toLowerCase();
-
-    if (data.result === 'SUCCESS' || rc === 0 || msg.includes('success')) {
-      return json({ success: true, message: 'Success' });
-    }
-    if (rc === 4 || msg.includes('already') || msg.includes('used') || msg.includes('expired')) {
-      return json({ success: false, already_used: true, message: 'Already Used' });
-    }
-
-    const cleanMsg = rawText.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 80);
-    return json({ success: false, message: 'Status: ' + statusCode + ' | ' + (cleanMsg || rawText.substring(0, 200)) });
-
-  } catch(e) {
-    return json({ success: false, message: 'Error: ' + e.message + (rawText ? ' | Status: ' + statusCode + ' | ' + rawText.replace(/<[^>]*>/g,'').trim().substring(0, 80) : '') });
+    text = await res.text();
+  } catch (e) {
+    return json({ success: false, status: 'NetworkError', message: 'Network error: ' + e.message });
   }
+
+  let data = null;
+  try { data = JSON.parse(text); } catch {}
+
+  if (!data || typeof data !== 'object') {
+    return json({
+      success: false,
+      status: 'Error',
+      message: 'Unexpected response (not JSON)',
+      http: res.status,
+      raw: (text || '').substring(0, 400),
+    });
+  }
+
+  if (data.success) {
+    return json({
+      success: true,
+      status: 'Success',
+      message: 'Redeemed successfully! Check your in-game mailbox.',
+      http: res.status,
+    });
+  }
+
+  const mapped = mapError(data.error);
+  return json({
+    success: false,
+    ...mapped,
+    http: res.status,
+    raw: (text || '').substring(0, 400),
+  });
 }
