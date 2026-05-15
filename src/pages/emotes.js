@@ -121,6 +121,8 @@ export async function handleEmotes(request, env) {
   }).join('');
 
   return layout("Kitsu's Emotes", `
+<script>if(localStorage.getItem('kitsu_unlocked')!=='true'){document.documentElement.setAttribute('data-emote-locked','1');}</script>
+<style>html:not([data-emote-locked]) #emote-lock-screen{display:none!important;}html[data-emote-locked] #emote-page-content{display:none!important;}</style>
 <!-- Page lock screen — shown until secret code is entered on Home page -->
 <div id="emote-lock-screen" style="position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center">
@@ -213,23 +215,10 @@ export async function handleEmotes(request, env) {
   var LOCK_IMG = ${JSON.stringify(lockImgSrc)};
 
   /* ── Page lock screen ── */
-  var lockScreen = document.getElementById('emote-lock-screen');
-  var pageContent = document.getElementById('emote-page-content');
-
-  function showPage() {
-    if (lockScreen) { lockScreen.style.display = 'none'; }
-    if (pageContent) { pageContent.style.display = ''; }
-  }
-
-  if (localStorage.getItem('kitsu_unlocked') === 'true') {
-    showPage();
-  } else {
-    if (pageContent) pageContent.style.display = 'none';
-    // Apply lock image to lock screen
-    if (LOCK_IMG) {
-      var lockImgWrap = document.getElementById('emote-lock-img-wrap');
-      if (lockImgWrap) lockImgWrap.innerHTML = '<img src="' + LOCK_IMG + '" style="width:100%;height:100%;object-fit:contain">';
-    }
+  // Locked state handled by inline <script> + CSS above; just swap lock image if one is uploaded
+  if (LOCK_IMG) {
+    var lockImgWrap = document.getElementById('emote-lock-img-wrap');
+    if (lockImgWrap) lockImgWrap.innerHTML = '<img src="' + LOCK_IMG + '" style="width:100%;height:100%;object-fit:contain">';
   }
 
   function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
