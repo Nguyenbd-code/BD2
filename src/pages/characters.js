@@ -174,6 +174,9 @@ document.addEventListener('error', function(e) {
 }, true);
 
 /* Element filter */
+var KITSU_SETS = null;
+fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d) { KITSU_SETS = d.sets || []; }).catch(function() {});
+
 document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -184,8 +187,30 @@ document.querySelectorAll('.elem-filter-btn').forEach(function(btn) {
       var ce = (card.dataset.element || '').toLowerCase();
       card.style.display = (el === 'all' || ce === el) ? '' : 'none';
     });
+    if (el && el !== 'all' && KITSU_SETS) {
+      KITSU_SETS.forEach(function(s) {
+        if ((s.unlock_page || '') !== 'characters') return;
+        if ((s.unlock_target || '').toLowerCase() !== el) return;
+        if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+        var key = 'kitsu_set_' + s.set_num + '_count';
+        var c = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+        localStorage.setItem(key, String(c));
+        if (c >= (s.unlock_count || 7)) {
+          localStorage.setItem('kitsu_set_' + s.set_num, '1');
+          showUnlockToast(s.set_num);
+        }
+      });
+    }
   });
 });
+
+function showUnlockToast(n) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.2rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.9rem;box-shadow:0 8px 32px rgba(0,0,0,0.6)';
+  t.textContent = "Set " + n + " unlocked! Visit Kitsu's Emotes to see.";
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
+}
 
 /* Costume picker */
 document.querySelectorAll('.char-costume-picker').forEach(function(sel) {

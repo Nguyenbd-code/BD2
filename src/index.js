@@ -53,6 +53,17 @@ export default {
       // Redeem API
       if (path === '/api/redeem' && method === 'POST') return handleRedeem(request);
 
+      // Public emote sets metadata (unlock conditions, hints)
+      if (path === '/api/emote-sets' && method === 'GET') {
+        let rows = [];
+        try {
+          await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run();
+          const r = await env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count FROM emote_sets ORDER BY set_num').all();
+          rows = r.results || [];
+        } catch(e) {}
+        return new Response(JSON.stringify({ sets: rows }), { headers: { 'Content-Type': 'application/json' } });
+      }
+
       // Admin APIs
       if (path.startsWith('/api/admin/')) return handleAdminApi(request, env);
 
