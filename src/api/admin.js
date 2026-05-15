@@ -405,6 +405,22 @@ export async function handleAdminApi(request, env) {
       return json({ success:true, message:'All skill rotations deleted.' });
     }
 
+    // ── Comp Matchups ──────────────────────────────────────────
+    if (path === '/api/admin/comp/matchups/save' && method === 'POST') {
+      if (!body.tier || !body.id) return json({ success:false, message:'tier and id required' }, 400);
+      const countersKey = 'counters_' + body.tier.toLowerCase();
+      await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(countersKey, body.counters || '').run();
+      await env.DB.prepare('UPDATE compositions SET countered_by=? WHERE id=?').bind(body.countered_by || '', body.id).run();
+      return json({ success:true, message:'Matchups saved.' });
+    }
+    if (path === '/api/admin/comp/matchups/get' && method === 'GET') {
+      const tier = url.searchParams.get('tier') || '';
+      const id   = parseInt(url.searchParams.get('id') || '0', 10);
+      const countersRow = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('counters_' + tier.toLowerCase()).first().catch(()=>null);
+      const compRow     = id ? await env.DB.prepare('SELECT countered_by FROM compositions WHERE id=?').bind(id).first().catch(()=>null) : null;
+      return json({ counters: countersRow ? countersRow.data : '', countered_by: compRow ? (compRow.countered_by || '') : '' });
+    }
+
     // ── Comp How To Play ──────────────────────────────────────
     if (path === '/api/admin/comp/howtoplay/save' && method === 'POST') {
       if (!body.tier) return json({ success:false, message:'tier required' }, 400);

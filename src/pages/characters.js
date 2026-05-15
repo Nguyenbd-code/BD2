@@ -98,21 +98,22 @@ document.querySelectorAll('.char-costume-picker').forEach(function(sel) {
     var portraitEl = document.getElementById('cp-portrait-' + slug);
     var costumeEl  = document.getElementById('cp-costume-'  + slug);
     if (!portraitEl || !costumeEl) return;
+    portraitEl.classList.remove('errored');
     if (!cosSlug) {
-      costumeEl.style.display = 'none';
-      portraitEl.style.display = '';
+      costumeEl.style.display  = 'none';
+      portraitEl.style.display = 'block';
       return;
     }
-    var src = '/img/char_' + slug + '_' + cosSlug + '_icon';
+    costumeEl.classList.remove('errored');
     costumeEl.onerror = function() {
-      costumeEl.style.display = 'none';
-      portraitEl.style.display = '';
+      costumeEl.style.display  = 'none';
+      portraitEl.style.display = 'block';
     };
     costumeEl.onload = function() {
       portraitEl.style.display = 'none';
-      costumeEl.style.display  = '';
+      costumeEl.style.display  = 'block';
     };
-    costumeEl.src = src;
+    costumeEl.src = '/img/char_' + slug + '_' + cosSlug + '_icon';
   });
 });
 </script>

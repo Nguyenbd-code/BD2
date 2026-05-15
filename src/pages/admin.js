@@ -199,32 +199,26 @@ export async function handleAdmin(request, env) {
           <input type="text" id="comp-name" placeholder="Team name...">
         </div>
 
-        <!-- Color + Short Desc row -->
-        <div class="form-row">
-          <div class="form-group">
-            <label>TIER COLOR</label>
-            <div style="display:flex;gap:0.5rem;align-items:center">
-              <input type="color" id="comp-color" value="#c9a84c" style="width:44px;height:36px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:2px">
-              <span style="font-size:0.75rem;color:var(--text3)">Badge color</span>
-            </div>
-            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem">
-              <button data-action="preset-color" data-color="#e74c3c" style="width:22px;height:22px;border-radius:3px;background:#e74c3c;border:none;cursor:pointer" title="T1 Red"></button>
-              <button data-action="preset-color" data-color="#3498db" style="width:22px;height:22px;border-radius:3px;background:#3498db;border:none;cursor:pointer" title="T2 Blue"></button>
-              <button data-action="preset-color" data-color="#9b59b6" style="width:22px;height:22px;border-radius:3px;background:#9b59b6;border:none;cursor:pointer" title="T3 Purple"></button>
-              <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="T4 Green"></button>
-              <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="T5 Orange"></button>
-              <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
-              <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
-              <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
-              <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
-              <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
-              <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
-              <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
-            </div>
+        <!-- Color row -->
+        <div class="form-group">
+          <label>TIER COLOR</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.4rem">
+            <input type="color" id="comp-color" value="#c9a84c" style="width:44px;height:36px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:2px">
+            <span style="font-size:0.75rem;color:var(--text3)">Badge color</span>
           </div>
-          <div class="form-group">
-            <label>SHORT DESCRIPTION <span style="color:var(--text3);font-size:0.7rem">(home page card tagline — max 80 chars)</span></label>
-            <input type="text" id="comp-short-desc" maxlength="80" placeholder="e.g. Best in slot carry composition...">
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button data-action="preset-color" data-color="#e74c3c" style="width:22px;height:22px;border-radius:3px;background:#e74c3c;border:none;cursor:pointer" title="Red"></button>
+            <button data-action="preset-color" data-color="#3498db" style="width:22px;height:22px;border-radius:3px;background:#3498db;border:none;cursor:pointer" title="Blue"></button>
+            <button data-action="preset-color" data-color="#9b59b6" style="width:22px;height:22px;border-radius:3px;background:#9b59b6;border:none;cursor:pointer" title="Purple"></button>
+            <button data-action="preset-color" data-color="#27ae60" style="width:22px;height:22px;border-radius:3px;background:#27ae60;border:none;cursor:pointer" title="Green"></button>
+            <button data-action="preset-color" data-color="#e67e22" style="width:22px;height:22px;border-radius:3px;background:#e67e22;border:none;cursor:pointer" title="Orange"></button>
+            <button data-action="preset-color" data-color="#c9a84c" style="width:22px;height:22px;border-radius:3px;background:#c9a84c;border:none;cursor:pointer" title="Gold"></button>
+            <button data-action="preset-color" data-color="#1abc9c" style="width:22px;height:22px;border-radius:3px;background:#1abc9c;border:none;cursor:pointer" title="Teal"></button>
+            <button data-action="preset-color" data-color="#e91e63" style="width:22px;height:22px;border-radius:3px;background:#e91e63;border:none;cursor:pointer" title="Pink"></button>
+            <button data-action="preset-color" data-color="#00bcd4" style="width:22px;height:22px;border-radius:3px;background:#00bcd4;border:none;cursor:pointer" title="Cyan"></button>
+            <button data-action="preset-color" data-color="#ff5722" style="width:22px;height:22px;border-radius:3px;background:#ff5722;border:none;cursor:pointer" title="Deep Orange"></button>
+            <button data-action="preset-color" data-color="#607d8b" style="width:22px;height:22px;border-radius:3px;background:#607d8b;border:none;cursor:pointer" title="Blue Grey"></button>
+            <button data-action="preset-color" data-color="#795548" style="width:22px;height:22px;border-radius:3px;background:#795548;border:none;cursor:pointer" title="Brown"></button>
           </div>
         </div>
 
@@ -233,7 +227,7 @@ export async function handleAdmin(request, env) {
           <label>BUILD NOTES</label>
           <textarea id="comp-build-notes" rows="4" placeholder="One note per line..."></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompMeta()">Save Notes + Color + Short Desc</button>
+            <button class="btn" style="width:auto;padding:8px 20px" onclick="saveCompMeta()">Save Notes + Color</button>
           </div>
           <div id="comp-meta-alert"></div>
         </div>
@@ -285,6 +279,23 @@ export async function handleAdmin(request, env) {
           <textarea id="comp-how-to-play" rows="4" placeholder="One tip per line — when to use, matchup notes, timing..."></textarea>
           <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.4rem" data-action="save-how-to-play">Save How To Play</button>
           <div id="comp-howtoplay-alert"></div>
+        </div>
+
+        <!-- Matchups -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>MATCHUPS</label>
+          <div class="form-row" style="align-items:start;margin-top:0.5rem">
+            <div class="form-group">
+              <label style="font-size:0.75rem;color:#2ecc71">COUNTERS <span style="color:var(--text3);font-weight:400">(comma-separated)</span></label>
+              <textarea id="comp-counters" rows="2" placeholder="T3, Double Taunt Teams"></textarea>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem;color:#e74c3c">COUNTERED BY <span style="color:var(--text3);font-weight:400">(comma-separated)</span></label>
+              <textarea id="comp-countered-by" rows="2" placeholder="T2, T1, Schera teams"></textarea>
+            </div>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.1rem" data-action="save-matchups">Save Matchups</button>
+          <div id="comp-matchups-alert"></div>
         </div>
 
         <!-- Preemptive Skills -->
@@ -548,6 +559,10 @@ export async function handleAdmin(request, env) {
             <input type="file" id="new-char-portrait" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <canvas id="new-char-canvas" style="display:none"></canvas>
           </div>
+          <div class="form-group">
+            <label>Base Costume Name <span style="color:var(--text3);font-size:0.7rem">(optional — the default costume name shown in bonds, e.g. "Red Riding Hood")</span></label>
+            <input id="new-char-base-costume" placeholder="Base costume name">
+          </div>
           <button class="btn" onclick="addChar()">Add Character</button>
         </div>
       </div>
@@ -614,6 +629,7 @@ export async function handleAdmin(request, env) {
               <div id="skill-alert"></div>
               <button class="btn" onclick="addSkill()">Add Skill</button>
             </div>
+            <canvas id="skill-tile-canvas" style="display:none"></canvas>
             <div id="skill-list" style="max-height:250px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem"></div>
           </div>
 
@@ -683,6 +699,25 @@ export async function handleAdmin(request, env) {
         <input type="text" id="new-secret-code" placeholder="e.g. Seji404" autocomplete="off">
       </div>
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
+    </div>
+
+    <div class="admin-form">
+      <h3>Element Icons</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Upload icons for the 5 elements — shown on character cards across the site. Auto-compressed to 80px PNG/JPEG.</p>
+      <div id="element-icon-alert"></div>
+      <canvas id="element-icon-canvas" style="display:none"></canvas>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem">
+        ${['dark','light','fire','water','wind'].map(el =>
+          '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.75rem">'
+          + '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">'
+          + '<img src="/img/element_' + el + '" class="img-err-hide" style="width:36px;height:36px;object-fit:contain;background:var(--bg2);border-radius:4px">'
+          + '<div style="font-family:Cinzel,serif;font-size:0.85rem;color:var(--gold);text-transform:capitalize">' + el + '</div>'
+          + '</div>'
+          + '<input type="file" id="elem-file-' + el + '" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;width:100%;font-size:0.75rem;margin-bottom:0.4rem">'
+          + '<button class="btn" style="width:100%;padding:5px;font-size:0.78rem" data-action="upload-element" data-element="' + el + '">Upload</button>'
+          + '</div>'
+        ).join('')}
+      </div>
     </div>
   </div>
 </div>
@@ -840,6 +875,7 @@ function selectComp() {
   loadCompRotation();
   loadHowToPlay(_compTier);
   loadPreemptive(_compTier);
+  loadMatchups(_compTier);
 }
 
 async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
@@ -917,6 +953,71 @@ async function deletePreemptive(index) {
   var r = await apiPost('/api/admin/comp/preemptive/delete', { tier: _compTier, index: index });
   showAlert('comp-preemptive-alert', r.success, r.message);
   if (r.success) loadPreemptive(_compTier);
+}
+
+async function loadMatchups(tier) {
+  try {
+    var res = await fetch('/api/admin/comp/matchups/get?tier=' + encodeURIComponent(tier) + '&id=' + _compId);
+    var data = await res.json();
+    var countersEl = document.getElementById('comp-counters');
+    var cbyEl      = document.getElementById('comp-countered-by');
+    if (countersEl) countersEl.value = data.counters || '';
+    if (cbyEl)      cbyEl.value      = data.countered_by || '';
+  } catch(e) {}
+}
+
+async function saveMatchups() {
+  if (!_compId || !_compTier) { showAlert('comp-matchups-alert', false, 'Select a composition first'); return; }
+  var counters = ((document.getElementById('comp-counters')||{}).value||'').trim();
+  var cby      = ((document.getElementById('comp-countered-by')||{}).value||'').trim();
+  var r = await apiPost('/api/admin/comp/matchups/save', { tier: _compTier, id: _compId, counters: counters, countered_by: cby });
+  showAlert('comp-matchups-alert', r.success, r.message);
+  if (r.success) {
+    var sel = document.getElementById('comp-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
+    if (opt) opt.dataset.cby = cby;
+  }
+}
+
+async function uploadElementIcon(element) {
+  var fileEl = document.getElementById('elem-file-' + element);
+  var file   = fileEl && fileEl.files && fileEl.files[0];
+  if (!file) { showAlert('element-icon-alert', false, 'Select an image file for ' + element); return; }
+  showAlert('element-icon-alert', true, 'Uploading...');
+  try {
+    var data = await compressToDataUrl(file, 'element-icon-canvas', 80, 0.9);
+    var r    = await apiPost('/api/admin/image/upload', { key: 'element_' + element, data: data });
+    showAlert('element-icon-alert', r.success, r.message || (r.success ? 'Uploaded!' : 'Error'));
+    if (r.success) {
+      if (fileEl) fileEl.value = '';
+      document.querySelectorAll('img[src*="element_' + element + '"]').forEach(function(img) {
+        img.src = '/img/element_' + element + '?t=' + Date.now();
+        img.classList.remove('errored');
+      });
+    }
+  } catch(e) { showAlert('element-icon-alert', false, 'Upload failed'); }
+}
+
+async function uploadSkillTile(skillId) {
+  if (!_selectedCharSlug) { showAlert('skill-alert', false, 'Select a character first'); return; }
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async function() {
+    if (!input.files || !input.files[0]) return;
+    showAlert('skill-alert', true, 'Uploading tile...');
+    try {
+      var data = await compressToDataUrl(input.files[0], 'skill-tile-canvas', 128, 0.9);
+      var key  = 'char_skill_' + _selectedCharSlug + '_' + skillId;
+      var r    = await apiPost('/api/admin/image/upload', { key: key, data: data });
+      showAlert('skill-alert', r.success, r.message || (r.success ? 'Tile uploaded!' : 'Error'));
+      if (r.success) {
+        var img = document.querySelector('#skill-' + skillId + ' .skill-tile-img');
+        if (img) { img.src = '/img/' + key + '?t=' + Date.now(); img.classList.remove('errored'); }
+      }
+    } catch(e) { showAlert('skill-alert', false, 'Upload failed'); }
+  };
+  input.click();
 }
 
 async function saveCompVideo() {
@@ -1058,20 +1159,20 @@ async function loadCompData(id) {
 
 async function saveCompMeta() {
   if (!_compId) { showAlert('comp-meta-alert', false, 'Select a composition first'); return; }
-  var color    = (document.getElementById('comp-color')      || {}).value || '#c9a84c';
-  var shortDesc= ((document.getElementById('comp-short-desc')|| {}).value || '').trim();
-  var notes    = ((document.getElementById('comp-build-notes')|| {}).value || '').trim();
-  var name     = ((document.getElementById('comp-name') || {}).value || '').trim();
-  var sel      = document.getElementById('comp-select');
-  var opt      = sel ? sel.options[sel.selectedIndex] : null;
+  var color  = (document.getElementById('comp-color')       || {}).value || '#c9a84c';
+  var notes  = ((document.getElementById('comp-build-notes') || {}).value || '').trim();
+  var name   = ((document.getElementById('comp-name') || {}).value || '').trim();
+  var sel    = document.getElementById('comp-select');
+  var opt    = sel ? sel.options[sel.selectedIndex] : null;
   if (!name && opt) name = opt.dataset.name || '';
-  var type     = opt ? opt.dataset.type  || 'ATK' : 'ATK';
-  var cby      = opt ? opt.dataset.cby   || '' : '';
-  var uorder   = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: shortDesc, description: notes, countered_by: cby, unit_order: uorder });
+  var type   = opt ? opt.dataset.type  || 'ATK' : 'ATK';
+  var cby    = opt ? opt.dataset.cby   || '' : '';
+  var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
+  var sd     = opt ? opt.dataset.shortDesc || '' : '';
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
-    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.shortDesc = shortDesc; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
+    if (opt) { opt.dataset.name = name; opt.dataset.color = color; opt.dataset.notes = notes; opt.text = opt.dataset.tier + ' — ' + name + ' (' + type + ')'; }
   }
   showAlert('comp-meta-alert', r.success, r.message);
 }
@@ -1456,21 +1557,34 @@ async function addChar() {
   var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
   var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
   var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
+  var baseCostume = ((document.getElementById('new-char-base-costume') || {}).value || '').trim();
   var portraitEl = document.getElementById('new-char-portrait');
   var portraitFile = portraitEl && portraitEl.files && portraitEl.files[0];
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
   var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
+  var portraitData = '';
   if (r.success && portraitFile) {
     showAlert('char-alert', true, 'Uploading portrait…');
     try {
-      var data = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
-      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: data });
+      portraitData = await compressToDataUrl(portraitFile, 'new-char-canvas', 340, 0.85);
+      await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_portrait', data: portraitData });
     } catch(e) {}
+  }
+  if (r.success && baseCostume) {
+    var costumeSlug = baseCostume.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (costumeSlug) {
+      await apiPost('/api/admin/costumes/add', { char_slug: slug, costume_name: baseCostume, costume_slug: costumeSlug, bond_stats: '' });
+      if (portraitData) {
+        await apiPost('/api/admin/image/upload', { key: 'char_' + slug.toLowerCase() + '_' + costumeSlug + '_icon', data: portraitData });
+      }
+    }
   }
   showAlert('char-alert', r.success, r.message);
   if (r.success) {
     document.getElementById('new-char-name').value = '';
     document.getElementById('new-char-slug').value = '';
+    var bcEl = document.getElementById('new-char-base-costume');
+    if (bcEl) bcEl.value = '';
     if (portraitEl) portraitEl.value = '';
     loadChars();
   }
@@ -1735,13 +1849,20 @@ async function loadSkills(costumeSlug) {
       list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No skills yet.</p>';
       return;
     }
+    var charSlug = _selectedCharSlug || '';
     list.innerHTML = data.skills.map(function(s) {
+      var tileKey = 'char_skill_' + charSlug + '_' + s.id;
       return '<div class="admin-item" id="skill-' + s.id + '">'
-        + '<div class="admin-item-info">'
+        + '<div class="admin-item-info" style="display:flex;align-items:center;gap:0.5rem;flex:1">'
+        + '<img src="/img/' + escH(tileKey) + '" class="img-err-dim skill-tile-img" style="width:32px;height:32px;object-fit:contain;border-radius:4px;background:var(--bg2);border:1px solid var(--border2);flex-shrink:0">'
+        + '<div>'
         + '<strong>' + escH(s.skill_name) + '</strong> \xb7 SP ' + s.sp_cost + ' \xb7 CD ' + s.cooldown + ' \xb7 ' + escH(s.tile_type)
         + (s.description ? '<span style="font-size:0.72rem;color:var(--text3);display:block">' + escH(s.description.substring(0,80)) + '</span>' : '')
-        + '</div>'
+        + '</div></div>'
+        + '<div style="display:flex;gap:0.3rem;align-items:center">'
+        + '<button class="btn" data-action="skill-tile-upload" data-skill-id="' + s.id + '" style="font-size:0.72rem;padding:3px 8px" title="Upload tile image">📷</button>'
         + '<button class="btn-danger" data-action="skill-delete" data-id="' + s.id + '">Delete</button>'
+        + '</div>'
         + '</div>';
     }).join('');
   } catch(e) {}
@@ -2068,8 +2189,6 @@ document.addEventListener('click', function(e) {
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
   if (action === 'tab-switch')      showTab(b.dataset.tab);
   if (action === 'rot-delete')       deleteCompRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10));
-  if (action === 'rot-char-change')  onRotCharChange(b);
-  if (action === 'rot-slot-change')  saveRotationSlot(b.dataset.char, parseInt(b.dataset.slot, 10), b.value);
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
@@ -2081,6 +2200,19 @@ document.addEventListener('click', function(e) {
   if (action === 'add-preemptive')   addPreemptive();
   if (action === 'preemptive-delete') deletePreemptive(parseInt(b.dataset.index, 10));
   if (action === 'add-emote')        addEmote();
+  if (action === 'save-matchups')    saveMatchups();
+  if (action === 'upload-element')   uploadElementIcon(b.dataset.element);
+  if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+});
+
+/* ═════════════════════════════════ DELEGATED CHANGE LISTENER ══ */
+document.addEventListener('change', function(e) {
+  var sel = e.target;
+  if (!sel || sel.tagName !== 'SELECT') return;
+  var action = sel.dataset && sel.dataset.action;
+  if (!action) return;
+  if (action === 'rot-char-change') onRotCharChange(sel);
+  if (action === 'rot-slot-change') saveRotationSlot(sel.dataset.char, parseInt(sel.dataset.slot, 10), sel.value);
 });
 
 /* ═════════════════════════════════════════════════════ INIT ══ */
