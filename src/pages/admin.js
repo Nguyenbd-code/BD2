@@ -146,6 +146,29 @@ export async function handleAdmin(request, env) {
     <a href="/admin/logout" style="font-size:0.82rem;color:var(--text3)">Logout</a>
   </div>
 
+  <!-- Early, isolated tab-switching script: always wires tabs even if later JS errors -->
+  <script>
+  (function(){
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.tab-btn[data-tab]');
+      if (!btn) return;
+      var name = btn.dataset.tab;
+      document.querySelectorAll('.admin-section').forEach(function(s){ s.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      var t = document.getElementById('tab-' + name);
+      if (t) t.classList.add('active');
+      btn.classList.add('active');
+      // Defer load* calls — they're defined in the main script which loads later
+      try {
+        if (name === 'chars'    && typeof loadChars     === 'function') loadChars();
+        if (name === 'images'   && typeof updateImgKey  === 'function') updateImgKey();
+        if (name === 'homepage' && typeof loadHomeNotes === 'function') loadHomeNotes();
+        if (name === 'settings' && typeof loadEmoteSets === 'function') loadEmoteSets();
+      } catch(err) {}
+    });
+  })();
+  </script>
+
   <div class="admin-tabs">
     <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
@@ -3109,11 +3132,11 @@ document.addEventListener('error', function(e) {
   if (t.classList.contains('img-err-hide')) t.classList.add('errored');
   if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
 }, true);
-updateImgKey();
-setupEmoteSetUI();
+try { updateImgKey(); } catch(_e) {}
+try { setupEmoteSetUI(); } catch(_e) {}
 
 /* ═══════════════════════════ BONDS / UNIT-ORDER MODAL WIRING ══ */
-(function() {
+try { (function() {
   var openBondsBtn  = document.getElementById('open-bonds-modal-btn');
   var closeBondsBtn = document.getElementById('close-bonds-modal-btn');
   var openUOBtn     = document.getElementById('open-unit-order-btn');
@@ -3148,7 +3171,7 @@ setupEmoteSetUI();
   // Character search
   var cs = document.getElementById('bonds-char-search');
   if (cs) cs.addEventListener('input', function() { renderBondsCharGrid(_bondsCurElem || 'all'); });
-})();
+})(); } catch(_e) {}
 
 /* ═══════════════════════════════════════ COMP LIST DRAG & DROP ══ */
 function initCompDragDrop() {
@@ -3185,7 +3208,7 @@ function initCompDragDrop() {
     }
   });
 }
-initCompDragDrop();
+try { initCompDragDrop(); } catch(_e) {}
 </script>
 `);
 }
