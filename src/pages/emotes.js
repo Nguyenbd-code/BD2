@@ -94,9 +94,12 @@ export async function handleEmotes(request, env) {
   <p>Five locked sets. Each one hides behind a small secret on the site — find it to unlock.</p>
 </div>
 
-<div id="hint-toast" style="display:none;position:fixed;top:1rem;right:1rem;z-index:9999;background:rgba(15,15,24,0.96);border:1px solid rgba(201,168,76,0.4);border-radius:8px;padding:0.9rem 1.1rem;max-width:340px;color:var(--text);font-size:0.85rem;line-height:1.5;box-shadow:0 8px 32px rgba(0,0,0,0.7)">
-  <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:0.78rem;margin-bottom:0.3rem;letter-spacing:0.05em" id="hint-toast-title">HINT</div>
-  <div id="hint-toast-body"></div>
+<div id="hint-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.5);border-radius:12px;padding:1.5rem 1.75rem;max-width:420px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative">
+    <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:0.82rem;letter-spacing:0.08em;margin-bottom:0.5rem" id="hint-modal-title">HINT</div>
+    <div id="hint-modal-body" style="color:var(--text);font-size:0.9rem;line-height:1.65;margin-bottom:1rem"></div>
+    <button id="hint-modal-close" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 20px;border-radius:5px;cursor:pointer;font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em">Dismiss</button>
+  </div>
 </div>
 
 <div class="sets-grid">${setCards}</div>
@@ -142,19 +145,26 @@ export async function handleEmotes(request, env) {
   }
   paint();
 
+  function showHintModal(title, body) {
+    var m = document.getElementById('hint-modal');
+    document.getElementById('hint-modal-title').textContent = title;
+    document.getElementById('hint-modal-body').textContent = body;
+    m.style.display = 'flex';
+  }
+  document.getElementById('hint-modal-close').addEventListener('click', function() {
+    document.getElementById('hint-modal').style.display = 'none';
+  });
+  document.getElementById('hint-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+
   document.addEventListener('click', function(e) {
     var hintBtn = e.target.closest('.set-hint-icon');
     if (hintBtn) {
       e.stopPropagation();
       var n = parseInt(hintBtn.dataset.set, 10);
       var s = SETS.find(function(x) { return x.set_num === n; });
-      if (!s) return;
-      var toast = document.getElementById('hint-toast');
-      document.getElementById('hint-toast-title').textContent = 'HINT - SET ' + n;
-      document.getElementById('hint-toast-body').textContent = s.hint || 'No hint set yet.';
-      toast.style.display = 'block';
-      clearTimeout(window._hintTo);
-      window._hintTo = setTimeout(function() { toast.style.display = 'none'; }, 6000);
+      showHintModal('HINT - SET ' + n, (s && s.hint) ? s.hint : 'No hint available yet.');
       return;
     }
     var card = e.target.closest('.set-card');
@@ -162,12 +172,7 @@ export async function handleEmotes(request, env) {
     var sn = parseInt(card.dataset.set, 10);
     if (!isUnlocked(sn)) {
       var s = SETS.find(function(x) { return x.set_num === sn; });
-      var toast = document.getElementById('hint-toast');
-      document.getElementById('hint-toast-title').textContent = 'LOCKED - SET ' + sn;
-      document.getElementById('hint-toast-body').textContent = (s && s.hint) ? s.hint : 'Find the secret to unlock.';
-      toast.style.display = 'block';
-      clearTimeout(window._hintTo);
-      window._hintTo = setTimeout(function() { toast.style.display = 'none'; }, 6000);
+      showHintModal('LOCKED - SET ' + sn, (s && s.hint) ? s.hint : 'Find the secret to unlock this set.');
       return;
     }
     card.classList.toggle('open');

@@ -397,63 +397,72 @@ export async function handleAdmin(request, env) {
   <div class="admin-section" id="tab-emotes">
     <div class="admin-form">
       <h3>Emote Sets</h3>
-      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Five secret sets. Pick a set to edit its unlock condition, hint, cover image, and emotes.</p>
-      <div class="form-group">
-        <label>Pick Set</label>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1.25rem">Pick a set to manage its cover image and emote bundle.</p>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0">
+        <label style="margin:0;white-space:nowrap">Set</label>
         <select id="emote-set-select" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:200px">
           <option value="1">Set 1</option><option value="2">Set 2</option><option value="3">Set 3</option><option value="4">Set 4</option><option value="5">Set 5</option>
         </select>
       </div>
-      <div id="emote-set-editor" style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
-        <div class="form-row">
-          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
-          <div class="form-group">
-            <label>Unlock Page</label>
-            <select id="es-page" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="characters">Characters</option>
-              <option value="guide">PvP Guide</option>
-              <option value="coupons">Coupons</option>
-              <option value="home">Home</option>
-            </select>
+
+      <!-- Cover Image -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Cover Image</div>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div id="es-cover-preview-img" style="width:120px;height:120px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <span style="font-size:0.7rem;color:var(--text3);text-align:center">No cover</span>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div class="form-group">
+              <label>Upload New Cover</label>
+              <input type="file" id="es-cover-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+              <canvas id="es-cover-canvas" style="display:none"></canvas>
+            </div>
+            <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Cover</button>
+            <span id="es-alert" style="font-size:0.78rem;margin-left:0.5rem"></span>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Unlock Element Button</label>
-            <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="water">Water</option>
-              <option value="fire">Fire</option>
-              <option value="wind">Wind</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="50" value="7"></div>
-        </div>
-        <div class="form-group">
-          <label>Hint (shown in tooltip on Emotes page)</label>
-          <textarea id="es-hint" rows="2" placeholder="Reword as a riddle..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Cover Image (optional — used as set thumbnail)</label>
-          <input type="file" id="es-cover-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-          <canvas id="es-cover-canvas" style="display:none"></canvas>
-          <div id="es-cover-preview" style="margin-top:0.4rem;font-size:0.75rem;color:var(--text3)"></div>
-        </div>
-        <button class="btn" style="width:auto;padding:10px 24px" data-action="save-emote-set">Save Set Settings</button>
-        <div id="es-alert"></div>
       </div>
 
-      <h3 style="margin-top:1.5rem">Emotes in this Set</h3>
-      <div class="form-group">
-        <label>Upload Folder of Emotes <span style="color:var(--text3);font-weight:400">(select multiple files, or paste from clipboard)</span></label>
-        <input type="file" id="es-bulk-files" accept="image/*" multiple style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-        <canvas id="es-bulk-canvas" style="display:none"></canvas>
-        <div id="es-paste-zone" tabindex="0" style="margin-top:0.5rem;padding:1rem;border:2px dashed var(--border2);border-radius:6px;text-align:center;color:var(--text3);font-size:0.82rem;outline:none">Click here, then paste images with Ctrl+V (or Cmd+V)</div>
-        <button class="btn" style="width:auto;padding:10px 24px;margin-top:0.5rem" data-action="bulk-add-emotes">Upload Selected Files</button>
-        <div id="es-bulk-alert"></div>
+      <!-- Emote Bundle -->
+      <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Emote Bundle</div>
+        <div class="form-group">
+          <label>Upload Images <span style="color:var(--text3);font-weight:400">(select multiple files)</span></label>
+          <input type="file" id="es-bulk-files" accept="image/*" multiple style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+          <canvas id="es-bulk-canvas" style="display:none"></canvas>
+        </div>
+        <div class="form-group">
+          <label>Paste Images <span style="color:var(--text3);font-weight:400">(click below then Ctrl+V)</span></label>
+          <div id="es-paste-zone" tabindex="0" style="padding:1rem;border:2px dashed var(--border2);border-radius:6px;text-align:center;color:var(--text3);font-size:0.82rem;outline:none">Click here, then paste images with Ctrl+V</div>
+        </div>
+        <button class="btn" style="width:auto;padding:10px 24px" data-action="bulk-add-emotes">Upload to Set</button>
+        <div id="es-bulk-alert" style="margin-top:0.4rem"></div>
+        <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.75rem"></div>
       </div>
-      <div id="es-emote-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.5rem;margin-top:0.5rem"></div>
+
+      <!-- Settings (hint & unlock) -->
+      <details style="margin-top:1.25rem">
+        <summary style="cursor:pointer;font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);padding:0.5rem 0">Set Settings (Hint &amp; Unlock)</summary>
+        <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:0.5rem">
+          <div class="form-group"><label>Set Name</label><input type="text" id="es-name" placeholder="Set 1"></div>
+          <div class="form-group">
+            <label>Hint (shown in modal on Emotes page)</label>
+            <textarea id="es-hint" rows="3" placeholder="Phrase as a riddle..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Unlock Element (Characters page)</label>
+              <select id="es-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <option value="water">Water</option><option value="fire">Fire</option><option value="wind">Wind</option><option value="light">Light</option><option value="dark">Dark</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Click Count</label><input type="number" id="es-count" min="1" max="99" value="7"></div>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 20px" data-action="save-emote-set">Save Settings</button>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -1462,8 +1471,14 @@ function renderEmoteSet(sn) {
   var tEl = document.getElementById('es-target'); if (tEl) tEl.value = (s.unlock_target || 'water').toLowerCase();
   var cEl = document.getElementById('es-count'); if (cEl) cEl.value = s.unlock_count || 7;
   var hEl = document.getElementById('es-hint'); if (hEl) hEl.value = s.hint || '';
-  var prev = document.getElementById('es-cover-preview');
-  if (prev) prev.innerHTML = s.cover_key ? ('Current: <img src="/img/' + escH(s.cover_key) + '" style="height:32px;vertical-align:middle;border-radius:3px"> <code>' + escH(s.cover_key) + '</code>') : 'No cover set';
+  var prev = document.getElementById('es-cover-preview-img');
+  if (prev) {
+    if (s.cover_key) {
+      prev.innerHTML = '<img src="/img/' + escH(s.cover_key) + '" style="width:100%;height:100%;object-fit:cover" class="img-err-hide">';
+    } else {
+      prev.innerHTML = '<span style="font-size:0.7rem;color:var(--text3);text-align:center">No cover</span>';
+    }
+  }
   _esPendingCover = '';
 }
 
@@ -1503,7 +1518,8 @@ async function saveEmoteSet() {
     if (up.success) body.cover_key = key;
   }
   var r = await apiPost('/api/admin/emote-set/save', body);
-  showAlert('es-alert', r.success, r.message);
+  var alertEl = document.getElementById('es-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
   if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
 }
 

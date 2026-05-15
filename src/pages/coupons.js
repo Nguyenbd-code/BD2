@@ -20,15 +20,17 @@ export async function handleCoupons(request, env) {
     <button class="copy-btn" style="font-size:0.72rem" data-action="redeem-one" data-code="${esc(c.code)}">Quick Redeem</button>
   </div>
 </div>`).join('')
-    : '<p style="text-align:center;color:var(--text3);padding:2rem">No active codes right now — check back soon!</p>';
+    : '<p style="text-align:center;color:var(--text3);padding:2rem">No active codes right now - check back soon!</p>';
 
-  const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })));
+  // Safe JSON injection: escape </ to prevent </script> from breaking the HTML parser
+  const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })))
+    .replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
 
   return layout('Coupons', `
 <div class="hero" style="padding-bottom:2rem">
   <div class="hero-tag">Rewards</div>
   <h1>Coupon <span>Codes</span></h1>
-  <p>Enter your in-game nickname and click Redeem All — every active code is tried automatically</p>
+  <p>Enter your in-game nickname and click Redeem All - every active code is tried automatically</p>
 </div>
 
 <div class="coupon-form">
@@ -104,32 +106,31 @@ export async function handleCoupons(request, env) {
 <div id="toast-stack"></div>
 
 <script>
-window.addEventListener('error', function(e) {
-  try { alert('[Coupon Script Error] ' + (e.message || e.error)); } catch(_) {}
-});
-
 var CODES = ${codesJson};
 
 function showToast(kind, title, msg) {
-  // Always also alert so the user sees feedback no matter what
-  try { alert(title + (msg ? '\n' + msg : '')); } catch(_) {}
   var stack = document.getElementById('toast-stack');
   if (!stack) return;
   var t = document.createElement('div');
   t.className = 'toast t-' + kind;
   t.innerHTML = '<b>' + escH(title) + '</b>' + escH(msg || '');
   stack.appendChild(t);
-  setTimeout(function() { t.style.transition = 'opacity 0.3s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, kind === 'success' ? 4000 : 5500);
+  var delay = kind === 'success' ? 4000 : 5500;
+  setTimeout(function() {
+    t.style.transition = 'opacity 0.3s';
+    t.style.opacity = '0';
+    setTimeout(function() { t.remove(); }, 300);
+  }, delay);
 }
 
 function toastForResult(code, result) {
   var s = result.status;
-  if (s === 'Success')       return showToast('success', code + '  -  Redeemed!', result.message || 'Check your in-game mailbox.');
-  if (s === 'AlreadyUsed')   return showToast('warn',    code + '  -  Already Used', result.message || '');
-  if (s === 'ExpiredCode')   return showToast('warn',    code + '  -  Expired', result.message || '');
-  if (s === 'InvalidCode')   return showToast('error',   code + '  -  Invalid Code', result.message || '');
-  if (s === 'IncorrectUser') return showToast('error',   'Wrong Nickname', result.message || 'Check your in-game name.');
-  return showToast('error', code + '  -  Error', result.message || 'Unknown error');
+  if (s === 'Success')       { showToast('success', code + ' - Redeemed!', result.message || 'Check your in-game mailbox.'); return; }
+  if (s === 'AlreadyUsed')   { showToast('warn',    code + ' - Already Used', result.message || ''); return; }
+  if (s === 'ExpiredCode')   { showToast('warn',    code + ' - Expired', result.message || ''); return; }
+  if (s === 'InvalidCode')   { showToast('error',   code + ' - Invalid Code', result.message || ''); return; }
+  if (s === 'IncorrectUser') { showToast('error',   'Wrong Nickname', result.message || 'Check your in-game name.'); return; }
+  showToast('error', code + ' - Error', result.message || 'Unknown error');
 }
 
 function escH(s) {
@@ -137,35 +138,21 @@ function escH(s) {
 }
 function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-function statusClass(status) {
-  return {
-    Success:      'rb-success',
-    AlreadyUsed:  'rb-used',
-    ExpiredCode:  'rb-expired',
-    InvalidCode:  'rb-invalid',
-    IncorrectUser:'rb-user',
-    NetworkError: 'rb-error',
-    Error:        'rb-error',
-  }[status] || 'rb-error';
+function statusClass(s) {
+  var m = { Success:'rb-success', AlreadyUsed:'rb-used', ExpiredCode:'rb-expired', InvalidCode:'rb-invalid', IncorrectUser:'rb-user', NetworkError:'rb-error', Error:'rb-error' };
+  return m[s] || 'rb-error';
 }
 
-function statusLabel(status) {
-  return {
-    Success:      'OK Redeemed!',
-    AlreadyUsed:  'Already Used',
-    ExpiredCode:  'Expired',
-    InvalidCode:  'Invalid Code',
-    IncorrectUser:'Wrong Nickname',
-    NetworkError: 'Network Error',
-    Error:        'Error',
-  }[status] || status;
+function statusLabel(s) {
+  var m = { Success:'Redeemed!', AlreadyUsed:'Already Used', ExpiredCode:'Expired', InvalidCode:'Invalid Code', IncorrectUser:'Wrong Nickname', NetworkError:'Network Error', Error:'Error' };
+  return m[s] || s;
 }
 
 function getNickname() {
-  return (document.getElementById('nickname').value || '').trim();
+  var el = document.getElementById('nickname');
+  return el ? (el.value || '').trim() : '';
 }
 
-// Call Worker proxy  -  avoids CORS by making request server-side
 async function redeemViaProxy(nickname, code) {
   var res = await fetch('/api/redeem', {
     method: 'POST',
@@ -175,21 +162,12 @@ async function redeemViaProxy(nickname, code) {
   return await res.json();
 }
 
-// Inject a small visible debug block below a result row so we can see
-// exactly what the redemption server replied with.
 function renderDebug(row, result) {
-  if (!row) return;
-  if (row.querySelector('.rb-debug')) return;
+  if (!row || row.querySelector('.rb-debug')) return;
   var lines = [];
-  lines.push('msg: ' + (result.message || ' - '));
-  lines.push('http: ' + (result.http != null ? result.http : ' - ') + ' | via: ' + (result.via || ' - '));
+  lines.push('msg: ' + (result.message || '-'));
+  lines.push('http: ' + (result.http != null ? result.http : '-'));
   if (result.raw) lines.push('raw: ' + result.raw);
-  if (result.debug && result.debug.length) {
-    lines.push('attempts:');
-    result.debug.forEach(function(a) {
-      lines.push('  [' + a.label + '] ' + a.status + ' | ' + (a.snippet || '').replace(/\s+/g, ' '));
-    });
-  }
   var div = document.createElement('div');
   div.className = 'rb-debug';
   div.textContent = lines.join('\n');
@@ -206,7 +184,7 @@ async function redeemAll() {
   }
   if (!CODES.length) {
     document.getElementById('redeem-status').textContent = 'No active codes to redeem.';
-    showToast('info', 'No codes', 'There are no active codes to redeem right now.');
+    showToast('info', 'No codes', 'There are no active codes right now.');
     return;
   }
 
@@ -216,7 +194,7 @@ async function redeemAll() {
   document.getElementById('redeem-status').textContent = '';
 
   var resultsList = document.getElementById('results-list');
-  var summary     = document.getElementById('redeem-summary');
+  var summary = document.getElementById('redeem-summary');
   document.getElementById('redeem-results').style.display = 'block';
   summary.textContent = '';
 
@@ -232,28 +210,24 @@ async function redeemAll() {
 
   for (var i = 0; i < CODES.length; i++) {
     var code = CODES[i].code;
-    var row  = document.getElementById('r-' + escH(code));
+    var row = document.getElementById('r-' + escH(code));
     var badge = row ? row.querySelector('.result-badge') : null;
     if (badge) badge.textContent = 'Trying...';
-
     await delay(300);
-
     try {
       var result = await redeemViaProxy(nickname, code);
       if (badge) {
         badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
         badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
       }
-      if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
-        renderDebug(row, result);
-      }
+      if (result.status !== 'Success' && result.status !== 'AlreadyUsed') renderDebug(row, result);
       toastForResult(code, result);
       if (result.success) counts.success++;
       else if (result.status === 'AlreadyUsed') counts.used++;
       else counts.other++;
     } catch(e) {
-      if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
-      showToast('error', code + '  -  Error', e.message || 'Request failed');
+      if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
+      showToast('error', code + ' - Error', e.message || 'Request failed');
       counts.other++;
     }
   }
@@ -288,11 +262,9 @@ async function redeemOne(code) {
     div.innerHTML = '<span class="result-code">' + escH(code) + '</span><span class="result-badge rb-pending">Trying...</span>';
     resultsList.prepend(div);
   }
-  var row   = document.getElementById(rowId);
+  var row = document.getElementById(rowId);
   var badge = row.querySelector('.result-badge');
   if (badge) { badge.className = 'result-badge rb-pending'; badge.textContent = 'Trying...'; }
-
-  // Clear any previous debug block
   var prev = row.querySelector('.rb-debug');
   if (prev) prev.remove();
 
@@ -302,25 +274,19 @@ async function redeemOne(code) {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
     }
-    if (result.status !== 'Success' && result.status !== 'AlreadyUsed') {
-      renderDebug(row, result);
-    }
+    if (result.status !== 'Success' && result.status !== 'AlreadyUsed') renderDebug(row, result);
     toastForResult(code, result);
   } catch(e) {
-    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; badge.title = e.message; }
-    showToast('error', code + '  -  Error', e.message || 'Request failed');
+    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
+    showToast('error', code + ' - Error', e.message || 'Request failed');
   }
 }
-
-console.log('[coupons] script loaded, codes=', CODES.length);
 
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
   var action = btn.dataset.action;
-  var code   = btn.dataset.code || '';
-  console.log('[coupons] click action=', action, 'code=', code);
-
+  var code = btn.dataset.code || '';
   if (action === 'copy-code') {
     navigator.clipboard.writeText(code).then(function() {
       var orig = btn.textContent;
@@ -331,8 +297,8 @@ document.addEventListener('click', function(e) {
       setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
     });
   }
-  if (action === 'redeem-all')  redeemAll();
-  if (action === 'redeem-one')  redeemOne(code);
+  if (action === 'redeem-all') redeemAll();
+  if (action === 'redeem-one') redeemOne(code);
 });
 </script>
 `, 'coupons');
