@@ -195,6 +195,37 @@ window.showSetUnlockModal = function(setNum, setName, message) {
       return charSetCache;
     }).catch(function(){ return []; });
   }
+  // Rabbit-tap shortcut — 2x Liatris + 3x Zenith reveals where the lock-screen
+  // secret-code lives. Disabled once kitsu_unlocked is set.
+  function checkRabbitShortcut() {
+    if (localStorage.getItem('kitsu_unlocked') === 'true') return;
+    if (localStorage.getItem('kitsu_rabbit_hint_shown') === '1') return;
+    var li = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10);
+    var ze = parseInt(localStorage.getItem('kitsu_rabbit_zenith')  || '0', 10);
+    if (li >= 2 && ze >= 3) {
+      localStorage.setItem('kitsu_rabbit_hint_shown', '1');
+      localStorage.removeItem('kitsu_rabbit_liatris');
+      localStorage.removeItem('kitsu_rabbit_zenith');
+      showRabbitHint();
+    }
+  }
+  function showRabbitHint() {
+    var existing = document.getElementById('rabbit-hint-modal');
+    if (existing) existing.remove();
+    var m = document.createElement('div');
+    m.id = 'rabbit-hint-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;padding:1.5rem;cursor:pointer;';
+    m.innerHTML = '<div style="background:#14141e;border:1px solid rgba(201,168,76,0.45);border-radius:8px;padding:2rem 2.25rem;max-width:420px;width:100%;text-align:center;font-family:\\'Inter\\',system-ui,sans-serif;cursor:default;box-shadow:0 20px 60px rgba(0,0,0,0.6)" onclick="event.stopPropagation()">'
+      + '<div style="font-family:\\'Fraunces\\',Georgia,serif;font-weight:600;font-size:1.4rem;color:#c9a84c;margin-bottom:0.85rem;letter-spacing:-0.01em">A whisper reaches you</div>'
+      + '<div style="font-size:0.9rem;color:#eef0fa;line-height:1.6;margin-bottom:1.25rem;font-style:italic">The answer lies at the bottom of the Home page.</div>'
+      + '<button id="rabbit-hint-close" style="background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:7px 22px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase">Close</button>'
+      + '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function(){ m.remove(); });
+    var cb = document.getElementById('rabbit-hint-close');
+    if (cb) cb.addEventListener('click', function(){ m.remove(); });
+  }
+
   circle.addEventListener('click', function(e){
     var b = e.target.closest('.char-pos');
     if (!b) return;
@@ -202,6 +233,17 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     e.stopPropagation();
     var slug = (b.dataset.char || '').toLowerCase();
     if (!slug) return;
+    // Bump rabbit-tap counters before everything else.
+    if (localStorage.getItem('kitsu_unlocked') !== 'true' && localStorage.getItem('kitsu_rabbit_hint_shown') !== '1') {
+      if (slug === 'liatris') {
+        var n = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10) + 1;
+        localStorage.setItem('kitsu_rabbit_liatris', String(n));
+      } else if (slug === 'zenith') {
+        var n2 = parseInt(localStorage.getItem('kitsu_rabbit_zenith') || '0', 10) + 1;
+        localStorage.setItem('kitsu_rabbit_zenith', String(n2));
+      }
+      checkRabbitShortcut();
+    }
     b.classList.remove('char-pos-tap');
     void b.offsetWidth;
     b.classList.add('char-pos-tap');

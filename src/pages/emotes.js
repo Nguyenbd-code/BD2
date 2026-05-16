@@ -212,7 +212,8 @@ export async function handleEmotes(request, env) {
   return await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
-  <div style="max-width:460px;width:100%;text-align:center">
+  <div style="max-width:460px;width:100%;text-align:center;position:relative">
+    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cinzel',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
     <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
       <span style="font-size:3.5rem">&#128274;</span>
     </div>
@@ -223,8 +224,18 @@ export async function handleEmotes(request, env) {
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
+    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6">hit the red rabbit twice and the green rabbit thrice</div>
   </div>
 </div>
+<script>(function(){
+  var btn = document.getElementById('lock-hint-btn');
+  var bubble = document.getElementById('lock-hint-bubble');
+  if (btn && bubble) {
+    btn.addEventListener('click', function(){
+      bubble.style.display = bubble.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+})();</script>
 
 <script>(function(){if(localStorage.getItem('kitsu_unlocked')!=='true'){var ls=document.getElementById('emote-lock-screen');var pc=document.getElementById('emote-page-content');if(ls)ls.style.display='flex';if(pc)pc.style.display='none';}})();</script>
 <!-- Main page content (hidden until unlocked) -->
