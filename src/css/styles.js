@@ -28,10 +28,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-backdrop.open{display:block;}
 
 /* Mamonir nav icon */
-.mam-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;min-width:80px;}
+.mam-wrap{position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
 .mam-wrap img{height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease;-webkit-user-drag:none;pointer-events:none;}
-.mam-tooltip{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--gold);font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:0.06em;padding:5px 10px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;box-shadow:0 4px 14px rgba(0,0,0,0.6);z-index:101;}
-.mam-wrap:hover .mam-tooltip{opacity:1;}
 .mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
 .mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.45);}
 .mam-bubble-show{animation:mam-bubble-pop 1.4s ease-out forwards;}
@@ -47,9 +45,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
   .nav-links a.nav-active{border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
   .nav-admin{gap:6px;}
   .nav-admin>a{padding:5px 10px;font-size:0.72rem;}
-  .mam-wrap{min-width:44px;margin-left:0;}
+  .mam-wrap{margin-left:0;}
   .mam-wrap img{height:48px;}
-  .mam-tooltip{display:none;}
   .mam-bubble{font-size:0.72rem;padding:5px 10px;}
 }
 main{padding-top:60px;position:relative;z-index:1;}
