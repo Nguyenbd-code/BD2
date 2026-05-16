@@ -52,7 +52,7 @@ function cSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function charStrip(chars, compId, bondsData) {
+function charStrip(chars, compId, bondsData, compGear) {
   const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
   const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return chars.map((c, idx) => {
@@ -68,6 +68,13 @@ function charStrip(chars, compId, bondsData) {
         <div class="tt-stats">${bond.stats.map(s=>`<span class="tt-stat">${esc(s)}</span>`).join('')}</div>
         <div class="tt-desc">${esc(bond.notes)}</div>
       </div>` : '';
+    // Use comp-specific gear override if it exists, otherwise fall back to base
+    // compId param is anchorId = "a1-atk" or "d1-def"; tier = part before first '-'
+    const tierKey = compId.split('-')[0];
+    const hasCompGear = compGear && compGear[slug];
+    const gearSrc = hasCompGear
+      ? `/img/comp_gear_${tierKey}_${slug}`
+      : `/img/char_${slug}_gear`;
     return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
   <div class="char-card-inner${bond?' tt-parent':''}" id="card-${cid}">
     <div class="char-face">
@@ -85,11 +92,11 @@ function charStrip(chars, compId, bondsData) {
     <div class="char-face char-face-back">
       <div style="position:absolute;inset:0;background:var(--bg2);display:flex;align-items:center;justify-content:center">
         <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
-        <img src="/img/char_${slug}_gear" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)">
+        <img src="${gearSrc}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)">
       </div>
     </div>
   </div>
-  <button class="card-zoom-overlay" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/char_${slug}_gear');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid rgba(201,168,76,0.5);color:var(--gold);cursor:pointer;border-radius:4px;padding:4px 10px;font-size:0.9rem;z-index:100;display:none;pointer-events:auto">⤢</button>
+  <button class="card-zoom-overlay" onclick="event.stopPropagation();event.preventDefault();openLightbox('${gearSrc}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid rgba(201,168,76,0.5);color:var(--gold);cursor:pointer;border-radius:4px;padding:4px 10px;font-size:0.9rem;z-index:100;display:none;pointer-events:auto">⤢</button>
 </div>`;
   }).join('');
 }
@@ -105,7 +112,7 @@ function renderComp(comp, mediaMap) {
 
   // Character strip
   const stripHtml = (comp.chars||[]).length
-    ? charStrip(comp.chars, anchorId, comp.bondsData||null)
+    ? charStrip(comp.chars, anchorId, comp.bondsData||null, comp.compGear||{})
     : [1,2,3,4,5].map(() => `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px">
   <div class="char-card-inner">
     <div class="char-face">
@@ -292,16 +299,17 @@ function renderComp(comp, mediaMap) {
 }
 
 export async function handleGuide(request, env) {
-  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {};
+  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {};
   try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
-    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes] = await Promise.all([
+    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_chars ORDER BY tier, position').all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%' OR key LIKE 'counters_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT key FROM images WHERE key LIKE 'comp_gear_%'").all().catch(() => ({results:[]})),
     ]);
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
@@ -324,6 +332,14 @@ export async function handleGuide(request, env) {
     }
     for (const r of (extraRes.results||[])) {
       extraMap[r.key] = r.data;
+    }
+    // comp_gear_{tierlower}_{slug} → compGearMap[tierlower][slug] = true
+    for (const r of (gearRes.results||[])) {
+      const m = r.key.match(/^comp_gear_([^_]+)_(.+)$/);
+      if (m) {
+        if (!compGearMap[m[1]]) compGearMap[m[1]] = {};
+        compGearMap[m[1]][m[2]] = true;
+      }
     }
   } catch { /* ignore */ }
 
@@ -415,6 +431,7 @@ export async function handleGuide(request, env) {
       warning: STATIC_WARNINGS[tier] || null,
       preemptive,
       howToPlay,
+      compGear: compGearMap[tier.toLowerCase()] || {},
     }, mediaMap);
   };
 

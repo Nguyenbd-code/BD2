@@ -432,6 +432,40 @@ export async function handleAdmin(request, env) {
           <div id="comp-video-alert"></div>
         </div>
 
+        <!-- Comp-Specific Gear Images -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>COMP GEAR IMAGES <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— override a character's base gear image for this team's flip card only</span></label>
+          <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Select a bonded character below. Left square shows their base gear; right square lets you upload a comp-specific alternate used on the PvP Guide flip card.</p>
+          <select id="comp-gear-char-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.75rem" onchange="onCompGearCharChange()">
+            <option value="">— Select a character —</option>
+          </select>
+          <div id="comp-gear-preview" style="display:none">
+            <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:1;min-width:120px;max-width:180px">
+                <div style="font-size:0.72rem;color:var(--text3);margin-bottom:0.4rem;text-align:center">Base Gear</div>
+                <div style="width:100%;aspect-ratio:1;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+                  <span style="font-size:0.65rem;color:var(--text3)" id="comp-gear-base-placeholder">No image</span>
+                  <img id="comp-gear-base-img" src="" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg4)">
+                </div>
+              </div>
+              <div style="flex:1;min-width:120px;max-width:180px">
+                <div style="font-size:0.72rem;color:var(--text3);margin-bottom:0.4rem;text-align:center">Comp Override</div>
+                <div style="width:100%;aspect-ratio:1;border:2px dashed var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" id="comp-gear-alt-box" onclick="document.getElementById('comp-gear-alt-file').click()">
+                  <span style="font-size:0.65rem;color:var(--text3);text-align:center;padding:0.25rem" id="comp-gear-alt-placeholder">Click to upload</span>
+                  <img id="comp-gear-alt-img" src="" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg4)">
+                </div>
+              </div>
+            </div>
+            <input type="file" id="comp-gear-alt-file" accept="image/*" style="display:none">
+            <canvas id="comp-gear-alt-canvas" style="display:none"></canvas>
+            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+              <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="upload-comp-gear">Upload Override</button>
+              <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;background:var(--bg4);color:var(--text3)" data-action="clear-comp-gear">Clear Override</button>
+              <span id="comp-gear-alert" style="font-size:0.75rem;align-self:center"></span>
+            </div>
+          </div>
+        </div>
+
         <div id="comp-editor-alert"></div>
 
         <!-- Save All -->
@@ -1224,6 +1258,11 @@ function selectComp() {
   try { loadHowToPlay(_compTier);  } catch(e) { console.error('loadHowToPlay', e); }
   try { loadPreemptive(_compTier); } catch(e) { console.error('loadPreemptive', e); }
   try { loadMatchups(_compTier);   } catch(e) { console.error('loadMatchups', e); }
+  // Reset gear section when switching comps
+  var gearPrev = document.getElementById('comp-gear-preview');
+  if (gearPrev) gearPrev.style.display = 'none';
+  var gearSel = document.getElementById('comp-gear-char-sel');
+  if (gearSel) gearSel.value = '';
 }
 window.selectComp = selectComp;
 
@@ -1601,6 +1640,7 @@ async function loadCompChars() {
     renderBondsSummary();
     updateBondGating();
     updateUnitOrderSummary();
+    loadCompGearCharList();
   } catch(e) {}
 }
 
@@ -2215,6 +2255,85 @@ async function saveNavIconSettings() {
   showAlert('nav-icon-alert', r.success, r.success ? 'Saved! Icon will fall after ' + count + ' taps (refresh to apply).' : (r.message || 'Error'));
 }
 
+/* ══════════════════════════════════════════════ COMP GEAR OVERRIDES ══ */
+function loadCompGearCharList() {
+  var sel = document.getElementById('comp-gear-char-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select a character —</option>';
+  var bonded = (_bondsSelections || []).filter(Boolean);
+  if (!bonded.length) {
+    sel.innerHTML = '<option value="">Set bonds first</option>';
+    return;
+  }
+  bonded.forEach(function(b) {
+    var opt = document.createElement('option');
+    opt.value = b.slug || '';
+    opt.textContent = b.name || b.slug || '';
+    sel.appendChild(opt);
+  });
+}
+
+function onCompGearCharChange() {
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  var preview = document.getElementById('comp-gear-preview');
+  if (!preview) return;
+  if (!slug) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  // Base gear
+  var baseImg = document.getElementById('comp-gear-base-img');
+  var basePlh = document.getElementById('comp-gear-base-placeholder');
+  var baseKey = '/img/char_' + slug + '_gear';
+  if (baseImg) { baseImg.src = baseKey; baseImg.style.display = 'block'; }
+  if (basePlh) basePlh.style.display = 'none';
+  // Alt gear (comp-specific)
+  var altImg = document.getElementById('comp-gear-alt-img');
+  var altPlh = document.getElementById('comp-gear-alt-placeholder');
+  var tier = (_compTier || '').toLowerCase();
+  var altKey = '/img/comp_gear_' + tier + '_' + slug;
+  if (altImg) { altImg.src = altKey; altImg.style.display = 'block'; }
+  if (altPlh) altPlh.textContent = 'Click to upload';
+  // Reset file input
+  var fi = document.getElementById('comp-gear-alt-file');
+  if (fi) fi.value = '';
+}
+
+async function uploadCompGear() {
+  if (!_compTier) { showAlert('comp-gear-alert', false, 'Select a composition first'); return; }
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  if (!slug) { showAlert('comp-gear-alert', false, 'Select a character first'); return; }
+  var fileInput = document.getElementById('comp-gear-alt-file');
+  var file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) { showAlert('comp-gear-alert', false, 'Choose an image file first'); return; }
+  showAlert('comp-gear-alert', true, 'Uploading…');
+  var data = await compressToDataUrl(file, 'comp-gear-alt-canvas', 480, 0.92);
+  var key = 'comp_gear_' + _compTier.toLowerCase() + '_' + slug;
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: data });
+  if (r.success) {
+    var altImg = document.getElementById('comp-gear-alt-img');
+    if (altImg) { altImg.src = '/img/' + key + '?t=' + Date.now(); altImg.style.display = 'block'; }
+  }
+  showAlert('comp-gear-alert', r.success, r.success ? '✓ Override uploaded — refresh guide to see it' : (r.message || 'Error'));
+}
+
+async function clearCompGear() {
+  if (!_compTier) { showAlert('comp-gear-alert', false, 'Select a composition first'); return; }
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  if (!slug) { showAlert('comp-gear-alert', false, 'Select a character first'); return; }
+  if (!confirm('Remove the gear override for ' + (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text || slug) + ' in this comp?')) return;
+  var key = 'comp_gear_' + _compTier.toLowerCase() + '_' + slug;
+  var r = await apiPost('/api/admin/image/delete', { key: key });
+  if (r.success) {
+    var altImg = document.getElementById('comp-gear-alt-img');
+    if (altImg) { altImg.src = ''; altImg.style.display = 'none'; }
+    var altPlh = document.getElementById('comp-gear-alt-placeholder');
+    if (altPlh) altPlh.textContent = 'Click to upload';
+  }
+  showAlert('comp-gear-alert', r.success, r.success ? 'Override cleared' : (r.message || 'Error'));
+}
+
 async function saveSpecialCodeConfig() {
   var code = ((document.getElementById('sc-code') || {}).value || '').trim();
   var passcode = ((document.getElementById('sc-passcode') || {}).value || '').trim();
@@ -2300,6 +2419,23 @@ function setupEmoteSetUI() {
     });
   }
   loadEmoteSets();
+
+  // Gear override file input — show preview immediately on selection
+  var gearFileInput = document.getElementById('comp-gear-alt-file');
+  if (gearFileInput) {
+    gearFileInput.addEventListener('change', function() {
+      var file = gearFileInput.files && gearFileInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function() {
+        var altImg = document.getElementById('comp-gear-alt-img');
+        var altPlh = document.getElementById('comp-gear-alt-placeholder');
+        if (altImg) { altImg.src = reader.result; altImg.style.display = 'block'; }
+        if (altPlh) altPlh.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════ IMAGES ══ */
@@ -3246,6 +3382,8 @@ document.addEventListener('click', function(e) {
   }
   if (action === 'save-nav-icon-settings') saveNavIconSettings();
   if (action === 'upload-mamonir-nav') uploadMamonirNav();
+  if (action === 'upload-comp-gear') uploadCompGear();
+  if (action === 'clear-comp-gear')  clearCompGear();
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
