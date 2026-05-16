@@ -1053,7 +1053,34 @@ export async function handleAdmin(request, env) {
             <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
           </div>
         </div>
-        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <!-- Unlock Reveal (image + message) -->
+        <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:#2ecc71;letter-spacing:0.08em;margin-bottom:0.6rem">UNLOCK REVEAL</div>
+          <p style="font-size:0.72rem;color:var(--text3);margin-bottom:0.75rem">Shown to the player after they unlock this set. Both fields are optional.</p>
+          <div class="form-group">
+            <label>Unlock Message <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(text displayed in the popup)</span></label>
+            <textarea id="set-cfg-unlock-msg" rows="3" placeholder="e.g. The figure could not withstand your persistence. This set is now yours."></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Unlock Image <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown above the message)</span></label>
+            <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-top:0.4rem">
+              <div style="width:90px;height:90px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <img id="set-cfg-unlock-img-preview" src="" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+              </div>
+              <div style="flex:1;min-width:200px">
+                <input type="file" id="set-cfg-unlock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <canvas id="set-cfg-unlock-img-canvas" style="display:none"></canvas>
+                <div style="display:flex;gap:0.5rem;margin-top:0.4rem;flex-wrap:wrap">
+                  <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="upload-unlock-img">Upload Image</button>
+                  <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;background:var(--bg4);color:var(--text3)" data-action="clear-unlock-img">Clear Image</button>
+                  <span id="set-cfg-unlock-img-alert" style="font-size:0.75rem;align-self:center"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;margin-top:1rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
       </div>
 
@@ -2039,6 +2066,15 @@ function renderSetConfig(sn) {
   if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
   if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-unlock-msg')) g('set-cfg-unlock-msg').value = s.unlock_message || '';
+  var imgPrev = g('set-cfg-unlock-img-preview');
+  if (imgPrev) {
+    imgPrev.classList.remove('errored');
+    imgPrev.style.display = '';
+    imgPrev.src = '/img/emote_set_' + sn + '_unlock_img?t=' + Date.now();
+  }
+  var imgFile = g('set-cfg-unlock-img-file');
+  if (imgFile) imgFile.value = '';
   if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
   // Auto-set page based on set number (Set 2 = emotes, all others = characters)
   var fixedPage = (sn === 2) ? 'emotes' : 'characters';
@@ -2181,6 +2217,7 @@ async function saveSetConfig() {
     unlock_mode: mode,
     unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+    unlock_message: gv('set-cfg-unlock-msg'),
   };
   var r = await apiPost('/api/admin/emote-set/save', body);
   var alertEl = document.getElementById('set-cfg-alert');
@@ -2216,6 +2253,35 @@ async function bulkAddEmotes() {
     if (pz) pz.textContent = 'Click here, then paste images with Ctrl+V (or Cmd+V)';
     loadEmoteSetEmotes(sn);
   }
+}
+
+async function uploadUnlockImg() {
+  var sn = _settingsCurrentSet || 1;
+  var fileEl = document.getElementById('set-cfg-unlock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('set-cfg-unlock-img-alert', false, 'Select an image first'); return; }
+  showAlert('set-cfg-unlock-img-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'set-cfg-unlock-img-canvas', 360, 0.9);
+  var key = 'emote_set_' + sn + '_unlock_img';
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: data });
+  if (r.success) {
+    var prev = document.getElementById('set-cfg-unlock-img-preview');
+    if (prev) { prev.classList.remove('errored'); prev.style.display = ''; prev.src = '/img/' + key + '?t=' + Date.now(); }
+    if (fileEl) fileEl.value = '';
+  }
+  showAlert('set-cfg-unlock-img-alert', r.success, r.success ? '✓ Uploaded' : (r.message || 'Error'));
+}
+
+async function clearUnlockImg() {
+  var sn = _settingsCurrentSet || 1;
+  if (!confirm('Remove the unlock image for set ' + sn + '?')) return;
+  var key = 'emote_set_' + sn + '_unlock_img';
+  var r = await apiPost('/api/admin/image/delete', { key: key });
+  if (r.success) {
+    var prev = document.getElementById('set-cfg-unlock-img-preview');
+    if (prev) prev.src = '';
+  }
+  showAlert('set-cfg-unlock-img-alert', r.success, r.success ? 'Cleared' : (r.message || 'Error'));
 }
 
 async function uploadLockImg() {
@@ -3350,6 +3416,8 @@ document.addEventListener('click', function(e) {
   if (action === 'add-emote')        addEmote();
   if (action === 'save-emote-set')   saveEmoteSet();
   if (action === 'save-set-cfg')     saveSetConfig();
+  if (action === 'upload-unlock-img') uploadUnlockImg();
+  if (action === 'clear-unlock-img')  clearUnlockImg();
   if (action === 'bulk-add-emotes')  bulkAddEmotes();
   if (action === 'upload-lock-img')  uploadLockImg();
   if (action === 'save-special-code-config') saveSpecialCodeConfig();

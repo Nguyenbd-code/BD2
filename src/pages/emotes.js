@@ -90,6 +90,7 @@ export async function handleEmotes(request, env) {
     unlock_count: s.unlock_count || 7,
     unlock_mode: s.unlock_mode || 'count',
     unlock_sequence: s.unlock_sequence || '',
+    unlock_message: s.unlock_message || '',
     cover_key: s.cover_key || '',
     count: (emotesBySet[s.set_num] || []).length,
   }))).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
@@ -284,7 +285,9 @@ export async function handleEmotes(request, env) {
       if (tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; })) {
         localStorage.setItem('kitsu_set_' + s.set_num, '1');
         paint();
-        showHintModal('UNLOCKED — ' + (s.name || s.set_num), 'You found the secret! This set is now unlocked. Refresh the page to view its emotes, or click it now.');
+        if (window.showSetUnlockModal) {
+          window.showSetUnlockModal(s.set_num, s.name || ('Set ' + s.set_num), s.unlock_message || 'You found the secret! This set is now unlocked.');
+        }
       }
     });
   }

@@ -181,6 +181,7 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/emote-set/list' && method === 'GET') {
       await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
       const r = await env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all();
       return json({ success:true, sets: r.results || [] });
     }
@@ -189,9 +190,10 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
       await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
       await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
+      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
-      const validModes = ['count', 'sequence', 'letter_sequence', 'who_am_i'];
+      const validModes = ['count', 'sequence', 'letter_sequence', 'who_am_i', 'nav_icon_tap'];
       const mode = validModes.includes(body.unlock_mode) ? body.unlock_mode : 'count';
       let sequence = (body.unlock_sequence || '').toString().trim();
       if (mode === 'sequence') {
@@ -201,9 +203,9 @@ export async function handleAdminApi(request, env) {
       }
       // who_am_i: keep as-is (it's the answer text)
       await env.DB.prepare(
-        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence, set_letter) VALUES (?,?,?,?,?,?,?,?,?,?) ' +
-        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence, set_letter=excluded.set_letter'
-      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||''), parseInt(body.unlock_count,10)||0, body.cover_key||'', mode, sequence, body.set_letter||'').run();
+        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence, set_letter, unlock_message) VALUES (?,?,?,?,?,?,?,?,?,?,?) ' +
+        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence, set_letter=excluded.set_letter, unlock_message=excluded.unlock_message'
+      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||''), parseInt(body.unlock_count,10)||0, body.cover_key||'', mode, sequence, body.set_letter||'', body.unlock_message||'').run();
       return json({ success:true, message:'Set saved.' });
     }
     if (path === '/api/admin/emote/list-by-set' && method === 'GET') {
