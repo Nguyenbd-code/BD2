@@ -182,13 +182,10 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 })();
 
 // Character-circle widget — Set 4 (char_sequence) unlock mechanic.
+// Stays visible after the set is solved (icons remain as side-nav decor).
 (function(){
   var circle = document.getElementById('char-circle');
   if (!circle) return;
-  function hideIfSolved() {
-    if (localStorage.getItem('kitsu_set_4') === '1') circle.style.display = 'none';
-  }
-  hideIfSolved();
   var charSetCache = null;
   function loadSets() {
     if (charSetCache) return Promise.resolve(charSetCache);
@@ -223,7 +220,6 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var tail = recent.slice(-seq.length);
         if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
           localStorage.setItem('kitsu_set_' + s.set_num, '1');
-          hideIfSolved();
           if (window.showSetUnlockModal) {
             var name = s.name || ('Set ' + s.set_num);
             var msg = s.unlock_message || 'Set unlocked!';
