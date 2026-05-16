@@ -182,15 +182,15 @@ function renderComp(comp, mediaMap) {
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
   const boardHtml = `<div class="board-flip-wrap" style="position:absolute;inset:0;" data-action="board-flip" data-tier="${esc(tier)}">
   <div class="board-card-inner" id="board-card-${esc(tier)}" style="width:100%;height:100%;position:relative;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;background:var(--bg4);border-radius:6px;overflow:hidden;">
+    <div class="board-face" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
       <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
-    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;">
+    <div class="board-face board-face-back" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
       <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
   </div>
 </div>
