@@ -954,14 +954,20 @@ export async function handleAdmin(request, env) {
         <div id="set-cfg-target-wrap" class="form-row">
           <div class="form-group">
             <label id="set-cfg-target-label">Element Target</label>
-            <select id="set-cfg-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="">— Select Element —</option>
-              <option value="water">💧 Water</option>
-              <option value="fire">🔥 Fire</option>
-              <option value="light">✨ Light</option>
-              <option value="dark">🌑 Dark</option>
-              <option value="wind">🌿 Wind</option>
-            </select>
+            <div class="elem-picker" style="position:relative">
+              <input type="hidden" id="set-cfg-target" value="">
+              <button type="button" id="set-cfg-target-btn" data-action="elem-picker-toggle" style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;cursor:pointer;text-align:left;font-family:inherit">
+                <span id="set-cfg-target-display" style="display:flex;align-items:center;gap:8px;flex:1">— Select Element —</span>
+                <span style="color:var(--text3)">▾</span>
+              </button>
+              <div id="set-cfg-target-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
+                <div class="elem-opt" data-elem="water" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Water</div>
+                <div class="elem-opt" data-elem="fire" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Fire</div>
+                <div class="elem-opt" data-elem="light" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Light</div>
+                <div class="elem-opt" data-elem="dark" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Dark</div>
+                <div class="elem-opt" data-elem="wind" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Wind</div>
+              </div>
+            </div>
           </div>
           <div id="set-cfg-count-wrap" class="form-group">
             <label>Click Count</label>
@@ -1023,6 +1029,7 @@ export async function handleAdmin(request, env) {
 .img-err-hide { }
 .img-err-hide.errored { display:none; }
 .img-err-dim.errored { opacity:0.2; }
+.elem-opt:hover { background:var(--bg3); }
 </style>
 
 <script>
@@ -1938,7 +1945,7 @@ function renderSetConfig(sn) {
     var loc = fixedPage.charAt(0).toUpperCase() + fixedPage.slice(1);
     g('set-cfg-location-display').textContent = 'Location: ' + loc;
   }
-  if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
+  if (g('set-cfg-target')) { g('set-cfg-target').value = s.unlock_target || ''; updateElemPickerDisplay(s.unlock_target || ''); }
   if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
   if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
   // who_am_i fields
@@ -1952,6 +1959,14 @@ function renderSetConfig(sn) {
   }
   // Rebuild sequence selects with current value (after updateSetCfgModeUI built them)
   buildSequenceSelects(s.unlock_mode || 'count');
+}
+
+function updateElemPickerDisplay(elem) {
+  var d = document.getElementById('set-cfg-target-display');
+  if (!d) return;
+  var lbl = { water:'Water', fire:'Fire', light:'Light', dark:'Dark', wind:'Wind' }[elem];
+  if (!lbl) { d.textContent = '— Select Element —'; return; }
+  d.innerHTML = '<img src="/img/element_' + elem + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + lbl;
 }
 
 function updateSetCfgModeUI(mode) {
@@ -3058,6 +3073,11 @@ window.onerror = function(msg, src, line) {
 
 /* ══════════════════════════════════════ DELEGATED CLICK LISTENER ══ */
 document.addEventListener('click', function(e) {
+  // Close the element picker when clicking outside it
+  var pickerMenu = document.getElementById('set-cfg-target-menu');
+  if (pickerMenu && pickerMenu.style.display === 'block' && !e.target.closest('.elem-picker')) {
+    pickerMenu.style.display = 'none';
+  }
   var b = e.target.closest('[data-action]');
   if (!b) return;
   var action = b.dataset.action;
@@ -3076,6 +3096,21 @@ document.addEventListener('click', function(e) {
   if (action === 'char-select')     selectChar(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
   if (action === 'costume-select')  selectCostume(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
   if (action === 'admin-lightbox')  openAdminLightbox(b.dataset.src);
+  if (action === 'elem-picker-toggle') {
+    e.stopPropagation();
+    var menu = document.getElementById('set-cfg-target-menu');
+    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+  var opt = e.target.closest('#set-cfg-target-menu .elem-opt');
+  if (opt) {
+    e.stopPropagation();
+    var v = opt.dataset.elem || '';
+    var hid = document.getElementById('set-cfg-target');
+    if (hid) hid.value = v;
+    updateElemPickerDisplay(v);
+    var menu2 = document.getElementById('set-cfg-target-menu');
+    if (menu2) menu2.style.display = 'none';
+  }
   if (action === 'upload-trigger')  triggerCharUpload(b.dataset.slot);
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
