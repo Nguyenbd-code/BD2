@@ -1007,6 +1007,17 @@ export async function handleAdmin(request, env) {
         <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
       </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Clears the localStorage flags used by Kitsu's emotes lock flow for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
+        <div id="kitsu-reset-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-page">Re-lock Page (clear kitsu_unlocked)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-sets">Re-lock All Sets (clear kitsu_set_*)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset Everything (page + sets + click trackers)</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -3138,6 +3149,26 @@ document.addEventListener('click', function(e) {
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+  if (action === 'kitsu-reset-page') {
+    localStorage.removeItem('kitsu_unlocked');
+    showAlert('kitsu-reset-alert', true, 'Page lock reset. Reload the emotes page to see the lock screen.');
+  }
+  if (action === 'kitsu-reset-sets') {
+    var n = 0;
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('kitsu_set_') === 0) { localStorage.removeItem(k); n++; }
+    }
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + n + ' per-set unlock keys.');
+  }
+  if (action === 'kitsu-reset-all') {
+    var m = 0;
+    for (var j = localStorage.length - 1; j >= 0; j--) {
+      var kk = localStorage.key(j);
+      if (kk && kk.indexOf('kitsu_') === 0) { localStorage.removeItem(kk); m++; }
+    }
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
+  }
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
