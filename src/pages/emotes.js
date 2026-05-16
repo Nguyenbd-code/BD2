@@ -64,6 +64,10 @@ export async function handleEmotes(request, env) {
   const lockImgRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null);
   const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
 
+  const DEFAULT_LOCK_HINT = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
+  const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
+  const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
+
   let sets = [];
   let emotes = [];
   try {
@@ -90,6 +94,7 @@ export async function handleEmotes(request, env) {
     unlock_count: s.unlock_count || 7,
     unlock_mode: s.unlock_mode || 'count',
     unlock_sequence: s.unlock_sequence || '',
+    unlock_message: s.unlock_message || '',
     cover_key: s.cover_key || '',
     count: (emotesBySet[s.set_num] || []).length,
   }))).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
@@ -139,7 +144,7 @@ export async function handleEmotes(request, env) {
     <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cinzel',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
     <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
       <div style="font-size:0.72rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
-      <div style="font-size:0.85rem;color:var(--text2);line-height:1.6">One character keeps something unusual by their side. The octopus there isn&rsquo;t just decoration.</div>
+      <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
   </div>
@@ -269,7 +274,7 @@ export async function handleEmotes(request, env) {
 
   document.getElementById('page-unlock-hint').addEventListener('click', function(e) {
     e.stopPropagation();
-    showHintModal('HOW TO UNLOCK', 'Look closely at each set\\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
+    showHintModal('HOW TO UNLOCK', 'Look closely at each set\\'s hint (?) for a clue about where and how to unlock it.');
   });
 
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }
@@ -284,7 +289,9 @@ export async function handleEmotes(request, env) {
       if (tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; })) {
         localStorage.setItem('kitsu_set_' + s.set_num, '1');
         paint();
-        showHintModal('UNLOCKED — ' + (s.name || s.set_num), 'You found the secret! This set is now unlocked. Refresh the page to view its emotes, or click it now.');
+        if (window.showSetUnlockModal) {
+          window.showSetUnlockModal(s.set_num, s.name || ('Set ' + s.set_num), s.unlock_message || 'You found the secret! This set is now unlocked.');
+        }
       }
     });
   }

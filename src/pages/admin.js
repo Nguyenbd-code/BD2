@@ -45,14 +45,17 @@ export async function handleAdmin(request, env) {
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
   let mamonirTapCount = 7;
+  let emoteLockHint = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
+  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
-    const [cr, er, compr, imgr, charr, mamRow] = await Promise.all([
+    const [cr, er, compr, imgr, charr, mamRow, lockHintRow] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
-      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' AND key != 'emote_lock_hint' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
       env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first().catch(() => null),
+      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
     ]);
     coupons = cr.results || [];
     emotes  = er.results || [];
@@ -60,6 +63,7 @@ export async function handleAdmin(request, env) {
     images  = imgr.results || [];
     chars   = charr.results || [];
     if (mamRow && mamRow.data) mamonirTapCount = Math.max(1, parseInt(mamRow.data, 10) || 7);
+    if (lockHintRow && lockHintRow.data) emoteLockHint = lockHintRow.data;
   } catch(e) {}
 
   const tierOptions = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
@@ -107,8 +111,8 @@ export async function handleAdmin(request, env) {
   }
   if (!compsListHtml) compsListHtml = '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
-  const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
-  const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
+  const elemColorsServer = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
+  const elemOrderServer  = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
   const groupedChars     = {};
   for (const c of chars) {
     const raw = (c.element || 'Dark').toString().trim();
@@ -124,7 +128,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '" data-status="' + esc(c.status||'active') + '">'
         + '<img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -139,7 +143,7 @@ export async function handleAdmin(request, env) {
   ).join('');
 
   const dbCompOptions = comps.map(c =>
-    '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
+    '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-guide-label="' + esc(c.guide_label||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
   return await layout('Admin Panel', `
@@ -263,20 +267,30 @@ export async function handleAdmin(request, env) {
           <input type="text" id="comp-name" placeholder="Team name...">
         </div>
 
-        <!-- Card Label -->
+        <!-- Home Overview Label -->
         <div class="form-group">
-          <label>CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short line shown under the comp title on the guide page</span></label>
+          <label>HOME OVERVIEW LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short description shown on the Home page overview card</span></label>
+          <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="width:100%">
+          <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Home Label</button>
+            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
+          </div>
+        </div>
+
+        <!-- Guide Card Label -->
+        <div class="form-group">
+          <label>GUIDE CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— highlighted line shown under the team name on the PvP Guide page</span></label>
           <div style="display:flex;gap:0.5rem;align-items:stretch">
-            <select id="comp-card-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
-              <option value="">None</option>
+            <select id="comp-guide-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
+              <option value="">None / Gold</option>
               <option value="green">● Green</option>
               <option value="red">● Red</option>
             </select>
-            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1;min-width:0">
+            <input type="text" id="comp-guide-label" placeholder="e.g. Meta pick · Highly recommended" style="flex:1;min-width:0">
           </div>
           <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Card Label</button>
-            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-guide-label">Save Guide Label</button>
+            <span id="comp-guide-label-alert" style="font-size:0.75rem;align-self:center"></span>
           </div>
         </div>
 
@@ -421,6 +435,40 @@ export async function handleAdmin(request, env) {
           <div id="comp-video-alert"></div>
         </div>
 
+        <!-- Comp-Specific Gear Images -->
+        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
+          <label>COMP GEAR IMAGES <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— override a character's base gear image for this team's flip card only</span></label>
+          <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Select a bonded character below. Left square shows their base gear; right square lets you upload a comp-specific alternate used on the PvP Guide flip card.</p>
+          <select id="comp-gear-char-sel" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.75rem" onchange="onCompGearCharChange()">
+            <option value="">— Select a character —</option>
+          </select>
+          <div id="comp-gear-preview" style="display:none">
+            <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:1;min-width:120px;max-width:180px">
+                <div style="font-size:0.72rem;color:var(--text3);margin-bottom:0.4rem;text-align:center">Base Gear</div>
+                <div style="width:100%;aspect-ratio:1;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+                  <span style="font-size:0.65rem;color:var(--text3)" id="comp-gear-base-placeholder">No image</span>
+                  <img id="comp-gear-base-img" src="" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg4)">
+                </div>
+              </div>
+              <div style="flex:1;min-width:120px;max-width:180px">
+                <div style="font-size:0.72rem;color:var(--text3);margin-bottom:0.4rem;text-align:center">Comp Override</div>
+                <div style="width:100%;aspect-ratio:1;border:2px dashed var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" id="comp-gear-alt-box" onclick="document.getElementById('comp-gear-alt-file').click()">
+                  <span style="font-size:0.65rem;color:var(--text3);text-align:center;padding:0.25rem" id="comp-gear-alt-placeholder">Click to upload</span>
+                  <img id="comp-gear-alt-img" src="" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg4)">
+                </div>
+              </div>
+            </div>
+            <input type="file" id="comp-gear-alt-file" accept="image/*" style="display:none">
+            <canvas id="comp-gear-alt-canvas" style="display:none"></canvas>
+            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+              <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="upload-comp-gear">Upload Override</button>
+              <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;background:var(--bg4);color:var(--text3)" data-action="clear-comp-gear">Clear Override</button>
+              <span id="comp-gear-alert" style="font-size:0.75rem;align-self:center"></span>
+            </div>
+          </div>
+        </div>
+
         <div id="comp-editor-alert"></div>
 
         <!-- Save All -->
@@ -463,11 +511,9 @@ export async function handleAdmin(request, env) {
         <!-- Element filter -->
         <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
           <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif"><span style="font-size:0.9rem">✦</span>All</button>
-          <button class="bond-elem-btn" data-elem="water" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Water</button>
-          <button class="bond-elem-btn" data-elem="fire" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Fire</button>
-          <button class="bond-elem-btn" data-elem="light" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Light</button>
-          <button class="bond-elem-btn" data-elem="dark" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Dark</button>
-          <button class="bond-elem-btn" data-elem="wind" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Wind</button>
+          ${elemOrderServer.map(el =>
+            '<button class="bond-elem-btn" data-elem="' + esc(el.toLowerCase()) + '" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">' + esc(el) + '</button>'
+          ).join('')}
         </div>
         <!-- Search -->
         <input id="bonds-char-search" type="text" placeholder="Search characters..." style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:5px;font-size:0.88rem;outline:none;margin-bottom:0.75rem">
@@ -734,7 +780,7 @@ export async function handleAdmin(request, env) {
         <div id="char-alert"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
           <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all"><span style="color:var(--gold);font-size:0.85rem">✦</span> All</button>
-          ${['Light','Dark','Fire','Water','Wind'].map(el =>
+          ${elemOrderServer.map(el =>
             '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;margin-right:4px">' + esc(el) + '</button>'
           ).join('')}
         </div>
@@ -754,11 +800,9 @@ export async function handleAdmin(request, env) {
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
           <div class="form-group"><label>Element</label>
             <select id="new-char-element">
-              <option value="Dark">Dark</option>
-              <option value="Water">Water</option>
-              <option value="Wind">Wind</option>
-              <option value="Fire">Fire</option>
-              <option value="Light">Light</option>
+              ${elemOrderServer.map(el =>
+                '<option value="' + esc(el) + '"' + (el === 'Dark' ? ' selected' : '') + '>' + esc(el) + '</option>'
+              ).join('')}
             </select>
           </div>
           <div class="form-group"><label>Status</label>
@@ -784,6 +828,25 @@ export async function handleAdmin(request, env) {
       <div id="char-detail" style="display:none">
         <div class="admin-form">
           <h3><span id="detail-char-name"></span></h3>
+
+          <!-- Element + Status quick edit -->
+          <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem;padding:0.6rem;background:var(--bg4);border:1px solid var(--border2);border-radius:5px">
+            <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+              <label style="font-size:0.7rem">Element</label>
+              <select id="detail-char-element" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
+                ${elemOrderServer.map(el => '<option value="' + esc(el) + '">' + esc(el) + '</option>').join('')}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
+              <label style="font-size:0.7rem">Status</label>
+              <select id="detail-char-status" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
+                <option value="active">Active</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            </div>
+            <button class="btn" style="padding:7px 16px;font-size:0.78rem;height:34px" data-action="save-char-meta">Save</button>
+            <span id="detail-char-meta-alert" style="font-size:0.74rem;flex-basis:100%"></span>
+          </div>
 
           <!-- Sub-tab buttons -->
           <div style="display:flex;gap:0.4rem;margin-bottom:1rem;flex-wrap:wrap">
@@ -904,6 +967,17 @@ export async function handleAdmin(request, env) {
   <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
   <div class="admin-section" id="tab-settings">
     <div class="admin-form">
+      <h3>Emotes Page Lock Screen Hint</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">The hint shown on the locked emotes page (under "LOCATION: HOME") that points visitors to the home page secret. Newlines are preserved.</p>
+      <div id="emote-lock-hint-alert"></div>
+      <div class="form-group">
+        <label>Hint Text</label>
+        <textarea id="emote-lock-hint" rows="4" placeholder="e.g. One character keeps something unusual by their side...">${esc(emoteLockHint)}</textarea>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-emote-lock-hint">Save Hint</button>
+    </div>
+
+    <div class="admin-form" style="margin-top:1.5rem">
       <h3>Home Page Secret Code</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Change the secret code visitors enter on the home page to unlock the secret emotes section.</p>
       <div id="secret-code-alert"></div>
@@ -965,11 +1039,9 @@ export async function handleAdmin(request, env) {
                 <span style="color:var(--text3)">▾</span>
               </button>
               <div id="set-cfg-target-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
-                <div class="elem-opt" data-elem="water" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Water</div>
-                <div class="elem-opt" data-elem="fire" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Fire</div>
-                <div class="elem-opt" data-elem="light" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Light</div>
-                <div class="elem-opt" data-elem="dark" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Dark</div>
-                <div class="elem-opt" data-elem="wind" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Wind</div>
+                ${elemOrderServer.map(el =>
+                  '<div class="elem-opt" data-elem="' + esc(el.toLowerCase()) + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + esc(el) + '</div>'
+                ).join('')}
               </div>
             </div>
           </div>
@@ -1008,7 +1080,34 @@ export async function handleAdmin(request, env) {
             <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
           </div>
         </div>
-        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <!-- Unlock Reveal (image + message) -->
+        <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
+          <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:#2ecc71;letter-spacing:0.08em;margin-bottom:0.6rem">UNLOCK REVEAL</div>
+          <p style="font-size:0.72rem;color:var(--text3);margin-bottom:0.75rem">Shown to the player after they unlock this set. Both fields are optional.</p>
+          <div class="form-group">
+            <label>Unlock Message <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(text displayed in the popup)</span></label>
+            <textarea id="set-cfg-unlock-msg" rows="3" placeholder="e.g. The figure could not withstand your persistence. This set is now yours."></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Unlock Image <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown above the message)</span></label>
+            <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-top:0.4rem">
+              <div style="width:90px;height:90px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <img id="set-cfg-unlock-img-preview" src="" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+              </div>
+              <div style="flex:1;min-width:200px">
+                <input type="file" id="set-cfg-unlock-img-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+                <canvas id="set-cfg-unlock-img-canvas" style="display:none"></canvas>
+                <div style="display:flex;gap:0.5rem;margin-top:0.4rem;flex-wrap:wrap">
+                  <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="upload-unlock-img">Upload Image</button>
+                  <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem;background:var(--bg4);color:var(--text3)" data-action="clear-unlock-img">Clear Image</button>
+                  <span id="set-cfg-unlock-img-alert" style="font-size:0.75rem;align-self:center"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;margin-top:1rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
       </div>
 
@@ -1025,10 +1124,19 @@ export async function handleAdmin(request, env) {
 
       <div class="card" style="margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
-        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks the associated set.</p>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks Set 3 (K).</p>
         <div class="form-group">
           <label style="font-size:0.78rem">Taps to Fall (default 7)</label>
           <input type="number" id="mamonir-tap-count" min="1" max="99" value="${mamonirTapCount}" style="width:100px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px">
+        </div>
+        <div class="form-group" style="margin-top:0.6rem">
+          <label style="font-size:0.78rem">Replace Nav Icon Image (PNG/WEBP)</label>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem">
+            <img src="/img/mamonir_nav" alt="" class="img-err-hide" style="width:48px;height:48px;object-fit:contain;background:var(--bg2);border:1px solid var(--border2);border-radius:4px">
+            <input type="file" id="mamonir-nav-file" accept="image/*" style="flex:1;font-size:0.78rem;color:var(--text2)">
+            <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="upload-mamonir-nav">Upload</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Stored under key <code>mamonir_nav</code>. Hard-refresh any page to see the new icon.</div>
         </div>
         <div id="nav-icon-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-nav-icon-settings">Save Nav Icon Settings</button>
@@ -1077,7 +1185,8 @@ var _bondsSelections  = [null,null,null,null,null]; // {name, slug, costume} per
 var _currentUnitOrder = [];
 var _bondsCurElem     = 'all';
 
-var elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
+var elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
+var elemOrderJs = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
 
 /* ═══════════════════════════════════════════════════════════ HELPERS ══ */
 function escH(s) {
@@ -1204,6 +1313,11 @@ function selectComp() {
   try { loadHowToPlay(_compTier);  } catch(e) { console.error('loadHowToPlay', e); }
   try { loadPreemptive(_compTier); } catch(e) { console.error('loadPreemptive', e); }
   try { loadMatchups(_compTier);   } catch(e) { console.error('loadMatchups', e); }
+  // Reset gear section when switching comps
+  var gearPrev = document.getElementById('comp-gear-preview');
+  if (gearPrev) gearPrev.style.display = 'none';
+  var gearSel = document.getElementById('comp-gear-char-sel');
+  if (gearSel) gearSel.value = '';
 }
 window.selectComp = selectComp;
 
@@ -1445,12 +1559,15 @@ async function loadCompData(id) {
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
     var sdRaw = opt.dataset.shortDesc || '';
-    var labelColorEl = document.getElementById('comp-card-label-color');
     var labelTextEl  = document.getElementById('comp-card-label');
-    if (labelColorEl && labelTextEl) {
-      var sdMatch = sdRaw.match(/^(green|red):(.*)$/s);
-      if (sdMatch) { labelColorEl.value = sdMatch[1]; labelTextEl.value = sdMatch[2]; }
-      else { labelColorEl.value = ''; labelTextEl.value = sdRaw; }
+    if (labelTextEl) labelTextEl.value = sdRaw;
+    var guideLabelRaw = opt.dataset.guideLabel || '';
+    var guideLabelColorEl = document.getElementById('comp-guide-label-color');
+    var guideLabelTextEl  = document.getElementById('comp-guide-label');
+    if (guideLabelColorEl && guideLabelTextEl) {
+      var glMatch = guideLabelRaw.match(/^(green|red):(.*)$/s);
+      if (glMatch) { guideLabelColorEl.value = glMatch[1]; guideLabelTextEl.value = glMatch[2]; }
+      else { guideLabelColorEl.value = ''; guideLabelTextEl.value = guideLabelRaw; }
     }
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
@@ -1480,9 +1597,7 @@ async function saveAllComp() {
 
 async function saveCardLabel() {
   if (!_compId) { showAlert('comp-card-label-alert', false, 'Select a composition first'); return; }
-  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
-  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
-  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var labelText = ((document.getElementById('comp-card-label')||{}).value||'').trim();
   var sel  = document.getElementById('comp-select');
   var opt  = sel ? sel.options[sel.selectedIndex] : null;
   var name = opt ? opt.dataset.name  || '' : '';
@@ -1491,9 +1606,26 @@ async function saveCardLabel() {
   var cby  = opt ? opt.dataset.cby   || '' : '';
   var notes= opt ? opt.dataset.notes || '' : '';
   var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
-  if (r.success && opt) opt.dataset.shortDesc = sd;
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: labelText, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success && opt) opt.dataset.shortDesc = labelText;
   var el = document.getElementById('comp-card-label-alert');
+  if (el) {
+    el.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    el.textContent = r.success ? '✓ Saved — refresh home page to see' : (r.message || 'Error');
+    setTimeout(function() { el.textContent = ''; }, 3500);
+  }
+}
+
+async function saveGuideLabel() {
+  if (!_compId) { showAlert('comp-guide-label-alert', false, 'Select a composition first'); return; }
+  var labelColor = ((document.getElementById('comp-guide-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-guide-label')||{}).value||'').trim();
+  var gl = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var r = await apiPost('/api/admin/comp/guide-label', { id: _compId, guide_label: gl });
+  var sel = document.getElementById('comp-select');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  if (r.success && opt) opt.dataset.guideLabel = gl;
+  var el = document.getElementById('comp-guide-label-alert');
   if (el) {
     el.style.color = r.success ? '#2ecc71' : '#e74c3c';
     el.textContent = r.success ? '✓ Saved — refresh the guide to see' : (r.message || 'Error');
@@ -1512,9 +1644,7 @@ async function saveCompMeta() {
   var type   = opt ? opt.dataset.type  || 'ATK' : 'ATK';
   var cby    = opt ? opt.dataset.cby   || '' : '';
   var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
-  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
-  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var sd = ((document.getElementById('comp-card-label')||{}).value||'').trim();
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
@@ -1565,6 +1695,7 @@ async function loadCompChars() {
     renderBondsSummary();
     updateBondGating();
     updateUnitOrderSummary();
+    loadCompGearCharList();
   } catch(e) {}
 }
 
@@ -1935,16 +2066,22 @@ async function loadEmoteSetEmotes(sn) {
 
 async function saveEmoteSet() {
   var sn = _esCurrentSet;
+  // Preserve all existing config — the Emotes tab Cover form only edits cover_key.
+  // Without this merge, missing form fields (set_letter, unlock_message, hint, etc.)
+  // would default to '' / 'Set N' and wipe out the Settings tab configuration.
+  var existing = _esSets[sn] || {};
   var body = {
     set_num: sn,
-    name: (document.getElementById('es-name')||{}).value || ('Set ' + sn),
-    hint: (document.getElementById('es-hint')||{}).value || '',
-    unlock_page: (document.getElementById('es-page')||{}).value || 'characters',
-    unlock_target: (document.getElementById('es-target')||{}).value || '',
-    unlock_count: parseInt((document.getElementById('es-count')||{}).value, 10) || 7,
-    unlock_mode: (document.getElementById('es-mode')||{}).value || 'count',
-    unlock_sequence: (document.getElementById('es-sequence')||{}).value || '',
-    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+    name: existing.name || ('Set ' + sn),
+    set_letter: existing.set_letter || '',
+    hint: existing.hint || '',
+    unlock_page: existing.unlock_page || 'characters',
+    unlock_target: existing.unlock_target || '',
+    unlock_count: existing.unlock_count || 7,
+    unlock_mode: existing.unlock_mode || 'count',
+    unlock_sequence: existing.unlock_sequence || '',
+    unlock_message: existing.unlock_message || '',
+    cover_key: existing.cover_key || '',
   };
   if (_esPendingCover) {
     var key = 'emote_set_' + sn + '_cover';
@@ -1954,7 +2091,7 @@ async function saveEmoteSet() {
   var r = await apiPost('/api/admin/emote-set/save', body);
   var alertEl = document.getElementById('es-alert');
   if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
-  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); _esPendingCover = ''; renderEmoteSet(sn); }
 }
 
 function renderSetConfig(sn) {
@@ -1963,6 +2100,15 @@ function renderSetConfig(sn) {
   if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
   if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-unlock-msg')) g('set-cfg-unlock-msg').value = s.unlock_message || '';
+  var imgPrev = g('set-cfg-unlock-img-preview');
+  if (imgPrev) {
+    imgPrev.classList.remove('errored');
+    imgPrev.style.display = '';
+    imgPrev.src = '/img/emote_set_' + sn + '_unlock_img?t=' + Date.now();
+  }
+  var imgFile = g('set-cfg-unlock-img-file');
+  if (imgFile) imgFile.value = '';
   if (g('set-cfg-mode')) g('set-cfg-mode').value = s.unlock_mode || 'count';
   // Auto-set page based on set number (Set 2 = emotes, all others = characters)
   var fixedPage = (sn === 2) ? 'emotes' : 'characters';
@@ -1990,7 +2136,7 @@ function renderSetConfig(sn) {
 function updateElemPickerDisplay(elem) {
   var d = document.getElementById('set-cfg-target-display');
   if (!d) return;
-  var lbl = { water:'Water', fire:'Fire', light:'Light', dark:'Dark', wind:'Wind' }[elem];
+  var lbl = { water:'Water', fire:'Fire', wind:'Wind', light:'Light', dark:'Dark', physical:'Physical', magic:'Magic' }[elem];
   if (!lbl) { d.textContent = '— Select Element —'; return; }
   d.innerHTML = '<img src="/img/element_' + elem + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + lbl;
 }
@@ -2008,11 +2154,23 @@ function updateSetCfgModeUI(mode) {
   if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
   // Update sequence labels
   if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
-  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.';
+  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page. Up to 8 positions; repeats allowed.';
   // Build the 5 positional selects for the sequence
   buildSequenceSelects(mode);
   // (who_am_i char list loaded by renderSetConfig after this runs)
 }
+
+var SEQ_ELEMS = [
+  { v:'water',    label:'Water',    color:'#2E86C1' },
+  { v:'fire',     label:'Fire',     color:'#C0392B' },
+  { v:'wind',     label:'Wind',     color:'#27AE60' },
+  { v:'light',    label:'Light',    color:'#F4D03F' },
+  { v:'dark',     label:'Dark',     color:'#8E44AD' },
+  { v:'physical', label:'Physical', color:'#95A5A6' },
+  { v:'magic',    label:'Magic',    color:'#16A085' }
+];
+var SEQ_ELEM_MAP = SEQ_ELEMS.reduce(function(m, e){ m[e.v] = e; return m; }, {});
+var SEQ_MAX_POSITIONS = 8;
 
 function buildSequenceSelects(mode) {
   var container = document.getElementById('set-cfg-sequence-selects');
@@ -2021,25 +2179,41 @@ function buildSequenceSelects(mode) {
   var curVal = hidden ? hidden.value : '';
   var curParts = curVal ? curVal.split(',').map(function(x){return x.trim();}) : [];
 
-  var elemOpts = ['water','fire','light','dark','wind'].map(function(el) {
-    return '<option value="' + el + '">' + el.charAt(0).toUpperCase() + el.slice(1) + '</option>';
-  }).join('');
+  if (mode === 'sequence') {
+    var positions = Math.max(curParts.length, 5);
+    container.innerHTML = '';
+    for (var i = 1; i <= positions; i++) {
+      container.appendChild(buildSeqElemPicker(i, curParts[i-1] || ''));
+    }
+    var addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'seq-add-btn';
+    addBtn.textContent = '+ Add';
+    addBtn.style.cssText = 'align-self:flex-end;background:var(--bg2);border:1px dashed var(--border);color:var(--text2);padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.78rem;height:34px;margin-top:14px';
+    addBtn.addEventListener('click', function() {
+      var current = container.querySelectorAll('.seq-elem-picker').length;
+      if (current >= SEQ_MAX_POSITIONS) return;
+      container.insertBefore(buildSeqElemPicker(current + 1, ''), addBtn);
+      syncSeqHidden();
+      updateSeqAddBtn();
+    });
+    container.appendChild(addBtn);
+    updateSeqAddBtn();
+    return;
+  }
 
-  // For letter_sequence, get currently configured set letters
+  // letter_sequence: keep the existing <select> approach
   var letterOpts = '';
-  if (mode === 'letter_sequence' && typeof _esSets !== 'undefined') {
+  if (typeof _esSets !== 'undefined') {
     Object.keys(_esSets).forEach(function(sn) {
       var s = _esSets[sn];
       var ltr = (s && (s.set_letter || s.name || '')).toUpperCase();
       if (ltr) letterOpts += '<option value="' + ltr + '">' + ltr + '</option>';
     });
   }
-
-  var opts = mode === 'letter_sequence' ? letterOpts : elemOpts;
   container.innerHTML = [1,2,3,4,5].map(function(pos) {
     var cur = curParts[pos-1] || '';
-    var selOpts = '<option value="">—</option>' + opts;
-    // Mark selected
+    var selOpts = '<option value="">—</option>' + letterOpts;
     selOpts = selOpts.replace('value="' + cur + '"', 'value="' + cur + '" selected');
     return '<div style="text-align:center">'
       + '<div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">' + pos + '</div>'
@@ -2047,8 +2221,6 @@ function buildSequenceSelects(mode) {
       + selOpts + '</select>'
       + '</div>';
   }).join('');
-
-  // Wire change events to sync hidden input
   container.querySelectorAll('.seq-pos-sel').forEach(function(sel) {
     sel.addEventListener('change', function() {
       var vals = Array.from(container.querySelectorAll('.seq-pos-sel')).map(function(s){return s.value;}).filter(Boolean);
@@ -2056,6 +2228,100 @@ function buildSequenceSelects(mode) {
     });
   });
 }
+
+function buildSeqElemPicker(pos, currentValue) {
+  var wrap = document.createElement('div');
+  wrap.className = 'seq-elem-picker';
+  wrap.dataset.pos = pos;
+  wrap.dataset.value = currentValue || '';
+  wrap.style.cssText = 'position:relative;text-align:center';
+  wrap.innerHTML =
+    '<div class="seq-pos-label" style="font-size:0.6rem;color:var(--text3);margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:4px">'
+    +   '<span class="seq-pos-num"></span>'
+    +   '<button type="button" class="seq-pos-remove" title="Remove" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 2px;font-size:0.9rem;line-height:1">×</button>'
+    + '</div>'
+    + '<button type="button" class="seq-pos-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:90px;height:34px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text);padding:0 8px;font-family:inherit;font-size:0.8rem">'
+    +   renderSeqBtnContent(currentValue)
+    + '</button>'
+    + '<div class="seq-pos-menu" style="display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,0.6);min-width:120px">'
+    +   SEQ_ELEMS.map(function(e) {
+          return '<div class="seq-elem-opt" data-elem="' + e.v + '" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;color:' + e.color + ';font-size:0.85rem"><img src="/img/element_' + e.v + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">' + e.label + '</div>';
+        }).join('')
+    + '</div>';
+
+  var btn = wrap.querySelector('.seq-pos-btn');
+  var menu = wrap.querySelector('.seq-pos-menu');
+  var removeBtn = wrap.querySelector('.seq-pos-remove');
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = menu.style.display === 'block';
+    document.querySelectorAll('.seq-pos-menu').forEach(function(m){ m.style.display = 'none'; });
+    menu.style.display = isOpen ? 'none' : 'block';
+  });
+
+  menu.querySelectorAll('.seq-elem-opt').forEach(function(opt) {
+    opt.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var v = opt.dataset.elem;
+      wrap.dataset.value = v;
+      btn.innerHTML = renderSeqBtnContent(v);
+      menu.style.display = 'none';
+      syncSeqHidden();
+    });
+  });
+
+  removeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    wrap.parentNode.removeChild(wrap);
+    syncSeqHidden();
+    relabelSeqPositions();
+    updateSeqAddBtn();
+  });
+
+  return wrap;
+}
+
+function renderSeqBtnContent(value) {
+  var e = SEQ_ELEM_MAP[value];
+  if (!e) return '<span style="color:var(--text3)">— Pick —</span>';
+  return '<img src="/img/element_' + e.v + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain;flex-shrink:0"><span style="color:' + e.color + '">' + e.label + '</span>';
+}
+
+function syncSeqHidden() {
+  var hidden = document.getElementById('set-cfg-sequence');
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!hidden || !container) return;
+  var vals = Array.from(container.querySelectorAll('.seq-elem-picker'))
+    .map(function(w){ return w.dataset.value || ''; })
+    .filter(Boolean);
+  hidden.value = vals.join(',');
+  relabelSeqPositions();
+}
+
+function relabelSeqPositions() {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  container.querySelectorAll('.seq-elem-picker').forEach(function(w, i) {
+    var n = w.querySelector('.seq-pos-num');
+    if (n) n.textContent = String(i + 1);
+    w.dataset.pos = i + 1;
+  });
+}
+
+function updateSeqAddBtn() {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  var btn = container.querySelector('.seq-add-btn');
+  if (!btn) return;
+  var n = container.querySelectorAll('.seq-elem-picker').length;
+  btn.style.display = n >= SEQ_MAX_POSITIONS ? 'none' : '';
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.seq-elem-picker')) return;
+  document.querySelectorAll('.seq-pos-menu').forEach(function(m){ m.style.display = 'none'; });
+});
 
 var _waiCharsLoaded = false;
 async function loadWAICharList(preselect) {
@@ -2105,6 +2371,7 @@ async function saveSetConfig() {
     unlock_mode: mode,
     unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+    unlock_message: gv('set-cfg-unlock-msg'),
   };
   var r = await apiPost('/api/admin/emote-set/save', body);
   var alertEl = document.getElementById('set-cfg-alert');
@@ -2142,6 +2409,35 @@ async function bulkAddEmotes() {
   }
 }
 
+async function uploadUnlockImg() {
+  var sn = _settingsCurrentSet || 1;
+  var fileEl = document.getElementById('set-cfg-unlock-img-file');
+  var file = fileEl && fileEl.files[0];
+  if (!file) { showAlert('set-cfg-unlock-img-alert', false, 'Select an image first'); return; }
+  showAlert('set-cfg-unlock-img-alert', true, 'Compressing…');
+  var data = await compressToDataUrl(file, 'set-cfg-unlock-img-canvas', 360, 0.9);
+  var key = 'emote_set_' + sn + '_unlock_img';
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: data });
+  if (r.success) {
+    var prev = document.getElementById('set-cfg-unlock-img-preview');
+    if (prev) { prev.classList.remove('errored'); prev.style.display = ''; prev.src = '/img/' + key + '?t=' + Date.now(); }
+    if (fileEl) fileEl.value = '';
+  }
+  showAlert('set-cfg-unlock-img-alert', r.success, r.success ? '✓ Uploaded' : (r.message || 'Error'));
+}
+
+async function clearUnlockImg() {
+  var sn = _settingsCurrentSet || 1;
+  if (!confirm('Remove the unlock image for set ' + sn + '?')) return;
+  var key = 'emote_set_' + sn + '_unlock_img';
+  var r = await apiPost('/api/admin/image/delete', { key: key });
+  if (r.success) {
+    var prev = document.getElementById('set-cfg-unlock-img-preview');
+    if (prev) prev.src = '';
+  }
+  showAlert('set-cfg-unlock-img-alert', r.success, r.success ? 'Cleared' : (r.message || 'Error'));
+}
+
 async function uploadLockImg() {
   var fileEl = document.getElementById('lock-img-file');
   var file = fileEl && fileEl.files[0];
@@ -2158,12 +2454,104 @@ async function uploadLockImg() {
   }
 }
 
+async function uploadMamonirNav() {
+  var fileInput = document.getElementById('mamonir-nav-file');
+  var file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) { showAlert('nav-icon-alert', false, 'Choose an image first.'); return; }
+  var reader = new FileReader();
+  reader.onload = async function() {
+    var dataUrl = reader.result;
+    var r = await apiPost('/api/admin/image/upload', { key: 'mamonir_nav', data: dataUrl });
+    showAlert('nav-icon-alert', r.success, r.success ? 'Icon uploaded! Hard refresh to see it.' : (r.message || 'Error'));
+  };
+  reader.readAsDataURL(file);
+}
+
 async function saveNavIconSettings() {
   var inp = document.getElementById('mamonir-tap-count');
   var count = parseInt((inp && inp.value) || '7', 10);
   if (!count || count < 1) count = 7;
   var r = await apiPost('/api/admin/image/upload', { key: 'mamonir_tap_count', data: String(count) });
   showAlert('nav-icon-alert', r.success, r.success ? 'Saved! Icon will fall after ' + count + ' taps (refresh to apply).' : (r.message || 'Error'));
+}
+
+/* ══════════════════════════════════════════════ COMP GEAR OVERRIDES ══ */
+function loadCompGearCharList() {
+  var sel = document.getElementById('comp-gear-char-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select a character —</option>';
+  var bonded = (_bondsSelections || []).filter(Boolean);
+  if (!bonded.length) {
+    sel.innerHTML = '<option value="">Set bonds first</option>';
+    return;
+  }
+  bonded.forEach(function(b) {
+    var opt = document.createElement('option');
+    opt.value = b.slug || '';
+    opt.textContent = b.name || b.slug || '';
+    sel.appendChild(opt);
+  });
+}
+
+function onCompGearCharChange() {
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  var preview = document.getElementById('comp-gear-preview');
+  if (!preview) return;
+  if (!slug) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  // Base gear
+  var baseImg = document.getElementById('comp-gear-base-img');
+  var basePlh = document.getElementById('comp-gear-base-placeholder');
+  var baseKey = '/img/char_' + slug + '_gear';
+  if (baseImg) { baseImg.src = baseKey; baseImg.style.display = 'block'; }
+  if (basePlh) basePlh.style.display = 'none';
+  // Alt gear (comp-specific)
+  var altImg = document.getElementById('comp-gear-alt-img');
+  var altPlh = document.getElementById('comp-gear-alt-placeholder');
+  var tier = (_compTier || '').toLowerCase();
+  var altKey = '/img/comp_gear_' + tier + '_' + slug;
+  if (altImg) { altImg.src = altKey; altImg.style.display = 'block'; }
+  if (altPlh) altPlh.textContent = 'Click to upload';
+  // Reset file input
+  var fi = document.getElementById('comp-gear-alt-file');
+  if (fi) fi.value = '';
+}
+
+async function uploadCompGear() {
+  if (!_compTier) { showAlert('comp-gear-alert', false, 'Select a composition first'); return; }
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  if (!slug) { showAlert('comp-gear-alert', false, 'Select a character first'); return; }
+  var fileInput = document.getElementById('comp-gear-alt-file');
+  var file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) { showAlert('comp-gear-alert', false, 'Choose an image file first'); return; }
+  showAlert('comp-gear-alert', true, 'Uploading…');
+  var data = await compressToDataUrl(file, 'comp-gear-alt-canvas', 480, 0.92);
+  var key = 'comp_gear_' + _compTier.toLowerCase() + '_' + slug;
+  var r = await apiPost('/api/admin/image/upload', { key: key, data: data });
+  if (r.success) {
+    var altImg = document.getElementById('comp-gear-alt-img');
+    if (altImg) { altImg.src = '/img/' + key + '?t=' + Date.now(); altImg.style.display = 'block'; }
+  }
+  showAlert('comp-gear-alert', r.success, r.success ? '✓ Override uploaded — refresh guide to see it' : (r.message || 'Error'));
+}
+
+async function clearCompGear() {
+  if (!_compTier) { showAlert('comp-gear-alert', false, 'Select a composition first'); return; }
+  var sel = document.getElementById('comp-gear-char-sel');
+  var slug = sel ? sel.value : '';
+  if (!slug) { showAlert('comp-gear-alert', false, 'Select a character first'); return; }
+  if (!confirm('Remove the gear override for ' + (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text || slug) + ' in this comp?')) return;
+  var key = 'comp_gear_' + _compTier.toLowerCase() + '_' + slug;
+  var r = await apiPost('/api/admin/image/delete', { key: key });
+  if (r.success) {
+    var altImg = document.getElementById('comp-gear-alt-img');
+    if (altImg) { altImg.src = ''; altImg.style.display = 'none'; }
+    var altPlh = document.getElementById('comp-gear-alt-placeholder');
+    if (altPlh) altPlh.textContent = 'Click to upload';
+  }
+  showAlert('comp-gear-alert', r.success, r.success ? 'Override cleared' : (r.message || 'Error'));
 }
 
 async function saveSpecialCodeConfig() {
@@ -2251,6 +2639,23 @@ function setupEmoteSetUI() {
     });
   }
   loadEmoteSets();
+
+  // Gear override file input — show preview immediately on selection
+  var gearFileInput = document.getElementById('comp-gear-alt-file');
+  if (gearFileInput) {
+    gearFileInput.addEventListener('change', function() {
+      var file = gearFileInput.files && gearFileInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function() {
+        var altImg = document.getElementById('comp-gear-alt-img');
+        var altPlh = document.getElementById('comp-gear-alt-placeholder');
+        if (altImg) { altImg.src = reader.result; altImg.style.display = 'block'; }
+        if (altPlh) altPlh.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 /* ══════════════════════════════════════════════════════════ IMAGES ══ */
@@ -2428,17 +2833,16 @@ async function loadChars() {
       list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No characters yet.</p>';
       return;
     }
-    var elemOrder = ['Light','Dark','Fire','Water','Wind'];
     var grouped = {};
     data.chars.forEach(function(c) { var el = c.element||'Dark'; if (!grouped[el]) grouped[el]=[]; grouped[el].push(c); });
     var html = '';
-    elemOrder.forEach(function(el) {
+    elemOrderJs.forEach(function(el) {
       var grp = grouped[el];
       if (!grp || !grp.length) return;
       html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '" data-status="' + escH(c.status||'active') + '">'
           + '<img src="/img/element_' + escH(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -2529,10 +2933,11 @@ function updateCompListInPlace(comps) {
       opt.dataset.name      = c.name || '';
       opt.dataset.type      = c.type || 'ATK';
       opt.dataset.color     = c.color || '#c9a84c';
-      opt.dataset.shortDesc = c.short_description || '';
-      opt.dataset.notes     = c.description || '';
-      opt.dataset.unitOrder = c.unit_order || '[]';
-      opt.dataset.cby       = c.countered_by || '';
+      opt.dataset.shortDesc  = c.short_description || '';
+      opt.dataset.guideLabel = c.guide_label || '';
+      opt.dataset.notes      = c.description || '';
+      opt.dataset.unitOrder  = c.unit_order || '[]';
+      opt.dataset.cby        = c.countered_by || '';
       opt.text = c.tier + ' — ' + c.name + ' (' + (c.type || 'ATK') + ')';
       if (newOpt) sel.insertBefore(opt, newOpt);
       else sel.appendChild(opt);
@@ -2601,6 +3006,13 @@ async function saveSecretCode() {
   if (r.success) document.getElementById('new-secret-code').value = '';
 }
 
+async function saveEmoteLockHint() {
+  var hint = ((document.getElementById('emote-lock-hint') || {}).value || '').trim();
+  if (!hint) { showAlert('emote-lock-hint-alert', false, 'Hint cannot be empty'); return; }
+  var r = await apiPost('/api/admin/emote-lock-hint/save', { hint: hint });
+  showAlert('emote-lock-hint-alert', r.success, r.message);
+}
+
 async function deleteChar(id) {
   var r = await apiPost('/api/admin/chars/delete', { id: id });
   if (r.success) { var el = document.getElementById('char-' + id); if (el) el.remove(); }
@@ -2623,10 +3035,33 @@ function selectChar(id, name, slug) {
   if (detail) detail.style.display = 'block';
   if (nameEl) nameEl.textContent = name;
 
+  // Pre-fill element + status from the row's data attributes (set by loadChars)
+  var elSel = document.getElementById('detail-char-element');
+  var stSel = document.getElementById('detail-char-status');
+  if (elSel && row) elSel.value = row.getAttribute('data-element') || 'Dark';
+  if (stSel && row) stSel.value = row.getAttribute('data-status') || 'active';
+  var alertEl = document.getElementById('detail-char-meta-alert');
+  if (alertEl) alertEl.textContent = '';
+
   showCharSubtab('costumes');
   loadCostumes(slug);
   updateCharImgKey();
   loadCharImgGrid();
+}
+
+async function saveCharMeta() {
+  if (!_selectedCharId) return;
+  var element = (document.getElementById('detail-char-element')||{}).value || 'Dark';
+  var status  = (document.getElementById('detail-char-status') ||{}).value || 'active';
+  var r = await apiPost('/api/admin/chars/update', {
+    id: _selectedCharId,
+    name: _selectedCharName,
+    element: element,
+    status: status
+  });
+  var alertEl = document.getElementById('detail-char-meta-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved.' : (r.message || 'Error'); }
+  if (r.success) loadChars();
 }
 
 function showCharSubtab(name) {
@@ -3154,6 +3589,8 @@ document.addEventListener('click', function(e) {
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
+  if (action === 'save-emote-lock-hint') saveEmoteLockHint();
+  if (action === 'save-char-meta')   saveCharMeta();
   if (action === 'normalize-tiers')  normalizeCompTiers();
   if (action === 'save-comp-bonds')  saveCompBonds();
   if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
@@ -3164,12 +3601,15 @@ document.addEventListener('click', function(e) {
   if (action === 'add-emote')        addEmote();
   if (action === 'save-emote-set')   saveEmoteSet();
   if (action === 'save-set-cfg')     saveSetConfig();
+  if (action === 'upload-unlock-img') uploadUnlockImg();
+  if (action === 'clear-unlock-img')  clearUnlockImg();
   if (action === 'bulk-add-emotes')  bulkAddEmotes();
   if (action === 'upload-lock-img')  uploadLockImg();
   if (action === 'save-special-code-config') saveSpecialCodeConfig();
   if (action === 'upload-special-lock-img') uploadSpecialLockImg();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
+  if (action === 'save-guide-label') saveGuideLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
   if (action === 'kitsu-reset-page') {
@@ -3194,6 +3634,9 @@ document.addEventListener('click', function(e) {
     showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
   }
   if (action === 'save-nav-icon-settings') saveNavIconSettings();
+  if (action === 'upload-mamonir-nav') uploadMamonirNav();
+  if (action === 'upload-comp-gear') uploadCompGear();
+  if (action === 'clear-comp-gear')  clearCompGear();
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
