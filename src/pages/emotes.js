@@ -348,7 +348,7 @@ export async function handleEmotes(request, env) {
       var n = parseInt(hintBtn.dataset.set, 10);
       var s = SETS.find(function(x) { return x.set_num === n; });
       var loc = (s && s.unlock_page) ? s.unlock_page.charAt(0).toUpperCase() + s.unlock_page.slice(1) : 'Unknown';
-      var hintBody = 'Location: ' + loc + '\n\n' + ((s && s.hint) ? s.hint : 'No hint available yet.');
+      var hintBody = 'Location: ' + loc + '\\n\\n' + ((s && s.hint) ? s.hint : 'No hint available yet.');
       showHintModal('HINT — ' + (s ? (s.name || n) : n), hintBody);
       return;
     }
@@ -374,7 +374,7 @@ export async function handleEmotes(request, env) {
     if (!isUnlocked(sn)) {
       var s2 = SETS.find(function(x) { return x.set_num === sn; });
       var loc2 = (s2 && s2.unlock_page) ? s2.unlock_page.charAt(0).toUpperCase() + s2.unlock_page.slice(1) : 'Unknown';
-      var hintBody2 = 'Location: ' + loc2 + '\n\n' + ((s2 && s2.hint) ? s2.hint : 'Find the secret to unlock this set.');
+      var hintBody2 = 'Location: ' + loc2 + '\\n\\n' + ((s2 && s2.hint) ? s2.hint : 'Find the secret to unlock this set.');
       showHintModal('LOCKED — ' + (s2 ? (s2.name || sn) : sn), hintBody2);
       return;
     }

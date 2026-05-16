@@ -2948,11 +2948,12 @@ function buildRotationGrid() {
 /* Rotation Edit Modal — single character, 10 slots */
 var _rotEditChar = null;
 
-function openRotEditModal(charName) {
+async function openRotEditModal(charName) {
   _rotEditChar = charName;
   var modal = document.getElementById('rot-edit-modal');
   if (!modal) return;
   modal.style.display = 'flex';
+  if (!_rotCostMap[charName]) await loadRotCostumes(charName);
   renderRotEditModal();
 }
 
