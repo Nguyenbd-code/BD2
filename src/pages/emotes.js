@@ -14,6 +14,9 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{});
 
   const set1Riddle = "The one I cherish hides a number in the length of her name. Uncover it, then awaken her element with that same number of touches, and when the awakening is complete, seal it with Magic.";
   const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
@@ -24,16 +27,21 @@ async function ensureSchema(env) {
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
+    const newSet4Riddle = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.";
+    const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
+    // Letters are shuffled; sets still spell KITSU when pressed in the right order.
+    // set_num → letter map: 1=K, 2=I, 3=S, 4=T, 5=U, 6=M
     const defaults = [
-      [1, 'S', 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic'],
-      [2, 'T', 'T', set2Riddle, 'emotes', '', 0, 'letter_sequence', 'K,I,T,S,U'],
-      [3, 'K', 'K', set3Riddle, 'navigation', '', 0, 'nav_icon_tap', ''],
-      [4, 'I', 'I', set4Riddle, 'sidebar', '', 0, 'char_sequence', 'dalvi,rou,tyr,yuri,mamonir'],
-      [5, 'M', 'M', set5Riddle, 'characters', '', 0, 'sequence', 'water,fire,light,dark,wind'],
-      [6, 'U', 'U', set6Hint, 'characters', 'synae', 0, 'who_am_i', 'Synae'],
+      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location
+      [1, 'K', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                       'easy',   '', ''],
+      [2, 'I', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                  'medium', '', "Kitsu's Emotes"],
+      [3, 'S', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                            'easy',   '', '?????'],
+      [4, 'T', newSet4Riddle, 'sidebar', '',      0, 'char_sequence',   'rou,dalvi,yuri',              'medium', '', 'Hamburger'],
+      [5, 'U', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',  'hard',   '', ''],
+      [6, 'M', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                       'hard',   set6ExtraHint, ''],
     ];
-    for (const [sn, nm, sl, hint, page, target, count, mode, seq] of defaults) {
-      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (?,?,?,?,?,?,?,?,?)').bind(sn, nm, sl, hint, page, target, count, mode, seq).run().catch(()=>{});
+    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc] of defaults) {
+      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc).run().catch(()=>{});
     }
   } else {
     // One-time v2 migration: update sets to new config if not yet done
@@ -63,6 +71,33 @@ async function ensureSchema(env) {
       await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v3_migrated','1')").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_mode='count_then_seal', unlock_sequence='magic' WHERE set_num=1").bind(set1Riddle).run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='sidebar', unlock_target='', unlock_count=0, unlock_mode='char_sequence', unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4").bind(set4Riddle).run().catch(()=>{});
+    }
+    // v4 migration: shuffle letters, difficulty tiers, Set 7, new Set I riddle, location overrides, Set M extra hint
+    const v4 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v4_migrated'").first().catch(()=>null);
+    if (!v4) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v4_migrated','1')").run().catch(()=>{});
+      // Letter shuffle — letters still spell KITSU when sets are pressed in the right order.
+      // Old → New: S→K (1), T→I (2), K→S (3), I→T (4), M→U (5), U→M (6).
+      await env.DB.prepare("UPDATE emote_sets SET name='K', set_letter='K' WHERE set_num=1").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=2").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='S', set_letter='S' WHERE set_num=3").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='T', set_letter='T' WHERE set_num=4").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='U', set_letter='U' WHERE set_num=5").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M' WHERE set_num=6").run().catch(()=>{});
+      // Difficulty tiers
+      await env.DB.prepare("UPDATE emote_sets SET difficulty='easy'   WHERE set_num IN (1,3)").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET difficulty='medium' WHERE set_num IN (2,4)").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET difficulty='hard'   WHERE set_num IN (5,6)").run().catch(()=>{});
+      // Set 4 (now letter T): new riddle and shorter character sequence
+      const newSet4Riddle = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.";
+      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='rou,dalvi,yuri' WHERE set_num=4").bind(newSet4Riddle).run().catch(()=>{});
+      // Location overrides shown in the hint modal
+      await env.DB.prepare("UPDATE emote_sets SET display_location='?????'        WHERE set_num=3").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Kitsu''s Emotes' WHERE set_num=2").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Hamburger'    WHERE set_num=4").run().catch(()=>{});
+      // Set M (letter M, set_num=6) gets an extra hint surfaced via a second ? button.
+      const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
+      await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
     }
   }
 }
@@ -98,6 +133,9 @@ export async function handleEmotes(request, env) {
     name: s.name,
     set_letter: s.set_letter || s.name || String(s.set_num),
     hint: s.hint || '',
+    extra_hint: s.extra_hint || '',
+    display_location: s.display_location || '',
+    difficulty: s.difficulty || 'easy',
     unlock_page: s.unlock_page || '',
     unlock_target: s.unlock_target || '',
     unlock_count: s.unlock_count || 7,
@@ -108,7 +146,7 @@ export async function handleEmotes(request, env) {
     count: (emotesBySet[s.set_num] || []).length,
   }))).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
 
-  const setCards = sets.map(s => {
+  const setCardFor = (s) => {
     const sn = s.set_num;
     const list = emotesBySet[sn] || [];
     const cover = s.cover_key ? `/img/${esc(s.cover_key)}` : (list[0] ? esc(list[0].image_url) : '');
@@ -119,8 +157,9 @@ export async function handleEmotes(request, env) {
         <div class="emote-name">${esc(e.name)}</div>
         <a href="${esc(e.image_url)}" download="${esc(e.name)}" class="emote-dl">Download</a>
       </div>`).join('');
+    const hasExtra = !!(s.extra_hint && String(s.extra_hint).trim());
     return `
-    <div class="set-card" data-set="${sn}">
+    <div class="set-card" data-set="${sn}" data-difficulty="${esc(s.difficulty || 'easy')}">
       <div class="set-cover" data-cover-set="${sn}">
         ${cover ? `<img src="${cover}" alt="${displayName}" class="img-err-hide">` : `<span class="set-cover-placeholder">${displayName}</span>`}
         <div class="set-lock-overlay">
@@ -128,11 +167,16 @@ export async function handleEmotes(request, env) {
           <div class="set-lock-icon">&#128274;</div>
           <div class="set-lock-text">Locked</div>
         </div>
+        <div class="set-tier-overlay" style="display:none">
+          <div class="set-tier-icon">&#128274;</div>
+          <div class="set-tier-text">Locked — complete previous tier first</div>
+        </div>
       </div>
       <div class="set-info">
         <div class="set-title">
           <span class="set-letter-btn" data-letter-set="${sn}" tabindex="0">${displayName}</span>
           <span class="set-hint-icon" data-set="${sn}" style="cursor:pointer">?</span>
+          ${hasExtra ? `<span class="set-hint-icon set-extra-hint-icon" data-extra-set="${sn}" style="cursor:pointer" title="Extra hint">?</span>` : ''}
         </div>
         <div class="set-meta">${list.length} emote${list.length === 1 ? '' : 's'}</div>
       </div>
@@ -140,6 +184,29 @@ export async function handleEmotes(request, env) {
         ${emoteHtml || '<div style="text-align:center;color:var(--text3);padding:1.5rem">No emotes in this set yet.</div>'}
       </div>
     </div>`;
+  };
+  const byDifficulty = { easy: [], medium: [], hard: [] };
+  sets.forEach(s => {
+    const d = (s.difficulty || 'easy').toLowerCase();
+    (byDifficulty[d] || byDifficulty.easy).push(s);
+  });
+  const difficultyLabels = {
+    easy:   { label: 'Easy',   sub: 'Open from the start' },
+    medium: { label: 'Medium', sub: 'Locked until every Easy set is unlocked' },
+    hard:   { label: 'Hard',   sub: 'Locked until every Medium set is unlocked' },
+  };
+  const setCards = ['easy', 'medium', 'hard'].map(tier => {
+    const list = byDifficulty[tier];
+    if (!list || !list.length) return '';
+    const meta = difficultyLabels[tier];
+    return `
+      <div class="diff-tier" data-tier="${tier}">
+        <div class="diff-tier-head">
+          <span class="diff-tier-label diff-tier-label-${tier}">${meta.label}</span>
+          <span class="diff-tier-sub">${meta.sub}</span>
+        </div>
+        <div class="sets-grid">${list.map(setCardFor).join('')}</div>
+      </div>`;
   }).join('');
 
   return await layout("Kitsu's Emotes", `
@@ -190,11 +257,24 @@ export async function handleEmotes(request, env) {
   </div>
 </div>
 
-<div class="sets-grid">${setCards}</div>
+<div class="diff-tiers">${setCards}</div>
 </div><!-- /emote-page-content -->
 
 <style>
-.sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;max-width:1200px;margin:0 auto;padding:0 1.5rem 3rem; }
+.diff-tiers { max-width:1200px;margin:0 auto;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:2.25rem; }
+.diff-tier-head { display:flex;align-items:baseline;gap:0.75rem;margin-bottom:0.85rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(201,168,76,0.12); }
+.diff-tier-label { font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.4rem;letter-spacing:-0.01em;color:#eef0fa; }
+.diff-tier-label-easy   { color:#7cd9a1; }
+.diff-tier-label-medium { color:#e8c76a; }
+.diff-tier-label-hard   { color:#e88a7d; }
+.diff-tier-sub { font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
+.diff-tier.tier-locked .diff-tier-sub { color:rgba(232,138,125,0.6); }
+.sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
+.set-card.tier-locked { filter:grayscale(0.7);opacity:0.55;pointer-events:none; }
+.set-card.tier-locked .set-tier-overlay { display:flex !important;position:absolute;inset:0;background:rgba(8,8,14,0.78);align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;color:#e88a7d;font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;text-align:center;padding:1rem;letter-spacing:0.05em;z-index:5; }
+.set-card.tier-locked .set-tier-icon { font-size:1.6rem;line-height:1; }
+.set-card.tier-locked .set-cover { position:relative; }
+.set-card.tier-locked .set-lock-overlay { display:none !important; }
 .set-card { background:var(--bg2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;transition:border-color 0.2s,transform 0.15s;cursor:pointer; }
 .set-card:hover { border-color:rgba(201,168,76,0.5);transform:translateY(-2px); }
 .set-card.unlocked { border-color:rgba(46,204,113,0.4); }
@@ -247,12 +327,37 @@ export async function handleEmotes(request, env) {
   }
 
   function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
+  function setsOfDifficulty(d) { return SETS.filter(function(s){ return (s.difficulty||'easy') === d; }); }
+  function allUnlocked(list) { return list.length > 0 && list.every(function(s){ return isUnlocked(s.set_num); }); }
+  // A difficulty tier is *available* (its puzzles can fire) only after every set in the previous tier is solved.
+  function tierUnlocked(d) {
+    if (d === 'easy') return true;
+    if (d === 'medium') return allUnlocked(setsOfDifficulty('easy'));
+    if (d === 'hard')   return allUnlocked(setsOfDifficulty('medium'));
+    return true;
+  }
+  function isSetAvailable(setNum) {
+    var s = SETS.find(function(x){ return x.set_num === setNum; });
+    if (!s) return false;
+    return tierUnlocked(s.difficulty || 'easy');
+  }
+  // Expose for layout.js (char-circle widget) and characters.js (who_am_i).
+  window.__BD2_SET_AVAILABLE = isSetAvailable;
+  window.__BD2_TIER_UNLOCKED = tierUnlocked;
   function paint() {
     SETS.forEach(function(s) {
       var card = document.querySelector('.set-card[data-set="' + s.set_num + '"]');
       if (!card) return;
       if (isUnlocked(s.set_num)) card.classList.add('unlocked');
       else card.classList.remove('unlocked');
+      // Tier-locked cards get a stronger lock state that overlays the standard one.
+      var tier = (s.difficulty || 'easy');
+      var avail = tierUnlocked(tier);
+      card.classList.toggle('tier-locked', !avail && !isUnlocked(s.set_num));
+    });
+    document.querySelectorAll('.diff-tier').forEach(function(t){
+      var d = t.dataset.tier;
+      t.classList.toggle('tier-locked', !tierUnlocked(d));
     });
   }
   paint();
@@ -292,6 +397,7 @@ export async function handleEmotes(request, env) {
     SETS.forEach(function(s) {
       if ((s.unlock_mode || '') !== 'letter_sequence') return;
       if (isUnlocked(s.set_num)) return;
+      if (!isSetAvailable(s.set_num)) return;
       var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toUpperCase(); }).filter(Boolean);
       if (!seq.length) return;
       var tail = lclicks.slice(-seq.length);
@@ -370,12 +476,32 @@ export async function handleEmotes(request, env) {
       return;
     }
 
+    var extraBtn = e.target.closest('.set-extra-hint-icon');
+    if (extraBtn && extraBtn.dataset.extraSet) {
+      e.stopPropagation();
+      var en = parseInt(extraBtn.dataset.extraSet, 10);
+      var es = SETS.find(function(x){ return x.set_num === en; });
+      if (es && !isSetAvailable(en)) {
+        showHintModal('LOCKED', 'This hint becomes available once the previous difficulty tier is fully unlocked.');
+        return;
+      }
+      var extraBody = (es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.';
+      showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
+      return;
+    }
+
     var hintBtn = e.target.closest('.set-hint-icon');
     if (hintBtn && hintBtn.dataset.set) {
       e.stopPropagation();
       var n = parseInt(hintBtn.dataset.set, 10);
       var s = SETS.find(function(x) { return x.set_num === n; });
-      var loc = (s && s.unlock_page) ? s.unlock_page.charAt(0).toUpperCase() + s.unlock_page.slice(1) : 'Unknown';
+      if (s && !isSetAvailable(n)) {
+        showHintModal('LOCKED', 'This puzzle is sealed until the previous difficulty tier is fully unlocked. Solve those first.');
+        return;
+      }
+      var loc = (s && s.display_location)
+        ? s.display_location
+        : ((s && s.unlock_page) ? s.unlock_page.charAt(0).toUpperCase() + s.unlock_page.slice(1) : 'Unknown');
       var hintBody = 'Location: ' + loc + '\\n\\n' + ((s && s.hint) ? s.hint : 'No hint available yet.');
       showHintModal('HINT — ' + (s ? (s.name || n) : n), hintBody);
       return;

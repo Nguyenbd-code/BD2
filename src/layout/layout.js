@@ -207,9 +207,18 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     b.classList.add('char-pos-tap');
     setTimeout(function(){ b.classList.remove('char-pos-tap'); }, 250);
     loadSets().then(function(sets){
+      // Difficulty gating — a tier is available only after every set in the previous tier is solved.
+      function unlocked(n){ return localStorage.getItem('kitsu_set_' + n) === '1'; }
+      function tierUnlocked(d){
+        if (d === 'easy') return true;
+        var prev = d === 'medium' ? 'easy' : 'medium';
+        var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
+        return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
+      }
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;
-        if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+        if (unlocked(s.set_num)) return;
+        if (!tierUnlocked(s.difficulty || 'easy')) return;
         var seq = (s.unlock_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
         if (!seq.length) return;
         var recentKey = 'kitsu_char_clicks';
@@ -221,6 +230,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var tail = recent.slice(-seq.length);
         if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
           localStorage.setItem('kitsu_set_' + s.set_num, '1');
+          localStorage.removeItem('kitsu_char_clicks');
           if (window.showSetUnlockModal) {
             var name = s.name || ('Set ' + s.set_num);
             var msg = s.unlock_message || 'Set unlocked!';
