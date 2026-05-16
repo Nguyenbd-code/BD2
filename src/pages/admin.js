@@ -122,7 +122,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
       return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
-        + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
+        + '<img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
         + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
@@ -730,9 +730,9 @@ export async function handleAdmin(request, env) {
         <h3>Characters</h3>
         <div id="char-alert"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
-          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all">All</button>
+          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all"><span style="color:var(--gold);font-size:0.85rem">✦</span> All</button>
           ${['Light','Dark','Fire','Water','Wind'].map(el =>
-            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '">' + esc(el) + '</button>'
+            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;margin-right:4px">' + esc(el) + '</button>'
           ).join('')}
         </div>
         <div id="char-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem">
@@ -1006,6 +1006,17 @@ export async function handleAdmin(request, env) {
         </div>
         <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Clears the localStorage flags used by Kitsu's emotes lock flow for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
+        <div id="kitsu-reset-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-page">Re-lock Page (clear kitsu_unlocked)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-sets">Re-lock All Sets (clear kitsu_set_*)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset Everything (page + sets + click trackers)</button>
+        </div>
       </div>
     </div>
 
@@ -2405,7 +2416,7 @@ async function loadChars() {
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
         html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
-          + '<span class="elem-dot" style="background:' + col + '"></span>'
+          + '<img src="/img/element_' + escH(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
           + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
@@ -3138,6 +3149,26 @@ document.addEventListener('click', function(e) {
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+  if (action === 'kitsu-reset-page') {
+    localStorage.removeItem('kitsu_unlocked');
+    showAlert('kitsu-reset-alert', true, 'Page lock reset. Reload the emotes page to see the lock screen.');
+  }
+  if (action === 'kitsu-reset-sets') {
+    var n = 0;
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('kitsu_set_') === 0) { localStorage.removeItem(k); n++; }
+    }
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + n + ' per-set unlock keys.');
+  }
+  if (action === 'kitsu-reset-all') {
+    var m = 0;
+    for (var j = localStorage.length - 1; j >= 0; j--) {
+      var kk = localStorage.key(j);
+      if (kk && kk.indexOf('kitsu_') === 0) { localStorage.removeItem(kk); m++; }
+    }
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
+  }
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
