@@ -1164,14 +1164,15 @@ function selectComp() {
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
 
-  loadCompData(_compId);
-  loadCompChars();
-  loadCompMedia(_compTier);
-  loadCompRotation();
-  loadHowToPlay(_compTier);
-  loadPreemptive(_compTier);
-  loadMatchups(_compTier);
+  try { loadCompData(_compId);     } catch(e) { console.error('loadCompData', e); }
+  try { loadCompChars();           } catch(e) { console.error('loadCompChars', e); }
+  try { loadCompMedia(_compTier);  } catch(e) { console.error('loadCompMedia', e); }
+  try { loadCompRotation();        } catch(e) { console.error('loadCompRotation', e); }
+  try { loadHowToPlay(_compTier);  } catch(e) { console.error('loadHowToPlay', e); }
+  try { loadPreemptive(_compTier); } catch(e) { console.error('loadPreemptive', e); }
+  try { loadMatchups(_compTier);   } catch(e) { console.error('loadMatchups', e); }
 }
+window.selectComp = selectComp;
 
 async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
   suffix    = suffix    || '';
@@ -1617,7 +1618,7 @@ function renderBondsModalSlots() {
     return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '')) + '">'
       + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
       + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
-        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
           + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
       + '</div>'
       + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
@@ -1696,7 +1697,7 @@ function renderBondsSummary() {
     var imgSrc = cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait';
     var fallback = '/img/char_' + s.slug + '_portrait';
     return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '') + '">'
-      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
       + '</div>';
   }).join('');
 }
@@ -3061,6 +3062,7 @@ document.addEventListener('click', function(e) {
   var action = b.dataset.action;
   var id     = b.dataset.id;
   var key    = b.dataset.key;
+  try {
   if (action === 'coupon-delete')   deleteCoupon(id);
   if (action === 'comp-delete')     deleteComp(id);
   if (action === 'comp-move-up')    moveComp(id, 'up');
@@ -3112,6 +3114,11 @@ document.addEventListener('click', function(e) {
       var le = (label.dataset.elem || '').toLowerCase();
       label.style.display = (filterEl === 'all' || le === filterEl) ? '' : 'none';
     });
+  }
+  } catch(err) {
+    console.error('[admin click handler]', action, err);
+    var dbg = document.getElementById('admin-debug');
+    if (dbg) dbg.textContent = 'Click error on ' + action + ': ' + (err && err.message);
   }
 });
 

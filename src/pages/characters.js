@@ -201,7 +201,7 @@ function setupWhoAmI() {
     var answer = (s.unlock_sequence || '').trim();
     var setNum = s.set_num;
     inputDiv.innerHTML = '<input type="text" placeholder="Enter name..." autocomplete="off" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-size:0.82rem;font-family:inherit">'
-      + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:\'Cinzel\',serif;letter-spacing:0.04em">Submit</button>'
+      + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cinzel,serif;letter-spacing:0.04em">Submit</button>'
       + '<div style="font-size:0.7rem;color:#e74c3c;margin-top:0.2rem;min-height:1rem" class="wai-err"></div>';
     picker.parentNode.insertBefore(inputDiv, picker.nextSibling);
     picker.addEventListener('change', function() {

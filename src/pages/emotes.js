@@ -257,7 +257,7 @@ export async function handleEmotes(request, env) {
 
   document.getElementById('page-unlock-hint').addEventListener('click', function(e) {
     e.stopPropagation();
-    showHintModal('HOW TO UNLOCK', 'Each of the six sets is hidden behind a small secret somewhere on the site.\\n\\nLook closely at each set\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
+    showHintModal('HOW TO UNLOCK', 'Each of the six sets is hidden behind a small secret somewhere on the site.\\n\\nLook closely at each set\\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
   });
 
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }
