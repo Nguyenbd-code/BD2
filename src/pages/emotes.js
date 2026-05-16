@@ -35,17 +35,18 @@ async function ensureSchema(env) {
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
     const newSet4Riddle = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-    const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
-    // Letters are shuffled; sets still spell KITSU when pressed in the right order.
-    // set_num → letter map: 1=K, 2=I, 3=S, 4=T, 5=U, 6=M
+    const setMExtraHint = "Press them in the order of: ocean, flame, sun, void, breeze.";
+    // Letters keep their original set-num positions so each letter still maps
+    // to its native mechanic. KITSU sequence stays solvable across tiers
+    // because letter buttons remain clickable even on tier-locked cards.
     const defaults = [
       // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location
-      [1, 'K', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                       'easy',   '', ''],
-      [2, 'I', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                  'medium', '', "Kitsu's Emotes"],
-      [3, 'S', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                            'easy',   '', '?????'],
-      [4, 'T', newSet4Riddle, 'sidebar', '',      0, 'char_sequence',   'rou,dalvi,yuri',              'medium', '', 'Hamburger'],
-      [5, 'U', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',  'hard',   '', ''],
-      [6, 'M', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                       'hard',   set6ExtraHint, ''],
+      [1, 'S', set1Riddle,    'characters', 'water', 7, 'count_then_seal', 'magic',                      'easy',   '', ''],
+      [2, 'T', set2Riddle,    'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                 'medium', '', "Kitsu's Emotes"],
+      [3, 'K', set3Riddle,    'navigation', '',      0, 'nav_icon_tap',    '',                           'easy',   '', '?????'],
+      [4, 'I', newSet4Riddle, 'sidebar',    '',      0, 'char_sequence',   'rou,dalvi,yuri',             'medium', '', 'Hamburger'],
+      [5, 'M', set5Riddle,    'characters', '',      0, 'sequence',        'water,fire,light,dark,wind', 'hard',   setMExtraHint, ''],
+      [6, 'U', set6Hint,      'characters', 'synae', 0, 'who_am_i',        'Synae',                      'hard',   '', ''],
     ];
     for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc] of defaults) {
       await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc).run().catch(()=>{});
@@ -110,6 +111,36 @@ async function ensureSchema(env) {
     // so already-migrated installs pick up the "What are they?" addition.
     const set4RiddleCurrent = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence' AND hint LIKE 'In the quiet fields%'").bind(set4RiddleCurrent).run().catch(()=>{});
+    // Force-restore Set T's original letter_sequence riddle (set_num=2). The
+    // v4 letter shuffle never touched set 2's hint, but the user reported the
+    // riddle had drifted on their install — likely an admin edit or v2-era
+    // residue. Resync is gated to letter_sequence so we don't clobber a
+    // legitimately-changed mode.
+    await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{});
+
+    // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
+    // but kept mechanics fixed, which broke the K-I-T-S-U letter sequence
+    // (Set T = letter_sequence at set_num=2 needed pressing U+M letters, which
+    // ended up on Hard tier sets). Putting each letter back on its original
+    // mechanic's set keeps the puzzle solvable: K = mamonir-falls (3, easy),
+    // S = element-count-seal (1, easy), T = letter_sequence (2, medium),
+    // I = char_sequence (4, medium), M = element-sequence (5, hard),
+    // U = who_am_i (6, hard). Also moves the extra_hint to Set M.
+    const v5 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v5_migrated'").first().catch(()=>null);
+    if (!v5) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v5_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='S', set_letter='S' WHERE set_num=1").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='T', set_letter='T' WHERE set_num=2").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='K', set_letter='K' WHERE set_num=3").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=4").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M' WHERE set_num=5").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET name='U', set_letter='U' WHERE set_num=6").run().catch(()=>{});
+      // Move the extra hint off Set U (6) and onto Set M (5), where the user
+      // actually asked for it. Hint targets the element-sequence puzzle.
+      const setMExtraHint = "Press them in the order of: ocean, flame, sun, void, breeze.";
+      await env.DB.prepare("UPDATE emote_sets SET extra_hint='' WHERE set_num=6").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{});
+    }
   }
   _schemaReady = true;
 }
@@ -295,7 +326,12 @@ export async function handleEmotes(request, env) {
 .diff-tier-sub { font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
 .diff-tier.tier-locked .diff-tier-sub { color:rgba(232,138,125,0.6); }
 .sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
-.set-card.tier-locked { filter:grayscale(0.7);opacity:0.55;pointer-events:none; }
+.set-card.tier-locked { filter:grayscale(0.7);opacity:0.55; }
+.set-card.tier-locked .set-cover,
+.set-card.tier-locked .set-hint-icon { pointer-events:none; }
+/* Letter buttons stay clickable on tier-locked cards so the letter_sequence
+   puzzle (Set T) can still receive K-I-T-S-U input — U + M live on Hard. */
+.set-card.tier-locked .set-letter-btn { pointer-events:auto;filter:none;opacity:1; }
 .set-card.tier-locked .set-tier-overlay { display:flex !important;position:absolute;inset:0;background:rgba(8,8,14,0.78);align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;color:#e88a7d;font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;text-align:center;padding:1rem;letter-spacing:0.05em;z-index:5; }
 .set-card.tier-locked .set-tier-icon { font-size:1.6rem;line-height:1; }
 .set-card.tier-locked .set-cover { position:relative; }
