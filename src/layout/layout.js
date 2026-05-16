@@ -29,20 +29,29 @@ export async function layout(title, content, activePage = '', env = null) {
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
-    var lines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'I-I', "I'm!", "I'm Coming!"];
-    var lastLine = -1;
+    var regularLines = ['Owch!', 'Stop!', 'Octovius, finish it off!'];
+    var climaxLines = ['I-I', "I'm!", "I'm Coming!"];
+    var lastRegular = -1;
     var bubbleTimer = null;
-    function showBubble() {
+    function showBubble(text) {
       if (!bubble) return;
-      var idx;
-      do { idx = Math.floor(Math.random() * lines.length); } while (idx === lastLine && lines.length > 1);
-      lastLine = idx;
-      bubble.textContent = lines[idx];
+      bubble.textContent = text;
       bubble.classList.remove('mam-bubble-show');
       void bubble.offsetWidth;
       bubble.classList.add('mam-bubble-show');
       if (bubbleTimer) clearTimeout(bubbleTimer);
       bubbleTimer = setTimeout(function(){ bubble.classList.remove('mam-bubble-show'); }, 1400);
+    }
+    function pickLine(tapNumber) {
+      // Last 3 taps before unlock get the climax lines in order.
+      var remaining = TARGET - tapNumber;
+      if (remaining >= 0 && remaining < climaxLines.length) {
+        return climaxLines[climaxLines.length - 1 - remaining];
+      }
+      var idx;
+      do { idx = Math.floor(Math.random() * regularLines.length); } while (idx === lastRegular && regularLines.length > 1);
+      lastRegular = idx;
+      return regularLines[idx];
     }
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
@@ -50,7 +59,7 @@ export async function layout(title, content, activePage = '', env = null) {
       localStorage.setItem(KEY, String(n));
       icon.style.transform = 'scale(0.85)';
       setTimeout(function() { icon.style.transform = ''; }, 120);
-      showBubble();
+      showBubble(pickLine(n));
       if (n >= TARGET) {
         localStorage.setItem('kitsu_set_3', '1');
         localStorage.removeItem(KEY);
