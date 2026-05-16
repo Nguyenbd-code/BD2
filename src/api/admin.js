@@ -242,7 +242,7 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/images/list' && method === 'GET') {
       const r = await env.DB.prepare(
-        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' ORDER BY key"
+        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' AND key != 'emote_lock_hint' ORDER BY key"
       ).all();
       return json({ images: r.results || [] });
     }
@@ -538,6 +538,15 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('secret_code',?)")
         .bind(body.code).run();
       return json({ success:true, message:'Secret code updated.' });
+    }
+
+    // ── Emote Lock Screen Hint ───────────────────────────────
+    if (path === '/api/admin/emote-lock-hint/save' && method === 'POST') {
+      const hint = (body.hint || '').toString().trim();
+      if (!hint) return json({ success:false, message:'Hint cannot be empty.' });
+      await env.DB.prepare("INSERT OR REPLACE INTO images (key,data) VALUES ('emote_lock_hint',?)")
+        .bind(hint).run();
+      return json({ success:true, message:'Lock screen hint updated.' });
     }
 
     // ── Home Notes ────────────────────────────────────────────
