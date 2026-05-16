@@ -16,17 +16,17 @@ export async function handleCharacters(request, env) {
     }
   } catch { /* ignore */ }
 
-  const elemColors   = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
-  const elemGlows    = { Light:'rgba(244,208,63,0.18)', Dark:'rgba(142,68,173,0.18)', Water:'rgba(46,134,193,0.18)', Wind:'rgba(39,174,96,0.18)', Fire:'rgba(192,57,43,0.2)' };
-  const elemGradient = { Light:'rgba(244,208,63,0.15),transparent', Dark:'rgba(142,68,173,0.15),transparent', Water:'rgba(46,134,193,0.15),transparent', Wind:'rgba(39,174,96,0.15),transparent', Fire:'rgba(192,57,43,0.18),transparent' };
-  const elements     = ['Light','Dark','Fire','Water','Wind'];
+  const elemColors   = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
+  const elemGlows    = { Water:'rgba(46,134,193,0.18)', Fire:'rgba(192,57,43,0.2)', Wind:'rgba(39,174,96,0.18)', Light:'rgba(244,208,63,0.18)', Dark:'rgba(142,68,173,0.18)', Physical:'rgba(149,165,166,0.2)', Magic:'rgba(22,160,133,0.2)' };
+  const elemGradient = { Water:'rgba(46,134,193,0.15),transparent', Fire:'rgba(192,57,43,0.18),transparent', Wind:'rgba(39,174,96,0.15),transparent', Light:'rgba(244,208,63,0.15),transparent', Dark:'rgba(142,68,173,0.15),transparent', Physical:'rgba(149,165,166,0.15),transparent', Magic:'rgba(22,160,133,0.15),transparent' };
+  const elements     = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
 
   const cardHtml = chars.map(char => {
     const costumes   = costumesMap[char.slug] || [];
     const slug       = char.slug;
     const elRaw      = (char.element || 'Dark').toString().trim();
     const elNorm     = elRaw.charAt(0).toUpperCase() + elRaw.slice(1).toLowerCase();
-    const el         = ['Light','Dark','Fire','Water','Wind'].includes(elNorm) ? elNorm : 'Dark';
+    const el         = elements.includes(elNorm) ? elNorm : 'Dark';
     const elemColor  = elemColors[el]  || '#888';
     const elemGlow   = elemGlows[el]   || 'rgba(136,136,136,0.12)';
     const elemGrad   = elemGradient[el] || 'rgba(136,136,136,0.12),transparent';
