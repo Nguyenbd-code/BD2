@@ -111,6 +111,12 @@ async function ensureSchema(env) {
     // so already-migrated installs pick up the "What are they?" addition.
     const set4RiddleCurrent = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence' AND hint LIKE 'In the quiet fields%'").bind(set4RiddleCurrent).run().catch(()=>{});
+    // Force-restore Set T's original letter_sequence riddle (set_num=2). The
+    // v4 letter shuffle never touched set 2's hint, but the user reported the
+    // riddle had drifted on their install — likely an admin edit or v2-era
+    // residue. Resync is gated to letter_sequence so we don't clobber a
+    // legitimately-changed mode.
+    await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{});
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
     // but kept mechanics fixed, which broke the K-I-T-S-U letter sequence
