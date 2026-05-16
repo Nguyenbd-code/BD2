@@ -32,17 +32,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-side-header{font-family:'Cinzel',serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;flex-shrink:0;}
 
 /* Character circle — Set 4 unlock widget at the bottom of the side nav */
-.char-circle{position:relative;width:220px;height:220px;margin:1.5rem auto 1.25rem;flex-shrink:0;}
-.char-circle::before{content:'';position:absolute;inset:10px;border-radius:50%;border:1px dashed rgba(201,168,76,0.18);}
-.char-pos{position:absolute;top:50%;left:50%;width:52px;height:52px;margin:-26px;background:transparent;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;transition:transform 0.12s ease;}
-.char-pos:not(.char-pos-center){transform:rotate(var(--a)) translateY(-82px) rotate(calc(-1 * var(--a)));}
+.char-circle{position:relative;width:260px;height:260px;margin:1.5rem auto 1.25rem;flex-shrink:0;}
+.char-pos{position:absolute;top:50%;left:50%;width:74px;height:84px;margin:-42px -37px;background:transparent;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;transition:transform 0.12s ease;}
+.char-pos:not(.char-pos-center){transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a)));}
 .char-pos.char-pos-center{transform:translate(0,0);}
-.char-pos img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));pointer-events:none;-webkit-user-drag:none;}
-.char-pos:hover img{filter:drop-shadow(0 0 6px rgba(201,168,76,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
+.char-pos img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));pointer-events:none;-webkit-user-drag:none;}
+.char-pos:hover img{filter:drop-shadow(0 0 6px rgba(201,168,76,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.7));}
 .char-pos-tap{animation:char-tap 0.25s ease;}
 @keyframes char-tap{0%,100%{transform:scale(1);}50%{transform:scale(0.85);}}
 .char-pos-tap:not(.char-pos-center){animation:char-tap-off 0.25s ease;}
-@keyframes char-tap-off{0%,100%{transform:rotate(var(--a)) translateY(-82px) rotate(calc(-1 * var(--a))) scale(1);}50%{transform:rotate(var(--a)) translateY(-82px) rotate(calc(-1 * var(--a))) scale(0.85);}}
+@keyframes char-tap-off{0%,100%{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) scale(1);}50%{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) scale(0.85);}}
 
 /* Mamonir nav icon — the source image has transparent padding around the
    character, so we render the img larger than the wrap and clip the wrap
