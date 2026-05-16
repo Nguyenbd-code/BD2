@@ -29,7 +29,7 @@ export async function layout(title, content, activePage = '', env = null) {
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
-    var regularLines = ['Owch!', 'Stop!', 'Octovius, finish it off!'];
+    var regularLines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'Die!'];
     var climaxLines = ['I-I', "I'm!", "I'm Coming!"];
     var lastRegular = -1;
     var bubbleTimer = null;
@@ -149,7 +149,6 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   var bd = document.getElementById('nav-backdrop');
   if (!btn || !side) return;
   function close(){
-    document.body.classList.remove('sidebar-open');
     side.classList.remove('open');
     side.setAttribute('aria-hidden','true');
     btn.classList.remove('open');
@@ -157,21 +156,15 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     if (bd) bd.classList.remove('open');
   }
   function open(){
-    document.body.classList.add('sidebar-open');
     side.classList.add('open');
     side.setAttribute('aria-hidden','false');
     btn.classList.add('open');
     btn.setAttribute('aria-expanded','true');
     if (bd) bd.classList.add('open');
   }
-  btn.addEventListener('click', function(e){ e.stopPropagation(); side.classList.contains('open') ? close() : open(); });
+  btn.addEventListener('click', function(){ side.classList.contains('open') ? close() : open(); });
   if (bd) bd.addEventListener('click', close);
   side.addEventListener('click', function(e){ if (e.target.tagName === 'A') close(); });
-  document.addEventListener('click', function(e){
-    if (!document.body.classList.contains('sidebar-open')) return;
-    if (side.contains(e.target) || btn.contains(e.target)) return;
-    close();
-  });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
 })();
 </script>

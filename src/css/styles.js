@@ -24,20 +24,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
 .nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .nav-backdrop.open{display:block;}
-.nav-side{position:fixed;top:60px;bottom:0;left:0;width:280px;max-width:85vw;background:rgba(10,10,15,0.98);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:stretch;padding:1rem 0;overflow-y:auto;z-index:90;transform:translateX(-100%);transition:transform 0.22s ease;}
+.nav-side{position:fixed;top:60px;bottom:0;left:0;width:280px;max-width:85vw;background:rgba(10,10,15,0.98);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:stretch;padding:1rem 0;overflow-y:auto;z-index:110;transform:translateX(-100%);transition:transform 0.22s ease;}
 .nav-side.open{transform:translateX(0);}
 .nav-side>a{display:block;color:var(--text2);text-decoration:none;font-size:0.92rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:0.85rem 1.5rem;border-left:3px solid transparent;transition:color 0.15s,background 0.15s,border-color 0.15s;white-space:nowrap;}
 .nav-side>a:hover{color:var(--gold);background:rgba(201,168,76,0.06);}
 .nav-side>a.nav-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
 .nav-side-header{font-family:'Cinzel',serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;flex-shrink:0;}
-body.sidebar-open main,body.sidebar-open footer{transform:translateX(280px);}
-main,footer{transition:transform 0.22s ease;}
-@media(max-width:600px){body.sidebar-open main,body.sidebar-open footer{transform:translateX(0);}}
 
-/* Mamonir nav icon — hitbox is smaller than the rendered image to skip the
-   transparent bottom of the asset. The img overflows the wrap visually. */
-.mam-wrap{position:relative;display:inline-block;width:78px;height:80px;cursor:pointer;margin-left:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;vertical-align:middle;}
-.mam-wrap img{height:120px;width:auto;display:block;position:absolute;top:0;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
+/* Mamonir nav icon — img is anchored at the wrap's bottom and is taller than
+   the wrap, so the character pokes ABOVE the navbar without extending below
+   the border. Hitbox = the wrap, sized tight to the visible character. */
+.mam-wrap{position:relative;display:inline-block;width:54px;height:56px;cursor:pointer;margin-left:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;vertical-align:middle;}
+.mam-wrap img{height:96px;width:auto;display:block;position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
 .mam-wrap img.mam-press{transform:translateX(-50%) scale(0.85);transition:transform 0.08s ease;}
 .mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
 .mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.45);}
@@ -48,8 +46,8 @@ main,footer{transition:transform 0.22s ease;}
   nav{padding:0 1rem;gap:0.5rem;}
   .nav-admin{gap:6px;}
   .nav-admin>a{padding:5px 10px;font-size:0.72rem;}
-  .mam-wrap{margin-left:0;width:36px;height:36px;}
-  .mam-wrap img{height:54px;}
+  .mam-wrap{margin-left:0;width:48px;height:54px;}
+  .mam-wrap img{height:86px;bottom:-3px;}
   .mam-bubble{font-size:0.72rem;padding:5px 10px;}
 }
 main{padding-top:60px;position:relative;z-index:1;}
