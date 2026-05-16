@@ -45,12 +45,13 @@ export async function handleAdmin(request, env) {
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
   let mamonirTapCount = 7;
+  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
     const [cr, er, compr, imgr, charr, mamRow] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
-      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
       env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first().catch(() => null),
     ]);
@@ -139,7 +140,7 @@ export async function handleAdmin(request, env) {
   ).join('');
 
   const dbCompOptions = comps.map(c =>
-    '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
+    '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-guide-label="' + esc(c.guide_label||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
   return await layout('Admin Panel', `
@@ -263,20 +264,30 @@ export async function handleAdmin(request, env) {
           <input type="text" id="comp-name" placeholder="Team name...">
         </div>
 
-        <!-- Card Label -->
+        <!-- Home Overview Label -->
         <div class="form-group">
-          <label>CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short line shown under the comp title on the guide page</span></label>
+          <label>HOME OVERVIEW LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— short description shown on the Home page overview card</span></label>
+          <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="width:100%">
+          <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Home Label</button>
+            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
+          </div>
+        </div>
+
+        <!-- Guide Card Label -->
+        <div class="form-group">
+          <label>GUIDE CARD LABEL <span style="color:var(--text3);font-size:0.7rem;font-weight:400">— highlighted line shown under the team name on the PvP Guide page</span></label>
           <div style="display:flex;gap:0.5rem;align-items:stretch">
-            <select id="comp-card-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
-              <option value="">None</option>
+            <select id="comp-guide-label-color" style="width:120px;flex:0 0 120px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;font-size:0.85rem">
+              <option value="">None / Gold</option>
               <option value="green">● Green</option>
               <option value="red">● Red</option>
             </select>
-            <input type="text" id="comp-card-label" placeholder="e.g. Strong pick · Best in current meta" style="flex:1;min-width:0">
+            <input type="text" id="comp-guide-label" placeholder="e.g. Meta pick · Highly recommended" style="flex:1;min-width:0">
           </div>
           <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-card-label">Save Card Label</button>
-            <span id="comp-card-label-alert" style="font-size:0.75rem;align-self:center"></span>
+            <button class="btn" style="width:auto;padding:6px 16px;font-size:0.8rem" data-action="save-guide-label">Save Guide Label</button>
+            <span id="comp-guide-label-alert" style="font-size:0.75rem;align-self:center"></span>
           </div>
         </div>
 
@@ -1025,10 +1036,19 @@ export async function handleAdmin(request, env) {
 
       <div class="card" style="margin-top:1rem">
         <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
-        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks the associated set.</p>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks Set 3 (K).</p>
         <div class="form-group">
           <label style="font-size:0.78rem">Taps to Fall (default 7)</label>
           <input type="number" id="mamonir-tap-count" min="1" max="99" value="${mamonirTapCount}" style="width:100px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px">
+        </div>
+        <div class="form-group" style="margin-top:0.6rem">
+          <label style="font-size:0.78rem">Replace Nav Icon Image (PNG/WEBP)</label>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.25rem">
+            <img src="/img/mamonir_nav" alt="" class="img-err-hide" style="width:48px;height:48px;object-fit:contain;background:var(--bg2);border:1px solid var(--border2);border-radius:4px">
+            <input type="file" id="mamonir-nav-file" accept="image/*" style="flex:1;font-size:0.78rem;color:var(--text2)">
+            <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="upload-mamonir-nav">Upload</button>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Stored under key <code>mamonir_nav</code>. Hard-refresh any page to see the new icon.</div>
         </div>
         <div id="nav-icon-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-nav-icon-settings">Save Nav Icon Settings</button>
@@ -1445,12 +1465,15 @@ async function loadCompData(id) {
     var colorEl = document.getElementById('comp-color');
     if (colorEl && opt.dataset.color) colorEl.value = opt.dataset.color;
     var sdRaw = opt.dataset.shortDesc || '';
-    var labelColorEl = document.getElementById('comp-card-label-color');
     var labelTextEl  = document.getElementById('comp-card-label');
-    if (labelColorEl && labelTextEl) {
-      var sdMatch = sdRaw.match(/^(green|red):(.*)$/s);
-      if (sdMatch) { labelColorEl.value = sdMatch[1]; labelTextEl.value = sdMatch[2]; }
-      else { labelColorEl.value = ''; labelTextEl.value = sdRaw; }
+    if (labelTextEl) labelTextEl.value = sdRaw;
+    var guideLabelRaw = opt.dataset.guideLabel || '';
+    var guideLabelColorEl = document.getElementById('comp-guide-label-color');
+    var guideLabelTextEl  = document.getElementById('comp-guide-label');
+    if (guideLabelColorEl && guideLabelTextEl) {
+      var glMatch = guideLabelRaw.match(/^(green|red):(.*)$/s);
+      if (glMatch) { guideLabelColorEl.value = glMatch[1]; guideLabelTextEl.value = glMatch[2]; }
+      else { guideLabelColorEl.value = ''; guideLabelTextEl.value = guideLabelRaw; }
     }
     var notesEl = document.getElementById('comp-build-notes');
     if (notesEl && opt.dataset.notes !== undefined) notesEl.value = opt.dataset.notes;
@@ -1480,9 +1503,7 @@ async function saveAllComp() {
 
 async function saveCardLabel() {
   if (!_compId) { showAlert('comp-card-label-alert', false, 'Select a composition first'); return; }
-  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
-  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
-  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var labelText = ((document.getElementById('comp-card-label')||{}).value||'').trim();
   var sel  = document.getElementById('comp-select');
   var opt  = sel ? sel.options[sel.selectedIndex] : null;
   var name = opt ? opt.dataset.name  || '' : '';
@@ -1491,9 +1512,26 @@ async function saveCardLabel() {
   var cby  = opt ? opt.dataset.cby   || '' : '';
   var notes= opt ? opt.dataset.notes || '' : '';
   var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
-  if (r.success && opt) opt.dataset.shortDesc = sd;
+  var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: labelText, description: notes, countered_by: cby, unit_order: uorder });
+  if (r.success && opt) opt.dataset.shortDesc = labelText;
   var el = document.getElementById('comp-card-label-alert');
+  if (el) {
+    el.style.color = r.success ? '#2ecc71' : '#e74c3c';
+    el.textContent = r.success ? '✓ Saved — refresh home page to see' : (r.message || 'Error');
+    setTimeout(function() { el.textContent = ''; }, 3500);
+  }
+}
+
+async function saveGuideLabel() {
+  if (!_compId) { showAlert('comp-guide-label-alert', false, 'Select a composition first'); return; }
+  var labelColor = ((document.getElementById('comp-guide-label-color')||{}).value||'').trim();
+  var labelText  = ((document.getElementById('comp-guide-label')||{}).value||'').trim();
+  var gl = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var r = await apiPost('/api/admin/comp/guide-label', { id: _compId, guide_label: gl });
+  var sel = document.getElementById('comp-select');
+  var opt = sel ? sel.options[sel.selectedIndex] : null;
+  if (r.success && opt) opt.dataset.guideLabel = gl;
+  var el = document.getElementById('comp-guide-label-alert');
   if (el) {
     el.style.color = r.success ? '#2ecc71' : '#e74c3c';
     el.textContent = r.success ? '✓ Saved — refresh the guide to see' : (r.message || 'Error');
@@ -1512,9 +1550,7 @@ async function saveCompMeta() {
   var type   = opt ? opt.dataset.type  || 'ATK' : 'ATK';
   var cby    = opt ? opt.dataset.cby   || '' : '';
   var uorder = opt ? opt.dataset.unitOrder || '[]' : '[]';
-  var labelColor = ((document.getElementById('comp-card-label-color')||{}).value||'').trim();
-  var labelText  = ((document.getElementById('comp-card-label')||{}).value||'').trim();
-  var sd = labelText ? (labelColor ? labelColor + ':' + labelText : labelText) : '';
+  var sd = ((document.getElementById('comp-card-label')||{}).value||'').trim();
   var r = await apiPost('/api/admin/comp/update', { id: _compId, name: name, type: type, color: color, short_description: sd, description: notes, countered_by: cby, unit_order: uorder });
   if (r.success) {
     apiPost('/api/admin/comp/notes/save', { tier: _compTier, content: notes });
@@ -2158,6 +2194,19 @@ async function uploadLockImg() {
   }
 }
 
+async function uploadMamonirNav() {
+  var fileInput = document.getElementById('mamonir-nav-file');
+  var file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) { showAlert('nav-icon-alert', false, 'Choose an image first.'); return; }
+  var reader = new FileReader();
+  reader.onload = async function() {
+    var dataUrl = reader.result;
+    var r = await apiPost('/api/admin/image/upload', { key: 'mamonir_nav', data: dataUrl });
+    showAlert('nav-icon-alert', r.success, r.success ? 'Icon uploaded! Hard refresh to see it.' : (r.message || 'Error'));
+  };
+  reader.readAsDataURL(file);
+}
+
 async function saveNavIconSettings() {
   var inp = document.getElementById('mamonir-tap-count');
   var count = parseInt((inp && inp.value) || '7', 10);
@@ -2529,10 +2578,11 @@ function updateCompListInPlace(comps) {
       opt.dataset.name      = c.name || '';
       opt.dataset.type      = c.type || 'ATK';
       opt.dataset.color     = c.color || '#c9a84c';
-      opt.dataset.shortDesc = c.short_description || '';
-      opt.dataset.notes     = c.description || '';
-      opt.dataset.unitOrder = c.unit_order || '[]';
-      opt.dataset.cby       = c.countered_by || '';
+      opt.dataset.shortDesc  = c.short_description || '';
+      opt.dataset.guideLabel = c.guide_label || '';
+      opt.dataset.notes      = c.description || '';
+      opt.dataset.unitOrder  = c.unit_order || '[]';
+      opt.dataset.cby        = c.countered_by || '';
       opt.text = c.tier + ' — ' + c.name + ' (' + (c.type || 'ATK') + ')';
       if (newOpt) sel.insertBefore(opt, newOpt);
       else sel.appendChild(opt);
@@ -3170,6 +3220,7 @@ document.addEventListener('click', function(e) {
   if (action === 'upload-special-lock-img') uploadSpecialLockImg();
   if (action === 'save-matchups')    saveMatchups();
   if (action === 'save-card-label')  saveCardLabel();
+  if (action === 'save-guide-label') saveGuideLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
   if (action === 'kitsu-reset-page') {
@@ -3194,6 +3245,7 @@ document.addEventListener('click', function(e) {
     showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
   }
   if (action === 'save-nav-icon-settings') saveNavIconSettings();
+  if (action === 'upload-mamonir-nav') uploadMamonirNav();
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');

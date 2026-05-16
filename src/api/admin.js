@@ -240,7 +240,7 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/images/list' && method === 'GET') {
       const r = await env.DB.prepare(
-        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key"
+        "SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' ORDER BY key"
       ).all();
       return json({ images: r.results || [] });
     }
@@ -419,6 +419,14 @@ export async function handleAdminApi(request, env) {
         'UPDATE compositions SET name=?,type=?,color=?,short_description=?,description=?,countered_by=?,unit_order=? WHERE id=?'
       ).bind(body.name||'', body.type||'ATK', body.color||'#c9a84c', body.short_description||'', body.description||'', body.countered_by||'', body.unit_order||'[]', body.id).run();
       return json({ success:true, message:'Updated.' });
+    }
+
+    // ── Guide Card Label ──────────────────────────────────────
+    if (path === '/api/admin/comp/guide-label' && method === 'POST') {
+      if (!body.id) return json({ success:false, message:'id required' }, 400);
+      await env.DB.prepare('ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT \'\'').run().catch(() => {});
+      await env.DB.prepare('UPDATE compositions SET guide_label=? WHERE id=?').bind(body.guide_label||'', body.id).run();
+      return json({ success:true, message:'Guide label saved.' });
     }
 
     // ── Comp Board Image (tier-keyed) ─────────────────────────

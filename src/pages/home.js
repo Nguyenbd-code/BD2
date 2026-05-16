@@ -2,7 +2,8 @@ import { layout, esc } from '../layout/layout.js';
 
 function compCard(comp) {
   const color     = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
-  const shortDesc = esc((comp.short_description || comp.description || '').substring(0, 80));
+  const rawDesc = (comp.short_description || comp.description || '').replace(/^(green|red):/, '').substring(0, 80);
+  const shortDesc = esc(rawDesc);
   const typeIcon  = comp.type === 'ATK' ? '⚔' : '🛡';
   const tier      = comp.tier || '';
   const anchor    = tier.toLowerCase().replace(/[^a-z0-9]/g,'');
