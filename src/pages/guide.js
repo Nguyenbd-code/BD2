@@ -182,15 +182,15 @@ function renderComp(comp, mediaMap) {
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
   const boardHtml = `<div class="board-flip-wrap" style="position:absolute;inset:0;" data-action="board-flip" data-tier="${esc(tier)}">
   <div class="board-card-inner" id="board-card-${esc(tier)}" style="width:100%;height:100%;position:relative;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;background:var(--bg4);border-radius:6px;overflow:hidden;">
+    <div class="board-face" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
       <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
       <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
-    <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;">
+    <div class="board-face board-face-back" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
       <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
   </div>
 </div>
@@ -228,31 +228,30 @@ function renderComp(comp, mediaMap) {
   const glRaw = comp.guide_label || '';
   if (glRaw) {
     const glMatch = glRaw.match(/^(green|red):(.+)$/s);
-    const labelColor = glMatch ? (glMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
-    const labelBg    = glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
-    const labelBorder= glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
+    const tagClass = glMatch ? (glMatch[1] === 'green' ? 'codex-tag-pos' : 'codex-tag-neg') : '';
     const labelText  = glMatch ? glMatch[2] : glRaw;
-    cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
+    cardLabelHtml = `<span class="codex-tag ${tagClass}">${esc(labelText)}</span>`;
   }
+  const typeMetaLabel = comp.type === 'ATK' ? 'Attack Composition' : 'Defence Composition';
 
   return `
-<div class="comp-section" id="${anchorId}">
-  <div class="comp-header">
-    <div>
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem">
-        <span class="tier-badge ${tierCls}" style="background:${color};color:#fff">${esc(tier)}</span>
-        <h2 style="font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700">${esc(comp.name)}</h2>
-        <span class="${typeCls}">${typeLabel}</span>
+<div class="comp-section" id="${anchorId}" style="--codex-accent:${color}">
+  <div class="codex-section-head">
+    <div class="codex-section-tier">${esc(tier)}</div>
+    <div class="codex-section-body">
+      <div class="codex-section-meta">
+        <span class="codex-section-meta-dot"></span>
+        <span>${esc(typeMetaLabel)}</span>
       </div>
-      ${comp.warning ? `<div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">⚠ ${esc(comp.warning)}</div>` : ''}
-      ${cardLabelHtml}
+      <h2 class="codex-section-name">${esc(comp.name)}</h2>
+      ${(comp.warning || cardLabelHtml) ? `<div class="codex-section-tags">${comp.warning ? `<span class="codex-tag codex-tag-warn">${esc(comp.warning)}</span>` : ''}${cardLabelHtml}</div>` : ''}
     </div>
   </div>
 
-  <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
+  <div class="card-title" style="border:none;padding:0;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
+  <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;overflow:hidden;">
       <div class="card" style="height:430px;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
@@ -265,7 +264,7 @@ function renderComp(comp, mediaMap) {
         <div class="card-title">Board Positioning</div>
         ${boardSectionHtml}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
+      <div class="comp-howmatch-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
         <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
           <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
           <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:auto">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
