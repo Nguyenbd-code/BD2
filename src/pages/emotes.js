@@ -257,7 +257,7 @@ export async function handleEmotes(request, env) {
 
   document.getElementById('page-unlock-hint').addEventListener('click', function(e) {
     e.stopPropagation();
-    showHintModal('HOW TO UNLOCK', 'Each of the six sets is hidden behind a small secret somewhere on the site.\\n\\nLook closely at each set\\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
+    showHintModal('HOW TO UNLOCK', 'Look closely at each set\\'s hint (?) for a clue about where and how to unlock it.\\n\\nSome require clicking elements on the Characters page. Others need a specific sequence or a hidden discovery.');
   });
 
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }
@@ -371,13 +371,7 @@ export async function handleEmotes(request, env) {
       }
     }
 
-    if (!isUnlocked(sn)) {
-      var s2 = SETS.find(function(x) { return x.set_num === sn; });
-      var loc2 = (s2 && s2.unlock_page) ? s2.unlock_page.charAt(0).toUpperCase() + s2.unlock_page.slice(1) : 'Unknown';
-      var hintBody2 = 'Location: ' + loc2 + '\\n\\n' + ((s2 && s2.hint) ? s2.hint : 'Find the secret to unlock this set.');
-      showHintModal('LOCKED — ' + (s2 ? (s2.name || sn) : sn), hintBody2);
-      return;
-    }
+    if (!isUnlocked(sn)) return;
     // Open emote modal
     openEmoteModal(sn, setData);
   });
