@@ -1,7 +1,7 @@
 import { layout, esc } from '../layout/layout.js';
 
 function compCard(comp) {
-  const color = (comp.color && comp.color !== 'undefined') ? comp.color : '#b48e3c';
+  const color = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
   const rawDesc = (comp.short_description || comp.description || '').replace(/^(green|red):/, '');
   const tier = comp.tier || '';
   const type = (comp.type || 'ATK').toUpperCase();
