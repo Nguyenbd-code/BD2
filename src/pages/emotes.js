@@ -1,6 +1,13 @@
 import { layout, esc } from '../layout/layout.js';
 
+// Module-level latch — Workers reuses module state across requests within an
+// isolate, so the migration block in ensureSchema only fires the first time
+// the isolate handles /emotes. Subsequent requests skip ~10 ALTER/UPDATE
+// round-trips.
+let _schemaReady = false;
+
 async function ensureSchema(env) {
+  if (_schemaReady) return;
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS emote_sets (
     set_num INTEGER PRIMARY KEY,
     name TEXT,
@@ -104,32 +111,44 @@ async function ensureSchema(env) {
     const set4RiddleCurrent = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence' AND hint LIKE 'In the quiet fields%'").bind(set4RiddleCurrent).run().catch(()=>{});
   }
+  _schemaReady = true;
 }
 
 export async function handleEmotes(request, env) {
   await ensureSchema(env);
 
-  const lockImgRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null);
-  const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
-
   const DEFAULT_LOCK_HINT = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
-  const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
+
+  // Run the four read queries in parallel instead of awaiting them one at a
+  // time. Emotes are *not* fetched in full — we only need per-set counts and
+  // a fallback cover URL (only used when the set has no cover_key set).
+  const [lockImgRow, lockHintRow, setsRes, countsRes, fallbackCoverRes] = await Promise.all([
+    env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null),
+    env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
+    env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all().catch(() => ({results:[]})),
+    env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num').all().catch(() => ({results:[]})),
+    env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)").all().catch(() => ({results:[]})),
+  ]);
+
+  const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
   const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
+  const sets = setsRes.results || [];
 
-  let sets = [];
-  let emotes = [];
-  try {
-    const r1 = await env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all();
-    sets = r1.results || [];
-    const r2 = await env.DB.prepare('SELECT * FROM emotes ORDER BY set_num, created_at DESC').all();
-    emotes = r2.results || [];
-  } catch(e) {}
-
+  // Build a {set_num -> count} map and a {set_num -> first-image-url} map.
+  // emotesBySet keeps its previous shape — an array — but the array entries
+  // are placeholders; the only consumer of it on the server side reads
+  // emotesBySet[sn].length and emotesBySet[sn][0]?.image_url.
+  const countMap = {};
+  for (const row of (countsRes.results || [])) countMap[row.set_num || 0] = row.c || 0;
+  const firstCoverMap = {};
+  for (const row of (fallbackCoverRes.results || [])) firstCoverMap[row.set_num || 0] = row.image_url || '';
   const emotesBySet = {};
-  for (const e of emotes) {
-    const s = e.set_num || 1;
-    if (!emotesBySet[s]) emotesBySet[s] = [];
-    emotesBySet[s].push(e);
+  for (const s of sets) {
+    const sn = s.set_num;
+    const count = countMap[sn] || 0;
+    const arr = new Array(count);
+    if (count > 0 && firstCoverMap[sn]) arr[0] = { image_url: firstCoverMap[sn] };
+    emotesBySet[sn] = arr;
   }
 
   const setsJson = JSON.stringify(sets.map(s => ({
@@ -155,12 +174,6 @@ export async function handleEmotes(request, env) {
     const list = emotesBySet[sn] || [];
     const cover = s.cover_key ? `/img/${esc(s.cover_key)}` : (list[0] ? esc(list[0].image_url) : '');
     const displayName = esc(s.name || String(sn));
-    const emoteHtml = list.map(e => `
-      <div class="emote-card">
-        <img src="${esc(e.image_url)}" alt="${esc(e.name)}" loading="lazy">
-        <div class="emote-name">${esc(e.name)}</div>
-        <a href="${esc(e.image_url)}" download="${esc(e.name)}" class="emote-dl">Download</a>
-      </div>`).join('');
     const hasExtra = !!(s.extra_hint && String(s.extra_hint).trim());
     return `
     <div class="set-card" data-set="${sn}" data-difficulty="${esc(s.difficulty || 'easy')}">
@@ -183,9 +196,6 @@ export async function handleEmotes(request, env) {
           ${hasExtra ? `<span class="set-hint-icon set-extra-hint-icon" data-extra-set="${sn}" style="cursor:pointer" title="Extra hint">?</span>` : ''}
         </div>
         <div class="set-meta">${list.length} emote${list.length === 1 ? '' : 's'}</div>
-      </div>
-      <div class="set-emotes" style="display:none">
-        ${emoteHtml || '<div style="text-align:center;color:var(--text3);padding:1.5rem">No emotes in this set yet.</div>'}
       </div>
     </div>`;
   };
