@@ -2140,11 +2140,21 @@ function updateSetCfgModeUI(mode) {
   if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
   // Update sequence labels
   if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
-  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page.';
+  if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page. Up to 8 positions; repeats allowed.';
   // Build the 5 positional selects for the sequence
   buildSequenceSelects(mode);
   // (who_am_i char list loaded by renderSetConfig after this runs)
 }
+
+var SEQ_ELEMS = [
+  { v:'water', label:'Water', color:'#2E86C1' },
+  { v:'fire',  label:'Fire',  color:'#C0392B' },
+  { v:'light', label:'Light', color:'#F4D03F' },
+  { v:'dark',  label:'Dark',  color:'#8E44AD' },
+  { v:'wind',  label:'Wind',  color:'#27AE60' }
+];
+var SEQ_ELEM_MAP = SEQ_ELEMS.reduce(function(m, e){ m[e.v] = e; return m; }, {});
+var SEQ_MAX_POSITIONS = 8;
 
 function buildSequenceSelects(mode) {
   var container = document.getElementById('set-cfg-sequence-selects');
@@ -2153,25 +2163,41 @@ function buildSequenceSelects(mode) {
   var curVal = hidden ? hidden.value : '';
   var curParts = curVal ? curVal.split(',').map(function(x){return x.trim();}) : [];
 
-  var elemOpts = ['water','fire','light','dark','wind'].map(function(el) {
-    return '<option value="' + el + '">' + el.charAt(0).toUpperCase() + el.slice(1) + '</option>';
-  }).join('');
+  if (mode === 'sequence') {
+    var positions = Math.max(curParts.length, 5);
+    container.innerHTML = '';
+    for (var i = 1; i <= positions; i++) {
+      container.appendChild(buildSeqElemPicker(i, curParts[i-1] || ''));
+    }
+    var addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'seq-add-btn';
+    addBtn.textContent = '+ Add';
+    addBtn.style.cssText = 'align-self:flex-end;background:var(--bg2);border:1px dashed var(--border);color:var(--text2);padding:6px 12px;border-radius:5px;cursor:pointer;font-size:0.78rem;height:34px;margin-top:14px';
+    addBtn.addEventListener('click', function() {
+      var current = container.querySelectorAll('.seq-elem-picker').length;
+      if (current >= SEQ_MAX_POSITIONS) return;
+      container.insertBefore(buildSeqElemPicker(current + 1, ''), addBtn);
+      syncSeqHidden();
+      updateSeqAddBtn();
+    });
+    container.appendChild(addBtn);
+    updateSeqAddBtn();
+    return;
+  }
 
-  // For letter_sequence, get currently configured set letters
+  // letter_sequence: keep the existing <select> approach
   var letterOpts = '';
-  if (mode === 'letter_sequence' && typeof _esSets !== 'undefined') {
+  if (typeof _esSets !== 'undefined') {
     Object.keys(_esSets).forEach(function(sn) {
       var s = _esSets[sn];
       var ltr = (s && (s.set_letter || s.name || '')).toUpperCase();
       if (ltr) letterOpts += '<option value="' + ltr + '">' + ltr + '</option>';
     });
   }
-
-  var opts = mode === 'letter_sequence' ? letterOpts : elemOpts;
   container.innerHTML = [1,2,3,4,5].map(function(pos) {
     var cur = curParts[pos-1] || '';
-    var selOpts = '<option value="">—</option>' + opts;
-    // Mark selected
+    var selOpts = '<option value="">—</option>' + letterOpts;
     selOpts = selOpts.replace('value="' + cur + '"', 'value="' + cur + '" selected');
     return '<div style="text-align:center">'
       + '<div style="font-size:0.6rem;color:var(--text3);margin-bottom:2px">' + pos + '</div>'
@@ -2179,8 +2205,6 @@ function buildSequenceSelects(mode) {
       + selOpts + '</select>'
       + '</div>';
   }).join('');
-
-  // Wire change events to sync hidden input
   container.querySelectorAll('.seq-pos-sel').forEach(function(sel) {
     sel.addEventListener('change', function() {
       var vals = Array.from(container.querySelectorAll('.seq-pos-sel')).map(function(s){return s.value;}).filter(Boolean);
@@ -2188,6 +2212,100 @@ function buildSequenceSelects(mode) {
     });
   });
 }
+
+function buildSeqElemPicker(pos, currentValue) {
+  var wrap = document.createElement('div');
+  wrap.className = 'seq-elem-picker';
+  wrap.dataset.pos = pos;
+  wrap.dataset.value = currentValue || '';
+  wrap.style.cssText = 'position:relative;text-align:center';
+  wrap.innerHTML =
+    '<div class="seq-pos-label" style="font-size:0.6rem;color:var(--text3);margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:4px">'
+    +   '<span class="seq-pos-num"></span>'
+    +   '<button type="button" class="seq-pos-remove" title="Remove" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 2px;font-size:0.9rem;line-height:1">×</button>'
+    + '</div>'
+    + '<button type="button" class="seq-pos-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:90px;height:34px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text);padding:0 8px;font-family:inherit;font-size:0.8rem">'
+    +   renderSeqBtnContent(currentValue)
+    + '</button>'
+    + '<div class="seq-pos-menu" style="display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,0.6);min-width:120px">'
+    +   SEQ_ELEMS.map(function(e) {
+          return '<div class="seq-elem-opt" data-elem="' + e.v + '" style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;color:' + e.color + ';font-size:0.85rem"><img src="/img/element_' + e.v + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">' + e.label + '</div>';
+        }).join('')
+    + '</div>';
+
+  var btn = wrap.querySelector('.seq-pos-btn');
+  var menu = wrap.querySelector('.seq-pos-menu');
+  var removeBtn = wrap.querySelector('.seq-pos-remove');
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = menu.style.display === 'block';
+    document.querySelectorAll('.seq-pos-menu').forEach(function(m){ m.style.display = 'none'; });
+    menu.style.display = isOpen ? 'none' : 'block';
+  });
+
+  menu.querySelectorAll('.seq-elem-opt').forEach(function(opt) {
+    opt.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var v = opt.dataset.elem;
+      wrap.dataset.value = v;
+      btn.innerHTML = renderSeqBtnContent(v);
+      menu.style.display = 'none';
+      syncSeqHidden();
+    });
+  });
+
+  removeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    wrap.parentNode.removeChild(wrap);
+    syncSeqHidden();
+    relabelSeqPositions();
+    updateSeqAddBtn();
+  });
+
+  return wrap;
+}
+
+function renderSeqBtnContent(value) {
+  var e = SEQ_ELEM_MAP[value];
+  if (!e) return '<span style="color:var(--text3)">— Pick —</span>';
+  return '<img src="/img/element_' + e.v + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain;flex-shrink:0"><span style="color:' + e.color + '">' + e.label + '</span>';
+}
+
+function syncSeqHidden() {
+  var hidden = document.getElementById('set-cfg-sequence');
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!hidden || !container) return;
+  var vals = Array.from(container.querySelectorAll('.seq-elem-picker'))
+    .map(function(w){ return w.dataset.value || ''; })
+    .filter(Boolean);
+  hidden.value = vals.join(',');
+  relabelSeqPositions();
+}
+
+function relabelSeqPositions() {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  container.querySelectorAll('.seq-elem-picker').forEach(function(w, i) {
+    var n = w.querySelector('.seq-pos-num');
+    if (n) n.textContent = String(i + 1);
+    w.dataset.pos = i + 1;
+  });
+}
+
+function updateSeqAddBtn() {
+  var container = document.getElementById('set-cfg-sequence-selects');
+  if (!container) return;
+  var btn = container.querySelector('.seq-add-btn');
+  if (!btn) return;
+  var n = container.querySelectorAll('.seq-elem-picker').length;
+  btn.style.display = n >= SEQ_MAX_POSITIONS ? 'none' : '';
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.seq-elem-picker')) return;
+  document.querySelectorAll('.seq-pos-menu').forEach(function(m){ m.style.display = 'none'; });
+});
 
 var _waiCharsLoaded = false;
 async function loadWAICharList(preselect) {

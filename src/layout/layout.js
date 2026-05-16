@@ -29,7 +29,7 @@ export async function layout(title, content, activePage = '', env = null) {
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
-    var lines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'Hey!', 'Not again!', 'Quit it!'];
+    var lines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'I-I', "I'm!", "I'm Coming!"];
     var lastLine = -1;
     var bubbleTimer = null;
     function showBubble() {
@@ -129,19 +129,50 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   <div class="nav-admin">
     ${mamonirHtml}
     <a href="/admin">Admin</a>
+    <button id="nav-toggle-right" class="nav-toggle nav-toggle-right" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
+  <aside id="nav-side-right" class="nav-side nav-side-right" aria-hidden="true">
+    <div class="nav-side-header">Navigation</div>
+    <a href="/"${activePage === 'home' ? ' class="nav-active"' : ''}>Home</a>
+    <a href="/guide"${activePage === 'guide' ? ' class="nav-active"' : ''}>PvP Guide</a>
+    <a href="/coupons"${activePage === 'coupons' ? ' class="nav-active"' : ''}>Coupons</a>
+    <a href="/emotes"${activePage === 'emotes' ? ' class="nav-active"' : ''}>Kitsu's Emotes</a>
+    <a href="/characters"${activePage === 'characters' ? ' class="nav-active"' : ''}>Characters</a>
+    <a href="/admin"${activePage === 'admin' ? ' class="nav-active"' : ''}>Admin</a>
+  </aside>
 </nav>
 <script>
 (function(){
-  var btn = document.getElementById('nav-toggle');
-  var links = document.getElementById('nav-links');
+  var btnL = document.getElementById('nav-toggle');
+  var btnR = document.getElementById('nav-toggle-right');
+  var linksL = document.getElementById('nav-links');
+  var sideR = document.getElementById('nav-side-right');
   var bd = document.getElementById('nav-backdrop');
-  if (!btn || !links) return;
-  function close(){ links.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); if(bd) bd.classList.remove('open'); }
-  function open(){ links.classList.add('open'); btn.classList.add('open'); btn.setAttribute('aria-expanded','true'); if(bd) bd.classList.add('open'); }
-  btn.addEventListener('click', function(){ links.classList.contains('open') ? close() : open(); });
-  if (bd) bd.addEventListener('click', close);
-  links.addEventListener('click', function(e){ if (e.target.tagName === 'A') close(); });
+  function closeAll(){
+    if (linksL) linksL.classList.remove('open');
+    if (sideR) { sideR.classList.remove('open'); sideR.setAttribute('aria-hidden','true'); }
+    if (btnL) { btnL.classList.remove('open'); btnL.setAttribute('aria-expanded','false'); }
+    if (btnR) { btnR.classList.remove('open'); btnR.setAttribute('aria-expanded','false'); }
+    if (bd) bd.classList.remove('open');
+  }
+  function toggleLeft(){
+    var isOpen = linksL && linksL.classList.contains('open');
+    closeAll();
+    if (!isOpen && linksL) { linksL.classList.add('open'); if(btnL){btnL.classList.add('open');btnL.setAttribute('aria-expanded','true');} if(bd) bd.classList.add('open'); }
+  }
+  function toggleRight(){
+    var isOpen = sideR && sideR.classList.contains('open');
+    closeAll();
+    if (!isOpen && sideR) { sideR.classList.add('open'); sideR.setAttribute('aria-hidden','false'); if(btnR){btnR.classList.add('open');btnR.setAttribute('aria-expanded','true');} if(bd) bd.classList.add('open'); }
+  }
+  if (btnL) btnL.addEventListener('click', toggleLeft);
+  if (btnR) btnR.addEventListener('click', toggleRight);
+  if (bd) bd.addEventListener('click', closeAll);
+  if (linksL) linksL.addEventListener('click', function(e){ if (e.target.tagName === 'A') closeAll(); });
+  if (sideR) sideR.addEventListener('click', function(e){ if (e.target.tagName === 'A') closeAll(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
 })();
 </script>
 <main>${content}</main>
