@@ -31,17 +31,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-side>a.nav-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
 .nav-side-header{font-family:'Cinzel',serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;flex-shrink:0;}
 
-/* Character circle — Set 4 unlock widget at the bottom of the side nav */
+/* Character circle — Set 4 unlock widget at the bottom of the side nav.
+   Same approach as the Mamonir nav-icon: a small clip box with a much larger
+   image inside positioned by bottom offset so the upper torso/head shows. */
 .char-circle{position:relative;width:260px;height:260px;margin:1.5rem auto 1.25rem;flex-shrink:0;}
-.char-pos{position:absolute;top:50%;left:50%;width:74px;height:84px;margin:-42px -37px;background:transparent;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;transition:transform 0.12s ease;}
+.char-pos{position:absolute;top:50%;left:50%;width:80px;height:90px;margin:-45px -40px;background:transparent;border:none;cursor:pointer;padding:0;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
 .char-pos:not(.char-pos-center){transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a)));}
 .char-pos.char-pos-center{transform:translate(0,0);}
-.char-pos img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));pointer-events:none;-webkit-user-drag:none;}
+.char-pos img{height:170px;width:auto;display:block;position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));pointer-events:none;-webkit-user-drag:none;transition:transform 0.12s ease;}
 .char-pos:hover img{filter:drop-shadow(0 0 6px rgba(201,168,76,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.7));}
-.char-pos-tap{animation:char-tap 0.25s ease;}
-@keyframes char-tap{0%,100%{transform:scale(1);}50%{transform:scale(0.85);}}
-.char-pos-tap:not(.char-pos-center){animation:char-tap-off 0.25s ease;}
-@keyframes char-tap-off{0%,100%{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) scale(1);}50%{transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a))) scale(0.85);}}
+.char-pos.char-pos-tap img{transform:translateX(-50%) scale(0.85);}
 
 /* Mamonir nav icon — the source image has transparent padding around the
    character, so we render the img larger than the wrap and clip the wrap
