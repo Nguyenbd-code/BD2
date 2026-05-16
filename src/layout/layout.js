@@ -14,11 +14,6 @@ export async function layout(title, content, activePage = '', env = null) {
     } catch {}
   }
 
-  <script>
-  (function(){
-    try { if (localStorage.getItem('kitsu_set_3') === '1') document.write('<style>#mam-wrap{display:none!important}</style>'); } catch(e){}
-  })();
-  </script>
   <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
     <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
   </div>
@@ -67,6 +62,7 @@ export async function layout(title, content, activePage = '', env = null) {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(title)} — BnKitsu BD2 Guide</title>
 <style>${getStyles()}</style>
+<script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 </head>
 <body>
 <script>
