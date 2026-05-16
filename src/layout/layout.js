@@ -147,8 +147,9 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 </script>
 <main>${content}</main>
 <footer>
-  BnKitsu BD2 Guide — browndust2-bnkitsu.com<br>
-  <span>Not affiliated with Neowiz or GAMFS. Fan-made guide.</span>
+  <div class="footer-brand">BnKitsu BD2 Guide — browndust2-bnkitsu.com</div>
+  <div class="footer-disclaimer">This website is not affiliated with or endorsed by Brown Dust 2. All trademarks and copyrights of the game and its characters belong to their respective owners.</div>
+  <div class="footer-copyright">&copy; 2024 <span>BD2Guide</span> by BnKitsu. All rights reserved.</div>
 </footer>
 </body>
 </html>`;
