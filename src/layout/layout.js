@@ -57,6 +57,7 @@ export async function layout(title, content, activePage = '', env = null) {
     }
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
+      if (localStorage.getItem('kitsu_set_3') === '1') return;
       n++;
       localStorage.setItem(KEY, String(n));
       icon.classList.add('mam-press');
