@@ -4,11 +4,16 @@ export async function handleImage(request, env) {
 
   if (!key) return new Response('Not Found', { status: 404 });
 
-  const row = await env.DB.prepare('SELECT data FROM images WHERE key = ?')
-    .bind(key)
-    .first();
+  let row;
+  try {
+    row = await env.DB.prepare('SELECT data FROM images WHERE key = ?')
+      .bind(key)
+      .first();
+  } catch {
+    return new Response('Not Found', { status: 404 });
+  }
 
-  if (!row) return new Response('Not Found', { status: 404 });
+  if (!row || !row.data) return new Response('Not Found', { status: 404 });
 
   const dataUrl = row.data;
 
