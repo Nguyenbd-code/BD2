@@ -111,8 +111,8 @@ export async function handleAdmin(request, env) {
   }
   if (!compsListHtml) compsListHtml = '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
-  const elemColorsServer = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
-  const elemOrderServer  = ['Light','Dark','Fire','Water','Wind'];
+  const elemColorsServer = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
+  const elemOrderServer  = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
   const groupedChars     = {};
   for (const c of chars) {
     const raw = (c.element || 'Dark').toString().trim();
@@ -128,7 +128,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '" data-status="' + esc(c.status||'active') + '">'
         + '<img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -511,11 +511,9 @@ export async function handleAdmin(request, env) {
         <!-- Element filter -->
         <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
           <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif"><span style="font-size:0.9rem">✦</span>All</button>
-          <button class="bond-elem-btn" data-elem="water" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Water</button>
-          <button class="bond-elem-btn" data-elem="fire" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Fire</button>
-          <button class="bond-elem-btn" data-elem="light" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Light</button>
-          <button class="bond-elem-btn" data-elem="dark" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Dark</button>
-          <button class="bond-elem-btn" data-elem="wind" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">Wind</button>
+          ${elemOrderServer.map(el =>
+            '<button class="bond-elem-btn" data-elem="' + esc(el.toLowerCase()) + '" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">' + esc(el) + '</button>'
+          ).join('')}
         </div>
         <!-- Search -->
         <input id="bonds-char-search" type="text" placeholder="Search characters..." style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:5px;font-size:0.88rem;outline:none;margin-bottom:0.75rem">
@@ -782,7 +780,7 @@ export async function handleAdmin(request, env) {
         <div id="char-alert"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
           <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all"><span style="color:var(--gold);font-size:0.85rem">✦</span> All</button>
-          ${['Light','Dark','Fire','Water','Wind'].map(el =>
+          ${elemOrderServer.map(el =>
             '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;margin-right:4px">' + esc(el) + '</button>'
           ).join('')}
         </div>
@@ -802,11 +800,9 @@ export async function handleAdmin(request, env) {
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
           <div class="form-group"><label>Element</label>
             <select id="new-char-element">
-              <option value="Dark">Dark</option>
-              <option value="Water">Water</option>
-              <option value="Wind">Wind</option>
-              <option value="Fire">Fire</option>
-              <option value="Light">Light</option>
+              ${elemOrderServer.map(el =>
+                '<option value="' + esc(el) + '"' + (el === 'Dark' ? ' selected' : '') + '>' + esc(el) + '</option>'
+              ).join('')}
             </select>
           </div>
           <div class="form-group"><label>Status</label>
@@ -832,6 +828,25 @@ export async function handleAdmin(request, env) {
       <div id="char-detail" style="display:none">
         <div class="admin-form">
           <h3><span id="detail-char-name"></span></h3>
+
+          <!-- Element + Status quick edit -->
+          <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem;padding:0.6rem;background:var(--bg4);border:1px solid var(--border2);border-radius:5px">
+            <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+              <label style="font-size:0.7rem">Element</label>
+              <select id="detail-char-element" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
+                ${elemOrderServer.map(el => '<option value="' + esc(el) + '">' + esc(el) + '</option>').join('')}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
+              <label style="font-size:0.7rem">Status</label>
+              <select id="detail-char-status" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
+                <option value="active">Active</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            </div>
+            <button class="btn" style="padding:7px 16px;font-size:0.78rem;height:34px" data-action="save-char-meta">Save</button>
+            <span id="detail-char-meta-alert" style="font-size:0.74rem;flex-basis:100%"></span>
+          </div>
 
           <!-- Sub-tab buttons -->
           <div style="display:flex;gap:0.4rem;margin-bottom:1rem;flex-wrap:wrap">
@@ -1024,11 +1039,9 @@ export async function handleAdmin(request, env) {
                 <span style="color:var(--text3)">▾</span>
               </button>
               <div id="set-cfg-target-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
-                <div class="elem-opt" data-elem="water" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Water</div>
-                <div class="elem-opt" data-elem="fire" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Fire</div>
-                <div class="elem-opt" data-elem="light" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Light</div>
-                <div class="elem-opt" data-elem="dark" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Dark</div>
-                <div class="elem-opt" data-elem="wind" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Wind</div>
+                ${elemOrderServer.map(el =>
+                  '<div class="elem-opt" data-elem="' + esc(el.toLowerCase()) + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + esc(el) + '</div>'
+                ).join('')}
               </div>
             </div>
           </div>
@@ -1172,7 +1185,8 @@ var _bondsSelections  = [null,null,null,null,null]; // {name, slug, costume} per
 var _currentUnitOrder = [];
 var _bondsCurElem     = 'all';
 
-var elemColors = { Light:'#F4D03F', Dark:'#8E44AD', Water:'#2E86C1', Wind:'#27AE60', Fire:'#C0392B' };
+var elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
+var elemOrderJs = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
 
 /* ═══════════════════════════════════════════════════════════ HELPERS ══ */
 function escH(s) {
@@ -2122,7 +2136,7 @@ function renderSetConfig(sn) {
 function updateElemPickerDisplay(elem) {
   var d = document.getElementById('set-cfg-target-display');
   if (!d) return;
-  var lbl = { water:'Water', fire:'Fire', light:'Light', dark:'Dark', wind:'Wind' }[elem];
+  var lbl = { water:'Water', fire:'Fire', wind:'Wind', light:'Light', dark:'Dark', physical:'Physical', magic:'Magic' }[elem];
   if (!lbl) { d.textContent = '— Select Element —'; return; }
   d.innerHTML = '<img src="/img/element_' + elem + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + lbl;
 }
@@ -2147,11 +2161,13 @@ function updateSetCfgModeUI(mode) {
 }
 
 var SEQ_ELEMS = [
-  { v:'water', label:'Water', color:'#2E86C1' },
-  { v:'fire',  label:'Fire',  color:'#C0392B' },
-  { v:'light', label:'Light', color:'#F4D03F' },
-  { v:'dark',  label:'Dark',  color:'#8E44AD' },
-  { v:'wind',  label:'Wind',  color:'#27AE60' }
+  { v:'water',    label:'Water',    color:'#2E86C1' },
+  { v:'fire',     label:'Fire',     color:'#C0392B' },
+  { v:'wind',     label:'Wind',     color:'#27AE60' },
+  { v:'light',    label:'Light',    color:'#F4D03F' },
+  { v:'dark',     label:'Dark',     color:'#8E44AD' },
+  { v:'physical', label:'Physical', color:'#95A5A6' },
+  { v:'magic',    label:'Magic',    color:'#16A085' }
 ];
 var SEQ_ELEM_MAP = SEQ_ELEMS.reduce(function(m, e){ m[e.v] = e; return m; }, {});
 var SEQ_MAX_POSITIONS = 8;
@@ -2817,17 +2833,16 @@ async function loadChars() {
       list.innerHTML = '<p style="color:var(--text3);font-size:0.83rem">No characters yet.</p>';
       return;
     }
-    var elemOrder = ['Light','Dark','Fire','Water','Wind'];
     var grouped = {};
     data.chars.forEach(function(c) { var el = c.element||'Dark'; if (!grouped[el]) grouped[el]=[]; grouped[el].push(c); });
     var html = '';
-    elemOrder.forEach(function(el) {
+    elemOrderJs.forEach(function(el) {
       var grp = grouped[el];
       if (!grp || !grp.length) return;
       html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '" data-status="' + escH(c.status||'active') + '">'
           + '<img src="/img/element_' + escH(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -3020,10 +3035,33 @@ function selectChar(id, name, slug) {
   if (detail) detail.style.display = 'block';
   if (nameEl) nameEl.textContent = name;
 
+  // Pre-fill element + status from the row's data attributes (set by loadChars)
+  var elSel = document.getElementById('detail-char-element');
+  var stSel = document.getElementById('detail-char-status');
+  if (elSel && row) elSel.value = row.getAttribute('data-element') || 'Dark';
+  if (stSel && row) stSel.value = row.getAttribute('data-status') || 'active';
+  var alertEl = document.getElementById('detail-char-meta-alert');
+  if (alertEl) alertEl.textContent = '';
+
   showCharSubtab('costumes');
   loadCostumes(slug);
   updateCharImgKey();
   loadCharImgGrid();
+}
+
+async function saveCharMeta() {
+  if (!_selectedCharId) return;
+  var element = (document.getElementById('detail-char-element')||{}).value || 'Dark';
+  var status  = (document.getElementById('detail-char-status') ||{}).value || 'active';
+  var r = await apiPost('/api/admin/chars/update', {
+    id: _selectedCharId,
+    name: _selectedCharName,
+    element: element,
+    status: status
+  });
+  var alertEl = document.getElementById('detail-char-meta-alert');
+  if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved.' : (r.message || 'Error'); }
+  if (r.success) loadChars();
 }
 
 function showCharSubtab(name) {
@@ -3552,6 +3590,7 @@ document.addEventListener('click', function(e) {
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
   if (action === 'save-emote-lock-hint') saveEmoteLockHint();
+  if (action === 'save-char-meta')   saveCharMeta();
   if (action === 'normalize-tiers')  normalizeCompTiers();
   if (action === 'save-comp-bonds')  saveCompBonds();
   if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');
