@@ -114,65 +114,37 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 };
 </script>
 <nav>
+  <a href="/" class="nav-logo">⚔ BnKitsu</a>
   <button id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
-  <a href="/" class="nav-logo">⚔ BnKitsu</a>
-  <div class="nav-links" id="nav-links">
-    <a href="/"${activePage === 'home' ? ' class="nav-active"' : ''}>Home</a>
-    <a href="/guide"${activePage === 'guide' ? ' class="nav-active"' : ''}>PvP Guide</a>
-    <a href="/coupons"${activePage === 'coupons' ? ' class="nav-active"' : ''}>Coupons</a>
-    <a href="/emotes"${activePage === 'emotes' ? ' class="nav-active"' : ''}>Kitsu's Emotes</a>
-    <a href="/characters"${activePage === 'characters' ? ' class="nav-active"' : ''}>Characters</a>
-  </div>
+  <div class="nav-spacer"></div>
   <div id="nav-backdrop" class="nav-backdrop"></div>
   <div class="nav-admin">
     ${mamonirHtml}
     <a href="/admin">Admin</a>
-    <button id="nav-toggle-right" class="nav-toggle nav-toggle-right" aria-label="Open menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
   </div>
-  <aside id="nav-side-right" class="nav-side nav-side-right" aria-hidden="true">
+  <aside id="nav-side" class="nav-side" aria-hidden="true">
     <div class="nav-side-header">Navigation</div>
     <a href="/"${activePage === 'home' ? ' class="nav-active"' : ''}>Home</a>
     <a href="/guide"${activePage === 'guide' ? ' class="nav-active"' : ''}>PvP Guide</a>
     <a href="/coupons"${activePage === 'coupons' ? ' class="nav-active"' : ''}>Coupons</a>
     <a href="/emotes"${activePage === 'emotes' ? ' class="nav-active"' : ''}>Kitsu's Emotes</a>
     <a href="/characters"${activePage === 'characters' ? ' class="nav-active"' : ''}>Characters</a>
-    <a href="/admin"${activePage === 'admin' ? ' class="nav-active"' : ''}>Admin</a>
   </aside>
 </nav>
 <script>
 (function(){
-  var btnL = document.getElementById('nav-toggle');
-  var btnR = document.getElementById('nav-toggle-right');
-  var linksL = document.getElementById('nav-links');
-  var sideR = document.getElementById('nav-side-right');
+  var btn = document.getElementById('nav-toggle');
+  var side = document.getElementById('nav-side');
   var bd = document.getElementById('nav-backdrop');
-  function closeAll(){
-    if (linksL) linksL.classList.remove('open');
-    if (sideR) { sideR.classList.remove('open'); sideR.setAttribute('aria-hidden','true'); }
-    if (btnL) { btnL.classList.remove('open'); btnL.setAttribute('aria-expanded','false'); }
-    if (btnR) { btnR.classList.remove('open'); btnR.setAttribute('aria-expanded','false'); }
-    if (bd) bd.classList.remove('open');
-  }
-  function toggleLeft(){
-    var isOpen = linksL && linksL.classList.contains('open');
-    closeAll();
-    if (!isOpen && linksL) { linksL.classList.add('open'); if(btnL){btnL.classList.add('open');btnL.setAttribute('aria-expanded','true');} if(bd) bd.classList.add('open'); }
-  }
-  function toggleRight(){
-    var isOpen = sideR && sideR.classList.contains('open');
-    closeAll();
-    if (!isOpen && sideR) { sideR.classList.add('open'); sideR.setAttribute('aria-hidden','false'); if(btnR){btnR.classList.add('open');btnR.setAttribute('aria-expanded','true');} if(bd) bd.classList.add('open'); }
-  }
-  if (btnL) btnL.addEventListener('click', toggleLeft);
-  if (btnR) btnR.addEventListener('click', toggleRight);
-  if (bd) bd.addEventListener('click', closeAll);
-  if (linksL) linksL.addEventListener('click', function(e){ if (e.target.tagName === 'A') closeAll(); });
-  if (sideR) sideR.addEventListener('click', function(e){ if (e.target.tagName === 'A') closeAll(); });
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
+  if (!btn || !side) return;
+  function close(){ side.classList.remove('open'); side.setAttribute('aria-hidden','true'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); if(bd) bd.classList.remove('open'); }
+  function open(){ side.classList.add('open'); side.setAttribute('aria-hidden','false'); btn.classList.add('open'); btn.setAttribute('aria-expanded','true'); if(bd) bd.classList.add('open'); }
+  btn.addEventListener('click', function(){ side.classList.contains('open') ? close() : open(); });
+  if (bd) bd.addEventListener('click', close);
+  side.addEventListener('click', function(e){ if (e.target.tagName === 'A') close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
 })();
 </script>
 <main>${content}</main>
