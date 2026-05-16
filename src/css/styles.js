@@ -104,9 +104,26 @@ main{padding-top:74px;position:relative;z-index:1;}
 .comp-meta{color:var(--text3);font-size:0.85rem;margin-top:0.25rem;}
 .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}
 @media(max-width:768px){.comp-grid{grid-template-columns:1fr;}}
+
+/* iPad / tablet: keep narrow side panels paired up, give Board Positioning
+   its own full-width row underneath so it has room to breathe. */
+@media(min-width:820px) and (max-width:1100px){
+  .comp-expand-grid{grid-template-columns:1fr 1fr !important;grid-template-areas:"left right" "middle middle" !important;}
+  .comp-expand-grid > :nth-child(1){grid-area:left;}
+  .comp-expand-grid > :nth-child(2){grid-area:middle;}
+  .comp-expand-grid > :nth-child(3){grid-area:right;}
+}
+
+/* Phones / very narrow: full single column. */
 @media(max-width:820px){
   .comp-expand-grid{grid-template-columns:1fr !important;}
   .comp-howmatch-grid{grid-template-columns:1fr !important;height:auto !important;}
+}
+
+/* Mobile bond strip: lock to 2-up so a lone 5th card matches the row above
+   instead of stretching to 220px. */
+@media(max-width:600px){
+  .char-card-wrap{flex:0 1 calc(50% - 0.375rem) !important;max-width:calc(50% - 0.375rem) !important;min-width:0 !important;}
 }
 .card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.5rem;}
 .card-title{font-family:'Cinzel',serif;font-size:0.85rem;font-weight:600;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border2);}
