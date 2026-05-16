@@ -455,10 +455,18 @@ export async function handleGuide(request, env) {
 
 <script>
 document.addEventListener('click', function(e) {
+  // Maximize button must win over the card-flip wrap it sits inside.
+  var expandBtn = e.target.closest('[data-action="expand-img"]');
+  if (expandBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try { openLightbox(expandBtn.dataset.src); }
+    catch (err) { console.error('openLightbox failed', err); }
+    return;
+  }
   var b = e.target.closest('[data-action]');
   if (!b) return;
   var action = b.dataset.action;
-  if (action === 'expand-img')  { e.stopPropagation(); openLightbox(b.dataset.src); }
   if (action === 'card-flip')   toggleFlip(b.dataset.slug);
   if (action === 'board-flip') {
     var wrap = b.closest('[data-action="board-flip"]');
