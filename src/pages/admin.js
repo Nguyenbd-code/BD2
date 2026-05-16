@@ -45,15 +45,17 @@ export async function handleAdmin(request, env) {
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
   let mamonirTapCount = 7;
+  let emoteLockHint = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
   try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
-    const [cr, er, compr, imgr, charr, mamRow] = await Promise.all([
+    const [cr, er, compr, imgr, charr, mamRow, lockHintRow] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
-      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' ORDER BY key").all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key NOT LIKE '%_migrated' AND key != 'unit_order' AND key != 'board_layout' AND key != 'mamonir_tap_count' AND key != 'special_code_config' AND key != 'home_secret_passcode' AND key != 'emote_lock_hint' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
       env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first().catch(() => null),
+      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
     ]);
     coupons = cr.results || [];
     emotes  = er.results || [];
@@ -61,6 +63,7 @@ export async function handleAdmin(request, env) {
     images  = imgr.results || [];
     chars   = charr.results || [];
     if (mamRow && mamRow.data) mamonirTapCount = Math.max(1, parseInt(mamRow.data, 10) || 7);
+    if (lockHintRow && lockHintRow.data) emoteLockHint = lockHintRow.data;
   } catch(e) {}
 
   const tierOptions = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
@@ -949,6 +952,17 @@ export async function handleAdmin(request, env) {
   <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
   <div class="admin-section" id="tab-settings">
     <div class="admin-form">
+      <h3>Emotes Page Lock Screen Hint</h3>
+      <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">The hint shown on the locked emotes page (under "LOCATION: HOME") that points visitors to the home page secret. Newlines are preserved.</p>
+      <div id="emote-lock-hint-alert"></div>
+      <div class="form-group">
+        <label>Hint Text</label>
+        <textarea id="emote-lock-hint" rows="4" placeholder="e.g. One character keeps something unusual by their side...">${esc(emoteLockHint)}</textarea>
+      </div>
+      <button class="btn" style="width:auto;padding:10px 24px" data-action="save-emote-lock-hint">Save Hint</button>
+    </div>
+
+    <div class="admin-form" style="margin-top:1.5rem">
       <h3>Home Page Secret Code</h3>
       <p style="font-size:0.8rem;color:var(--text3);margin-bottom:1rem">Change the secret code visitors enter on the home page to unlock the secret emotes section.</p>
       <div id="secret-code-alert"></div>
@@ -2853,6 +2867,13 @@ async function saveSecretCode() {
   if (r.success) document.getElementById('new-secret-code').value = '';
 }
 
+async function saveEmoteLockHint() {
+  var hint = ((document.getElementById('emote-lock-hint') || {}).value || '').trim();
+  if (!hint) { showAlert('emote-lock-hint-alert', false, 'Hint cannot be empty'); return; }
+  var r = await apiPost('/api/admin/emote-lock-hint/save', { hint: hint });
+  showAlert('emote-lock-hint-alert', r.success, r.message);
+}
+
 async function deleteChar(id) {
   var r = await apiPost('/api/admin/chars/delete', { id: id });
   if (r.success) { var el = document.getElementById('char-' + id); if (el) el.remove(); }
@@ -3406,6 +3427,7 @@ document.addEventListener('click', function(e) {
   if (action === 'preset-color')     { var ce = document.getElementById('comp-color'); if (ce) ce.value = b.dataset.color; }
   if (action === 'home-note-save')   saveHomeNote(parseInt(b.dataset.slot, 10));
   if (action === 'save-secret-code') saveSecretCode();
+  if (action === 'save-emote-lock-hint') saveEmoteLockHint();
   if (action === 'normalize-tiers')  normalizeCompTiers();
   if (action === 'save-comp-bonds')  saveCompBonds();
   if (action === 'upload-board-front') uploadCompBoard('', 'comp-board-file', 'comp-canvas', 'comp-board-preview');

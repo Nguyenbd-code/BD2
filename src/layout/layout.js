@@ -15,7 +15,7 @@ export async function layout(title, content, activePage = '', env = null) {
   }
 
   const mamonirHtml = hasMamonir ? `
-  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer;opacity:0" title="...">
+  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
     <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
   </div>
   <script>
@@ -26,17 +26,6 @@ export async function layout(title, content, activePage = '', env = null) {
     var icon = document.getElementById('mam-icon');
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
-    function showInstant() { wrap.style.opacity = '1'; }
-    function showFade() {
-      wrap.style.transition = 'opacity 0.25s ease';
-      wrap.style.opacity = '1';
-    }
-    if (icon.complete && icon.naturalWidth > 0) {
-      showInstant();
-    } else {
-      icon.addEventListener('load', showFade);
-      icon.addEventListener('error', showFade);
-    }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
@@ -74,6 +63,7 @@ export async function layout(title, content, activePage = '', env = null) {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(title)} — BnKitsu BD2 Guide</title>
 <style>${getStyles()}</style>
+<script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 </head>
 <body>
 <script>
