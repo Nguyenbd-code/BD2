@@ -16,7 +16,9 @@ export async function layout(title, content, activePage = '', env = null) {
 
   const mamonirHtml = hasMamonir ? `
   <div id="mam-wrap" class="mam-wrap" aria-label="Octovius">
-    <img id="mam-icon" src="/img/mamonir_nav" alt="" draggable="false">
+    <div class="mam-clip">
+      <img id="mam-icon" src="/img/mamonir_nav" alt="" draggable="false">
+    </div>
     <span class="mam-bubble" id="mam-bubble"></span>
   </div>
   <script>

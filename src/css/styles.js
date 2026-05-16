@@ -31,11 +31,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-side>a.nav-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
 .nav-side-header{font-family:'Cinzel',serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;flex-shrink:0;}
 
-/* Mamonir nav icon — img is anchored at the wrap's bottom and is taller than
-   the wrap, so the character pokes ABOVE the navbar without extending below
-   the border. Hitbox = the wrap, sized tight to the visible character. */
-.mam-wrap{position:relative;display:inline-block;width:60px;height:74px;cursor:pointer;margin-left:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;vertical-align:middle;}
-.mam-wrap img{height:84px;width:auto;display:block;position:absolute;bottom:0;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
+/* Mamonir nav icon — the source image has transparent padding around the
+   character, so we render the img larger than the wrap and clip the wrap
+   with overflow:hidden. The visible character ends up nearly filling the
+   navbar vertically. The bubble lives outside the clip so it can escape. */
+.mam-wrap{position:relative;display:inline-block;width:64px;height:74px;cursor:pointer;margin-left:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;vertical-align:middle;}
+.mam-clip{position:absolute;inset:0;overflow:hidden;}
+.mam-wrap img{height:140px;width:auto;display:block;position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
 .mam-wrap img.mam-press{transform:translateX(-50%) scale(0.85);transition:transform 0.08s ease;}
 .mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
 .mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.45);}
@@ -46,8 +48,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
   nav{padding:0 1rem;gap:0.5rem;}
   .nav-admin{gap:6px;}
   .nav-admin>a{padding:5px 10px;font-size:0.72rem;}
-  .mam-wrap{margin-left:0;width:52px;height:74px;}
-  .mam-wrap img{height:80px;bottom:0;}
+  .mam-wrap{margin-left:0;width:56px;height:74px;}
+  .mam-wrap img{height:130px;bottom:-10px;}
   .mam-bubble{font-size:0.72rem;padding:5px 10px;}
 }
 main{padding-top:74px;position:relative;z-index:1;}
