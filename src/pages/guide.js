@@ -87,9 +87,9 @@ function charStrip(chars, compId, bondsData) {
         <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
         <img src="/img/char_${slug}_gear" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)">
       </div>
-      <button data-action="expand-img" data-src="/img/char_${slug}_gear" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:4px 9px;font-size:0.85rem;z-index:5">⤢</button>
     </div>
   </div>
+  <button class="card-zoom-overlay" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/char_${slug}_gear');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid rgba(201,168,76,0.5);color:var(--gold);cursor:pointer;border-radius:4px;padding:4px 10px;font-size:0.9rem;z-index:100;display:none;pointer-events:auto">⤢</button>
 </div>`;
   }).join('');
 }
@@ -178,12 +178,12 @@ function renderComp(comp, mediaMap) {
     <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
       <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button data-action="expand-img" data-src="/img/${esc(frontKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
+      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
     <div class="board-face" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);background:var(--bg4);border-radius:6px;overflow:hidden;">
       <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
       <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button data-action="expand-img" data-src="/img/${esc(backKey)}" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10">⤢</button>
+      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
     </div>
   </div>
 </div>
@@ -437,7 +437,7 @@ export async function handleGuide(request, env) {
     compsHtml += defComps.map(buildCompHtml).join('');
   }
 
-  return layout('PvP Guide', `
+  return await layout('PvP Guide', `
 <div style="display:flex;padding-top:1rem">
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
@@ -455,10 +455,18 @@ export async function handleGuide(request, env) {
 
 <script>
 document.addEventListener('click', function(e) {
+  // Maximize button must win over the card-flip wrap it sits inside.
+  var expandBtn = e.target.closest('[data-action="expand-img"]');
+  if (expandBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    try { openLightbox(expandBtn.dataset.src); }
+    catch (err) { console.error('openLightbox failed', err); }
+    return;
+  }
   var b = e.target.closest('[data-action]');
   if (!b) return;
   var action = b.dataset.action;
-  if (action === 'expand-img')  { e.stopPropagation(); openLightbox(b.dataset.src); }
   if (action === 'card-flip')   toggleFlip(b.dataset.slug);
   if (action === 'board-flip') {
     var wrap = b.closest('[data-action="board-flip"]');
@@ -470,6 +478,8 @@ function toggleFlip(cardId) {
   var inner = document.getElementById('card-' + cardId);
   if (!inner) return;
   inner.classList.toggle('flipped');
+  var wrap = inner.parentElement;
+  if (wrap) wrap.classList.toggle('flipped', inner.classList.contains('flipped'));
 }
 
 function toggleBoardFlip(tier) {
@@ -487,6 +497,11 @@ document.addEventListener('mouseover', function(e) {
   popup.style.display = 'block';
   popup.style.position = 'fixed';
   popup.style.zIndex = '99999';
+  // Clear CSS defaults that fight our inline positioning
+  popup.style.transform = 'none';
+  popup.style.bottom = 'auto';
+  popup.style.right = 'auto';
+  popup.style.width = 'auto';
   popup.style.left = '0px';
   popup.style.top = '0px';
   popup.style.background = '#0f0f18';
@@ -499,7 +514,6 @@ document.addEventListener('mouseover', function(e) {
   popup.style.textAlign = 'center';
   var ph = popup.offsetHeight;
   var pw = popup.offsetWidth;
-  // Use the skill icon box for centering, not the full skill-wrap
   var iconBox = wrap.querySelector('.skill-icon-box') || wrap;
   var rect = iconBox.getBoundingClientRect();
   var left = rect.left + rect.width / 2 - pw / 2;
@@ -538,5 +552,5 @@ function openLightbox(src) {
   document.body.appendChild(ov);
 }
 </script>
-`, 'guide');
+`, 'guide', env);
 }

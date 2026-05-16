@@ -68,6 +68,7 @@ main{padding-top:60px;position:relative;z-index:1;}
 .board-card-inner.flipped{transform:rotateY(180deg);}
 .char-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);overflow:hidden;}
 .char-face-back{transform:rotateY(180deg);border:2px solid var(--gold);border-radius:8px;}
+.char-card-wrap.flipped .card-zoom-overlay{display:block !important;}
 .card-zoom{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);font-size:0.72rem;cursor:pointer;padding:2px 5px;border-radius:3px;z-index:2;line-height:1;}
 #guide-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.87);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
 #guide-lightbox.open{display:flex;}

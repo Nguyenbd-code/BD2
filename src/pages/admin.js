@@ -44,19 +44,22 @@ export async function handleAdmin(request, env) {
   if (!isAuthed(request)) return renderLogin();
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
+  let mamonirTapCount = 7;
   try {
-    const [cr, er, compr, imgr, charr] = await Promise.all([
+    const [cr, er, compr, imgr, charr, mamRow] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first().catch(() => null),
     ]);
     coupons = cr.results || [];
     emotes  = er.results || [];
     comps   = compr.results || [];
     images  = imgr.results || [];
     chars   = charr.results || [];
+    if (mamRow && mamRow.data) mamonirTapCount = Math.max(1, parseInt(mamRow.data, 10) || 7);
   } catch(e) {}
 
   const tierOptions = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
@@ -122,7 +125,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
       return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '">'
-        + '<span class="elem-dot" style="background:' + elemColor + '"></span>'
+        + '<img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
         + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
@@ -139,7 +142,7 @@ export async function handleAdmin(request, env) {
     '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
-  return layout('Admin Panel', `
+  return await layout('Admin Panel', `
 <div class="admin-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
     <h1 style="font-family:'Cinzel',serif;font-size:1.5rem;color:var(--gold2)">Admin Panel</h1>
@@ -730,9 +733,9 @@ export async function handleAdmin(request, env) {
         <h3>Characters</h3>
         <div id="char-alert"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem" id="admin-elem-filter">
-          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all">All</button>
+          <button class="elem-dot-btn active" data-action="admin-elem-filter" data-elem="all"><span style="color:var(--gold);font-size:0.85rem">✦</span> All</button>
           ${['Light','Dark','Fire','Water','Wind'].map(el =>
-            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '">' + esc(el) + '</button>'
+            '<button class="elem-dot-btn" data-action="admin-elem-filter" data-elem="' + esc(el) + '" style="--el-c:' + (elemColorsServer[el]||'#888') + '"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;margin-right:4px">' + esc(el) + '</button>'
           ).join('')}
         </div>
         <div id="char-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem">
@@ -947,6 +950,7 @@ export async function handleAdmin(request, env) {
             <option value="sequence">Sequence (elements in exact order)</option>
             <option value="letter_sequence">Letter Sequence (click set cards)</option>
             <option value="who_am_i">Who Am I? (ghost portrait)</option>
+            <option value="nav_icon_tap">Nav Icon Tap (Mamonir icon in navbar)</option>
           </select>
         </div>
 
@@ -954,14 +958,20 @@ export async function handleAdmin(request, env) {
         <div id="set-cfg-target-wrap" class="form-row">
           <div class="form-group">
             <label id="set-cfg-target-label">Element Target</label>
-            <select id="set-cfg-target" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
-              <option value="">— Select Element —</option>
-              <option value="water">💧 Water</option>
-              <option value="fire">🔥 Fire</option>
-              <option value="light">✨ Light</option>
-              <option value="dark">🌑 Dark</option>
-              <option value="wind">🌿 Wind</option>
-            </select>
+            <div class="elem-picker" style="position:relative">
+              <input type="hidden" id="set-cfg-target" value="">
+              <button type="button" id="set-cfg-target-btn" data-action="elem-picker-toggle" style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;cursor:pointer;text-align:left;font-family:inherit">
+                <span id="set-cfg-target-display" style="display:flex;align-items:center;gap:8px;flex:1">— Select Element —</span>
+                <span style="color:var(--text3)">▾</span>
+              </button>
+              <div id="set-cfg-target-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
+                <div class="elem-opt" data-elem="water" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_water" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Water</div>
+                <div class="elem-opt" data-elem="fire" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_fire" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Fire</div>
+                <div class="elem-opt" data-elem="light" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_light" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Light</div>
+                <div class="elem-opt" data-elem="dark" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_dark" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Dark</div>
+                <div class="elem-opt" data-elem="wind" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_wind" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Wind</div>
+              </div>
+            </div>
           </div>
           <div id="set-cfg-count-wrap" class="form-group">
             <label>Click Count</label>
@@ -1001,6 +1011,28 @@ export async function handleAdmin(request, env) {
         <div id="set-cfg-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <button class="btn" style="width:auto;padding:8px 20px" data-action="save-set-cfg">Save Set Configuration</button>
       </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Clears the localStorage flags used by Kitsu's emotes lock flow for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
+        <div id="kitsu-reset-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-page">Re-lock Page (clear kitsu_unlocked)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-sets">Re-lock All Sets (clear kitsu_set_*)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset Everything (page + sets + click trackers)</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks the associated set.</p>
+        <div class="form-group">
+          <label style="font-size:0.78rem">Taps to Fall (default 7)</label>
+          <input type="number" id="mamonir-tap-count" min="1" max="99" value="${mamonirTapCount}" style="width:100px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px">
+        </div>
+        <div id="nav-icon-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <button class="btn" style="width:auto;padding:8px 20px" data-action="save-nav-icon-settings">Save Nav Icon Settings</button>
+      </div>
     </div>
 
   </div>
@@ -1023,6 +1055,7 @@ export async function handleAdmin(request, env) {
 .img-err-hide { }
 .img-err-hide.errored { display:none; }
 .img-err-dim.errored { opacity:0.2; }
+.elem-opt:hover { background:var(--bg3); }
 </style>
 
 <script>
@@ -1164,14 +1197,15 @@ function selectComp() {
   if (labelEl) labelEl.textContent = _compTier + ' — Editing content';
   if (boardLbl) boardLbl.textContent = 'Board Image (key: ' + _compBoardKey + ')';
 
-  loadCompData(_compId);
-  loadCompChars();
-  loadCompMedia(_compTier);
-  loadCompRotation();
-  loadHowToPlay(_compTier);
-  loadPreemptive(_compTier);
-  loadMatchups(_compTier);
+  try { loadCompData(_compId);     } catch(e) { console.error('loadCompData', e); }
+  try { loadCompChars();           } catch(e) { console.error('loadCompChars', e); }
+  try { loadCompMedia(_compTier);  } catch(e) { console.error('loadCompMedia', e); }
+  try { loadCompRotation();        } catch(e) { console.error('loadCompRotation', e); }
+  try { loadHowToPlay(_compTier);  } catch(e) { console.error('loadHowToPlay', e); }
+  try { loadPreemptive(_compTier); } catch(e) { console.error('loadPreemptive', e); }
+  try { loadMatchups(_compTier);   } catch(e) { console.error('loadMatchups', e); }
 }
+window.selectComp = selectComp;
 
 async function uploadCompBoard(suffix, fileInputId, canvasId, previewId) {
   suffix    = suffix    || '';
@@ -1617,7 +1651,7 @@ function renderBondsModalSlots() {
     return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '')) + '">'
       + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
       + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
-        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
           + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
       + '</div>'
       + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
@@ -1696,7 +1730,7 @@ function renderBondsSummary() {
     var imgSrc = cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait';
     var fallback = '/img/char_' + s.slug + '_portrait';
     return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '') + '">'
-      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
       + '</div>';
   }).join('');
 }
@@ -1937,7 +1971,7 @@ function renderSetConfig(sn) {
     var loc = fixedPage.charAt(0).toUpperCase() + fixedPage.slice(1);
     g('set-cfg-location-display').textContent = 'Location: ' + loc;
   }
-  if (g('set-cfg-target')) g('set-cfg-target').value = s.unlock_target || '';
+  if (g('set-cfg-target')) { g('set-cfg-target').value = s.unlock_target || ''; updateElemPickerDisplay(s.unlock_target || ''); }
   if (g('set-cfg-count')) g('set-cfg-count').value = s.unlock_count || 7;
   if (g('set-cfg-sequence')) g('set-cfg-sequence').value = s.unlock_sequence || '';
   // who_am_i fields
@@ -1951,6 +1985,14 @@ function renderSetConfig(sn) {
   }
   // Rebuild sequence selects with current value (after updateSetCfgModeUI built them)
   buildSequenceSelects(s.unlock_mode || 'count');
+}
+
+function updateElemPickerDisplay(elem) {
+  var d = document.getElementById('set-cfg-target-display');
+  if (!d) return;
+  var lbl = { water:'Water', fire:'Fire', light:'Light', dark:'Dark', wind:'Wind' }[elem];
+  if (!lbl) { d.textContent = '— Select Element —'; return; }
+  d.innerHTML = '<img src="/img/element_' + elem + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + lbl;
 }
 
 function updateSetCfgModeUI(mode) {
@@ -2114,6 +2156,14 @@ async function uploadLockImg() {
     if (prev) prev.innerHTML = '<img src="' + escH(data) + '" style="width:100%;height:100%;object-fit:contain">';
     if (fileEl) fileEl.value = '';
   }
+}
+
+async function saveNavIconSettings() {
+  var inp = document.getElementById('mamonir-tap-count');
+  var count = parseInt((inp && inp.value) || '7', 10);
+  if (!count || count < 1) count = 7;
+  var r = await apiPost('/api/admin/image/upload', { key: 'mamonir_tap_count', data: String(count) });
+  showAlert('nav-icon-alert', r.success, r.success ? 'Saved! Icon will fall after ' + count + ' taps (refresh to apply).' : (r.message || 'Error'));
 }
 
 async function saveSpecialCodeConfig() {
@@ -2389,7 +2439,7 @@ async function loadChars() {
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
         html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '">'
-          + '<span class="elem-dot" style="background:' + col + '"></span>'
+          + '<img src="/img/element_' + escH(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
           + '<button class="btn-danger" data-action="char-delete" data-id="' + c.id + '" style="font-size:0.72rem;padding:3px 8px">&#x2715;</button>'
@@ -2947,11 +2997,12 @@ function buildRotationGrid() {
 /* Rotation Edit Modal — single character, 10 slots */
 var _rotEditChar = null;
 
-function openRotEditModal(charName) {
+async function openRotEditModal(charName) {
   _rotEditChar = charName;
   var modal = document.getElementById('rot-edit-modal');
   if (!modal) return;
   modal.style.display = 'flex';
+  if (!_rotCostMap[charName]) await loadRotCostumes(charName);
   renderRotEditModal();
 }
 
@@ -3056,11 +3107,17 @@ window.onerror = function(msg, src, line) {
 
 /* ══════════════════════════════════════ DELEGATED CLICK LISTENER ══ */
 document.addEventListener('click', function(e) {
+  // Close the element picker when clicking outside it
+  var pickerMenu = document.getElementById('set-cfg-target-menu');
+  if (pickerMenu && pickerMenu.style.display === 'block' && !e.target.closest('.elem-picker')) {
+    pickerMenu.style.display = 'none';
+  }
   var b = e.target.closest('[data-action]');
   if (!b) return;
   var action = b.dataset.action;
   var id     = b.dataset.id;
   var key    = b.dataset.key;
+  try {
   if (action === 'coupon-delete')   deleteCoupon(id);
   if (action === 'comp-delete')     deleteComp(id);
   if (action === 'comp-move-up')    moveComp(id, 'up');
@@ -3073,6 +3130,21 @@ document.addEventListener('click', function(e) {
   if (action === 'char-select')     selectChar(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
   if (action === 'costume-select')  selectCostume(parseInt(b.dataset.id, 10), b.dataset.name, b.dataset.slug);
   if (action === 'admin-lightbox')  openAdminLightbox(b.dataset.src);
+  if (action === 'elem-picker-toggle') {
+    e.stopPropagation();
+    var menu = document.getElementById('set-cfg-target-menu');
+    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+  var opt = e.target.closest('#set-cfg-target-menu .elem-opt');
+  if (opt) {
+    e.stopPropagation();
+    var v = opt.dataset.elem || '';
+    var hid = document.getElementById('set-cfg-target');
+    if (hid) hid.value = v;
+    updateElemPickerDisplay(v);
+    var menu2 = document.getElementById('set-cfg-target-menu');
+    if (menu2) menu2.style.display = 'none';
+  }
   if (action === 'upload-trigger')  triggerCharUpload(b.dataset.slot);
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);
   if (action === 'img-cat')         setImgCat(b.dataset.cat);
@@ -3100,6 +3172,28 @@ document.addEventListener('click', function(e) {
   if (action === 'save-card-label')  saveCardLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
+  if (action === 'kitsu-reset-page') {
+    localStorage.removeItem('kitsu_unlocked');
+    showAlert('kitsu-reset-alert', true, 'Page lock reset. Reload the emotes page to see the lock screen.');
+  }
+  if (action === 'kitsu-reset-sets') {
+    var n = 0;
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('kitsu_set_') === 0) { localStorage.removeItem(k); n++; }
+    }
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + n + ' per-set unlock keys.');
+  }
+  if (action === 'kitsu-reset-all') {
+    var m = 0;
+    for (var j = localStorage.length - 1; j >= 0; j--) {
+      var kk = localStorage.key(j);
+      if (kk && kk.indexOf('kitsu_') === 0) { localStorage.removeItem(kk); m++; }
+    }
+    localStorage.removeItem('kitsu_mamonir_taps');
+    showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
+  }
+  if (action === 'save-nav-icon-settings') saveNavIconSettings();
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
@@ -3112,6 +3206,11 @@ document.addEventListener('click', function(e) {
       var le = (label.dataset.elem || '').toLowerCase();
       label.style.display = (filterEl === 'all' || le === filterEl) ? '' : 'none';
     });
+  }
+  } catch(err) {
+    console.error('[admin click handler]', action, err);
+    var dbg = document.getElementById('admin-debug');
+    if (dbg) dbg.textContent = 'Click error on ' + action + ': ' + (err && err.message);
   }
 });
 
@@ -3210,7 +3309,7 @@ function initCompDragDrop() {
 }
 try { initCompDragDrop(); } catch(_e) {}
 </script>
-`);
+`, undefined, env);
 }
 
 function renderLogin(error = '') {
