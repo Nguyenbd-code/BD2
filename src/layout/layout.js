@@ -123,10 +123,10 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 };
 </script>
 <nav>
-  <a href="/" class="nav-logo">⚔ BnKitsu</a>
   <button id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
+  <a href="/" class="nav-logo">⚔ BnKitsu</a>
   <div class="nav-spacer"></div>
   <div id="nav-backdrop" class="nav-backdrop"></div>
   <div class="nav-admin">
