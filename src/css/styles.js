@@ -19,13 +19,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-links a.nav-active{color:var(--gold);}
 .nav-admin{margin-left:auto;display:flex;align-items:center;gap:4px;}
 .nav-admin>a{background:var(--gold3);color:var(--bg);padding:6px 14px;border-radius:4px;text-decoration:none;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;}
-.nav-toggle{display:none;background:transparent;border:1px solid var(--border);border-radius:5px;width:38px;height:34px;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.nav-toggle{display:none;background:transparent;border:1px solid var(--border);border-radius:5px;width:38px;height:34px;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;}
 .nav-toggle span{display:block;width:18px;height:2px;background:var(--gold);border-radius:1px;transition:transform 0.2s,opacity 0.2s;}
 .nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
 .nav-toggle.open span:nth-child(2){opacity:0;}
 .nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+.nav-toggle-right{display:inline-flex;margin-left:6px;}
 .nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .nav-backdrop.open{display:block;}
+.nav-side{position:fixed;top:60px;bottom:0;width:280px;max-width:85vw;background:rgba(10,10,15,0.98);display:flex;flex-direction:column;padding:1rem 0;overflow-y:auto;z-index:100;transition:transform 0.22s ease;}
+.nav-side-right{right:0;border-left:1px solid var(--border);transform:translateX(100%);}
+.nav-side-right.open{transform:translateX(0);}
+.nav-side a{color:var(--text2);text-decoration:none;font-size:0.92rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:0.85rem 1.5rem;border-left:3px solid transparent;transition:color 0.15s,background 0.15s,border-color 0.15s;}
+.nav-side a:hover{color:var(--gold);background:rgba(201,168,76,0.06);}
+.nav-side a.nav-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
+.nav-side-header{font-family:'Cinzel',serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;}
 
 /* Mamonir nav icon */
 .mam-wrap{position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
