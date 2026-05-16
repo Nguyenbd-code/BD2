@@ -228,28 +228,27 @@ function renderComp(comp, mediaMap) {
   const glRaw = comp.guide_label || '';
   if (glRaw) {
     const glMatch = glRaw.match(/^(green|red):(.+)$/s);
-    const labelColor = glMatch ? (glMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
-    const labelBg    = glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
-    const labelBorder= glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
+    const tagClass = glMatch ? (glMatch[1] === 'green' ? 'codex-tag-pos' : 'codex-tag-neg') : '';
     const labelText  = glMatch ? glMatch[2] : glRaw;
-    cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
+    cardLabelHtml = `<span class="codex-tag ${tagClass}">${esc(labelText)}</span>`;
   }
+  const typeMetaLabel = comp.type === 'ATK' ? 'Attack Composition' : 'Defence Composition';
 
   return `
-<div class="comp-section" id="${anchorId}">
-  <div class="comp-header">
-    <div>
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem">
-        <span class="tier-badge ${tierCls}" style="background:${color};color:#fff">${esc(tier)}</span>
-        <h2 style="font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700">${esc(comp.name)}</h2>
-        <span class="${typeCls}">${typeLabel}</span>
+<div class="comp-section" id="${anchorId}" style="--codex-accent:${color}">
+  <div class="codex-section-head">
+    <div class="codex-section-tier">${esc(tier)}</div>
+    <div class="codex-section-body">
+      <div class="codex-section-meta">
+        <span class="codex-section-meta-dot"></span>
+        <span>${esc(typeMetaLabel)}</span>
       </div>
-      ${comp.warning ? `<div style="display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:4px 12px;border-radius:3px">⚠ ${esc(comp.warning)}</div>` : ''}
-      ${cardLabelHtml}
+      <h2 class="codex-section-name">${esc(comp.name)}</h2>
+      ${(comp.warning || cardLabelHtml) ? `<div class="codex-section-tags">${comp.warning ? `<span class="codex-tag codex-tag-warn">${esc(comp.warning)}</span>` : ''}${cardLabelHtml}</div>` : ''}
     </div>
   </div>
 
-  <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
+  <div class="card-title" style="border:none;padding:0;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
