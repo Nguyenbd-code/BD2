@@ -2052,16 +2052,22 @@ async function loadEmoteSetEmotes(sn) {
 
 async function saveEmoteSet() {
   var sn = _esCurrentSet;
+  // Preserve all existing config — the Emotes tab Cover form only edits cover_key.
+  // Without this merge, missing form fields (set_letter, unlock_message, hint, etc.)
+  // would default to '' / 'Set N' and wipe out the Settings tab configuration.
+  var existing = _esSets[sn] || {};
   var body = {
     set_num: sn,
-    name: (document.getElementById('es-name')||{}).value || ('Set ' + sn),
-    hint: (document.getElementById('es-hint')||{}).value || '',
-    unlock_page: (document.getElementById('es-page')||{}).value || 'characters',
-    unlock_target: (document.getElementById('es-target')||{}).value || '',
-    unlock_count: parseInt((document.getElementById('es-count')||{}).value, 10) || 7,
-    unlock_mode: (document.getElementById('es-mode')||{}).value || 'count',
-    unlock_sequence: (document.getElementById('es-sequence')||{}).value || '',
-    cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
+    name: existing.name || ('Set ' + sn),
+    set_letter: existing.set_letter || '',
+    hint: existing.hint || '',
+    unlock_page: existing.unlock_page || 'characters',
+    unlock_target: existing.unlock_target || '',
+    unlock_count: existing.unlock_count || 7,
+    unlock_mode: existing.unlock_mode || 'count',
+    unlock_sequence: existing.unlock_sequence || '',
+    unlock_message: existing.unlock_message || '',
+    cover_key: existing.cover_key || '',
   };
   if (_esPendingCover) {
     var key = 'emote_set_' + sn + '_cover';
@@ -2071,7 +2077,7 @@ async function saveEmoteSet() {
   var r = await apiPost('/api/admin/emote-set/save', body);
   var alertEl = document.getElementById('es-alert');
   if (alertEl) { alertEl.style.color = r.success ? '#2ecc71' : '#e74c3c'; alertEl.textContent = r.success ? 'Saved!' : (r.message || 'Error'); setTimeout(function() { alertEl.textContent = ''; }, 3000); }
-  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); renderEmoteSet(sn); }
+  if (r.success) { _esSets[sn] = Object.assign({}, _esSets[sn] || {}, body); _esPendingCover = ''; renderEmoteSet(sn); }
 }
 
 function renderSetConfig(sn) {
