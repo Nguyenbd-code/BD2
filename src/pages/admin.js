@@ -1618,7 +1618,7 @@ function renderBondsModalSlots() {
     return '<div class="bond-modal-slot" data-slot="' + i + '" style="width:64px;text-align:center;cursor:pointer" title="' + (isEmpty ? 'Empty slot ' + (i+1) : escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '')) + '">'
       + '<div style="width:60px;height:60px;border:2px solid ' + (isEmpty ? 'var(--border2)' : 'var(--gold)') + ';border-radius:8px;overflow:hidden;background:var(--bg4);margin:0 auto;position:relative">'
       + (isEmpty ? '<span style="font-size:1.5rem;line-height:60px;color:var(--text3)">' + (i+1) + '</span>'
-        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+        : '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
           + '<button onclick="clearBondSlot(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;font-size:0.6rem;border-radius:3px;padding:1px 3px;cursor:pointer;line-height:1">&#x2715;</button>')
       + '</div>'
       + '<div style="font-size:0.6rem;color:' + (isEmpty ? 'var(--text3)' : 'var(--gold)') + ';margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px">' + (isEmpty ? 'Slot '+(i+1) : escH(s.name)) + '</div>'
@@ -1697,7 +1697,7 @@ function renderBondsSummary() {
     var imgSrc = cosSlug ? '/img/char_' + s.slug + '_' + cosSlug + '_icon' : '/img/char_' + s.slug + '_portrait';
     var fallback = '/img/char_' + s.slug + '_portrait';
     return '<div style="width:48px;height:48px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;display:inline-block" title="' + escH(s.name) + (s.costume ? ' — ' + escH(s.costume) : '') + '">'
-      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\'' + escH(fallback) + '\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
+      + '<img src="' + escH(imgSrc) + '" onerror="this.onerror=null;this.src=\\'' + escH(fallback) + '\\'" class="img-err-dim" style="width:100%;height:100%;object-fit:cover">'
       + '</div>';
   }).join('');
 }
