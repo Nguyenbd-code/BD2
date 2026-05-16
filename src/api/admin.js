@@ -193,10 +193,10 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
-      const validModes = ['count', 'sequence', 'letter_sequence', 'who_am_i', 'nav_icon_tap'];
+      const validModes = ['count', 'count_then_seal', 'sequence', 'letter_sequence', 'char_sequence', 'who_am_i', 'nav_icon_tap'];
       const mode = validModes.includes(body.unlock_mode) ? body.unlock_mode : 'count';
       let sequence = (body.unlock_sequence || '').toString().trim();
-      if (mode === 'sequence') {
+      if (mode === 'sequence' || mode === 'char_sequence' || mode === 'count_then_seal') {
         sequence = sequence.toLowerCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
       } else if (mode === 'letter_sequence') {
         sequence = sequence.toUpperCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
@@ -295,20 +295,23 @@ export async function handleAdminApi(request, env) {
 
     // ── Characters ────────────────────────────────────────────
     if (path === '/api/admin/chars/list' && method === 'GET') {
+      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
       const r = await env.DB.prepare('SELECT * FROM char_registry ORDER BY name').all();
       return json({ chars: r.results || [] });
     }
     if (path === '/api/admin/chars/add' && method === 'POST') {
       if (!body.name || !body.slug) return json({ success:false, message:'Name and slug required' }, 400);
+      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
       const r = await env.DB.prepare(
-        'INSERT INTO char_registry (name, slug, element, status) VALUES (?,?,?,?)'
-      ).bind(body.name.trim(), body.slug.trim(), body.element||'Dark', body.status||'active').run();
+        'INSERT INTO char_registry (name, slug, element, atk_type, status) VALUES (?,?,?,?,?)'
+      ).bind(body.name.trim(), body.slug.trim(), body.element||'Dark', body.atk_type||'Physical', body.status||'active').run();
       return json({ success:true, message:'Character added!', id: r.meta.last_row_id });
     }
     if (path === '/api/admin/chars/update' && method === 'POST') {
       if (!body.id) return json({ success:false, message:'id required' }, 400);
-      await env.DB.prepare('UPDATE char_registry SET name=?,element=?,status=? WHERE id=?')
-        .bind(body.name||'', body.element||'Dark', body.status||'active', body.id).run();
+      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
+      await env.DB.prepare('UPDATE char_registry SET name=?,element=?,atk_type=?,status=? WHERE id=?')
+        .bind(body.name||'', body.element||'Dark', body.atk_type||'Physical', body.status||'active', body.id).run();
       return json({ success:true, message:'Updated.' });
     }
     if (path === '/api/admin/chars/delete' && method === 'POST') {

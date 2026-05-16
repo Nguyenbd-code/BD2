@@ -5,6 +5,7 @@ export async function handleCharacters(request, env) {
   const costumesMap = {};
 
   try {
+    await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
     const r = await env.DB.prepare('SELECT * FROM char_registry ORDER BY name').all();
     chars = r.results || [];
     if (chars.length) {
@@ -16,10 +17,11 @@ export async function handleCharacters(request, env) {
     }
   } catch { /* ignore */ }
 
-  const elemColors   = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
-  const elemGlows    = { Water:'rgba(46,134,193,0.18)', Fire:'rgba(192,57,43,0.2)', Wind:'rgba(39,174,96,0.18)', Light:'rgba(244,208,63,0.18)', Dark:'rgba(142,68,173,0.18)', Physical:'rgba(149,165,166,0.2)', Magic:'rgba(22,160,133,0.2)' };
-  const elemGradient = { Water:'rgba(46,134,193,0.15),transparent', Fire:'rgba(192,57,43,0.18),transparent', Wind:'rgba(39,174,96,0.15),transparent', Light:'rgba(244,208,63,0.15),transparent', Dark:'rgba(142,68,173,0.15),transparent', Physical:'rgba(149,165,166,0.15),transparent', Magic:'rgba(22,160,133,0.15),transparent' };
-  const elements     = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
+  const elemColors   = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD' };
+  const elemGlows    = { Water:'rgba(46,134,193,0.18)', Fire:'rgba(192,57,43,0.2)', Wind:'rgba(39,174,96,0.18)', Light:'rgba(244,208,63,0.18)', Dark:'rgba(142,68,173,0.18)' };
+  const elemGradient = { Water:'rgba(46,134,193,0.15),transparent', Fire:'rgba(192,57,43,0.18),transparent', Wind:'rgba(39,174,96,0.15),transparent', Light:'rgba(244,208,63,0.15),transparent', Dark:'rgba(142,68,173,0.15),transparent' };
+  const elements     = ['Water','Fire','Wind','Light','Dark'];
+  const atkTypes     = ['Physical','Magic'];
 
   const cardHtml = chars.map(char => {
     const costumes   = costumesMap[char.slug] || [];
@@ -27,6 +29,9 @@ export async function handleCharacters(request, env) {
     const elRaw      = (char.element || 'Dark').toString().trim();
     const elNorm     = elRaw.charAt(0).toUpperCase() + elRaw.slice(1).toLowerCase();
     const el         = elements.includes(elNorm) ? elNorm : 'Dark';
+    const atkRaw     = (char.atk_type || 'Physical').toString().trim();
+    const atkNorm    = atkRaw.charAt(0).toUpperCase() + atkRaw.slice(1).toLowerCase();
+    const atk        = atkTypes.includes(atkNorm) ? atkNorm : 'Physical';
     const elemColor  = elemColors[el]  || '#888';
     const elemGlow   = elemGlows[el]   || 'rgba(136,136,136,0.12)';
     const elemGrad   = elemGradient[el] || 'rgba(136,136,136,0.12),transparent';
@@ -38,7 +43,7 @@ export async function handleCharacters(request, env) {
       ? `/img/char_${esc(slug)}_${esc(baseCostume.costume_slug)}_icon`
       : `/img/char_${esc(slug)}_portrait`;
 
-    return `<div class="char-page-card" data-element="${esc(el)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
+    return `<div class="char-page-card" data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
   <div class="char-img-wrap">
     <span class="char-initial">${esc(char.name.charAt(0))}</span>
     <img src="${defaultImg}" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
@@ -47,15 +52,19 @@ export async function handleCharacters(request, env) {
       <img src="/img/element_${esc(el.toLowerCase())}" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
       <span class="char-elem-fallback" style="color:${elemColor}">${esc(el.charAt(0))}</span>
     </div>
+    <div class="char-atk-badge" title="${esc(atk)}">
+      <img src="/img/atk_${esc(atk.toLowerCase())}" class="img-err-hide" style="width:100%;height:100%;object-fit:contain">
+    </div>
     ${char.status === 'upcoming' ? '<div class="char-upcoming-badge">Upcoming</div>' : ''}
   </div>
   <div class="char-card-body">
     <div class="char-card-name-row">
       <div class="char-card-name">${esc(char.name)}</div>
     </div>
-    <div class="char-card-elem" style="display:inline-flex;align-items:center;gap:4px;color:${elemColor}">
+    <div class="char-card-elem" style="display:inline-flex;align-items:center;gap:6px;color:${elemColor}">
       <img src="/img/element_${esc(el.toLowerCase())}" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">
       <span>${esc(el)}</span>
+      <img src="/img/atk_${esc(atk.toLowerCase())}" class="img-err-hide" style="width:13px;height:13px;object-fit:contain;margin-left:4px" title="${esc(atk)}">
     </div>
     ${costumes.length
       ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
@@ -86,6 +95,13 @@ export async function handleCharacters(request, env) {
         <span class="efb-fallback" style="color:${elemColors[el]}">${esc(el.charAt(0))}</span>
       </span>
       <span>${esc(el)}</span>
+    </button>`).join('')}
+    ${atkTypes.map(at => `
+    <button class="elem-filter-btn atk-filter-btn" data-atk-type="${esc(at)}" style="--el:#FFFFFF">
+      <span class="efb-icon-wrap">
+        <img src="/img/atk_${esc(at.toLowerCase())}" class="img-err-hide efb-icon" alt="">
+      </span>
+      <span>${esc(at)}</span>
     </button>`).join('')}
   </div>
 
@@ -140,6 +156,11 @@ export async function handleCharacters(request, env) {
 }
 .char-elem-badge img.errored + .char-elem-fallback { display:block; }
 .char-elem-badge img:not(.errored) + .char-elem-fallback { display:none; }
+.char-atk-badge {
+  position:absolute;top:8px;right:42px;width:24px;height:24px;z-index:4;
+  background:rgba(0,0,0,0.55);border-radius:50%;padding:3px;
+  display:flex;align-items:center;justify-content:center;
+}
 .char-upcoming-badge {
   position:absolute;top:8px;left:8px;z-index:4;background:rgba(201,168,76,0.85);
   color:#000;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:3px;
@@ -232,6 +253,36 @@ function setupWhoAmI() {
 
 // Delegated element-filter handler — survives if KITSU_SETS load fails
 document.addEventListener('click', function(e) {
+  var atkBtn = e.target.closest('.atk-filter-btn');
+  if (atkBtn) {
+    try {
+      document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      atkBtn.classList.add('active');
+      var at = (atkBtn.dataset.atkType || '').toLowerCase();
+      document.querySelectorAll('#char-grid .char-page-card').forEach(function(card) {
+        if (card.classList.contains('char-coming-soon')) return;
+        var ca = (card.dataset.atkType || '').toLowerCase();
+        card.style.display = (!at || ca === at) ? '' : 'none';
+      });
+      // Track atk-type click for count_then_seal sealing
+      if (at && (window.KITSU_SETS || []).length) {
+        window.KITSU_SETS.forEach(function(s) {
+          if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+          if ((s.unlock_mode || '') !== 'count_then_seal') return;
+          var countKey = 'kitsu_set_' + s.set_num + '_count';
+          var c = parseInt(localStorage.getItem(countKey) || '0', 10);
+          var needed = s.unlock_count || 7;
+          var seal = (s.unlock_sequence || '').toLowerCase().trim();
+          if (c >= needed && seal && at === seal) {
+            localStorage.setItem('kitsu_set_' + s.set_num, '1');
+            localStorage.removeItem(countKey);
+            showUnlockToast(s.set_num);
+          }
+        });
+      }
+    } catch (err) {}
+    return;
+  }
   var btn = e.target.closest('.elem-filter-btn');
   if (!btn) return;
   try {
@@ -272,6 +323,16 @@ document.addEventListener('click', function(e) {
             localStorage.setItem('kitsu_set_' + s.set_num, '1');
             showUnlockToast(s.set_num);
           }
+        } else if (mode === 'count_then_seal') {
+          if (!(s.unlock_target || '')) return;
+          if ((s.unlock_target || '').toLowerCase() !== el) return;
+          var ckey = 'kitsu_set_' + s.set_num + '_count';
+          var cc = parseInt(localStorage.getItem(ckey) || '0', 10);
+          if (cc < (s.unlock_count || 7)) {
+            cc++;
+            localStorage.setItem(ckey, String(cc));
+          }
+          // Unlock only after the seal atk-type click — see atk-filter handler.
         }
         // letter_sequence and who_am_i handled elsewhere
       });

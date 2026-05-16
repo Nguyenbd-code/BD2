@@ -111,8 +111,9 @@ export async function handleAdmin(request, env) {
   }
   if (!compsListHtml) compsListHtml = '<p style="color:var(--text3);font-size:0.83rem">No compositions yet.</p>';
 
-  const elemColorsServer = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
-  const elemOrderServer  = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
+  const elemColorsServer = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD' };
+  const elemOrderServer  = ['Water','Fire','Wind','Light','Dark'];
+  const atkTypesServer   = ['Physical','Magic'];
   const groupedChars     = {};
   for (const c of chars) {
     const raw = (c.element || 'Dark').toString().trim();
@@ -128,7 +129,7 @@ export async function handleAdmin(request, env) {
     charsListHtml += '<div class="elem-group-label" data-elem="' + esc(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColorsServer[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + esc(el) + '</div>';
     charsListHtml += grp.map(c => {
       const elemColor = elemColorsServer[c.element] || '#888';
-      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '" data-status="' + esc(c.status||'active') + '">'
+      return '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + esc(c.name) + '" data-slug="' + esc(c.slug) + '" data-element="' + esc(el) + '" data-atk-type="' + esc(c.atk_type||'Physical') + '" data-status="' + esc(c.status||'active') + '">'
         + '<img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
         + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + esc(c.name) + '</span>'
         + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -798,12 +799,19 @@ export async function handleAdmin(request, env) {
         <div id="add-char-form" style="display:none;margin-top:0.75rem">
           <div class="form-group"><label>Name</label><input id="new-char-name" placeholder="Rou" oninput="autoCharSlug()"></div>
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
-          <div class="form-group"><label>Element</label>
-            <select id="new-char-element">
-              ${elemOrderServer.map(el =>
-                '<option value="' + esc(el) + '"' + (el === 'Dark' ? ' selected' : '') + '>' + esc(el) + '</option>'
-              ).join('')}
-            </select>
+          <div class="form-row">
+            <div class="form-group"><label>Element</label>
+              <select id="new-char-element">
+                ${elemOrderServer.map(el =>
+                  '<option value="' + esc(el) + '"' + (el === 'Dark' ? ' selected' : '') + '>' + esc(el) + '</option>'
+                ).join('')}
+              </select>
+            </div>
+            <div class="form-group"><label>Atk Type</label>
+              <select id="new-char-atk-type">
+                ${atkTypesServer.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('')}
+              </select>
+            </div>
           </div>
           <div class="form-group"><label>Status</label>
             <select id="new-char-status">
@@ -829,15 +837,21 @@ export async function handleAdmin(request, env) {
         <div class="admin-form">
           <h3><span id="detail-char-name"></span></h3>
 
-          <!-- Element + Status quick edit -->
+          <!-- Element + Atk Type + Status quick edit -->
           <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem;padding:0.6rem;background:var(--bg4);border:1px solid var(--border2);border-radius:5px">
-            <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0">
+            <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
               <label style="font-size:0.7rem">Element</label>
               <select id="detail-char-element" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
                 ${elemOrderServer.map(el => '<option value="' + esc(el) + '">' + esc(el) + '</option>').join('')}
               </select>
             </div>
-            <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
+            <div class="form-group" style="flex:1;min-width:110px;margin-bottom:0">
+              <label style="font-size:0.7rem">Atk Type</label>
+              <select id="detail-char-atk-type" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
+                ${atkTypesServer.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('')}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:110px;margin-bottom:0">
               <label style="font-size:0.7rem">Status</label>
               <select id="detail-char-status" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;width:100%;font-size:0.82rem">
                 <option value="active">Active</option>
@@ -1021,8 +1035,10 @@ export async function handleAdmin(request, env) {
           <label>Unlock Mode</label>
           <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <option value="count">Count (click element N times)</option>
+            <option value="count_then_seal">Count then Seal (count an element, then click Phys/Magic)</option>
             <option value="sequence">Sequence (elements in exact order)</option>
             <option value="letter_sequence">Letter Sequence (click set cards)</option>
+            <option value="char_sequence">Character Sequence (click characters in side-nav circle)</option>
             <option value="who_am_i">Who Am I? (ghost portrait)</option>
             <option value="nav_icon_tap">Nav Icon Tap (Mamonir icon in navbar)</option>
           </select>
@@ -1079,6 +1095,22 @@ export async function handleAdmin(request, env) {
             <input type="text" id="set-cfg-wai-answer" placeholder="e.g. Synae">
             <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
           </div>
+        </div>
+
+        <!-- Seal target (count_then_seal mode) -->
+        <div id="set-cfg-seal-wrap" class="form-group" style="display:none">
+          <label>Seal Target <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(Atk type the player must click after the count is reached)</span></label>
+          <select id="set-cfg-seal" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            ${atkTypesServer.map(t => '<option value="' + esc(t.toLowerCase()) + '">' + esc(t) + '</option>').join('')}
+          </select>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">After clicking the Element Target N times, the player clicks the chosen Atk filter button to seal the unlock.</div>
+        </div>
+
+        <!-- Character sequence (char_sequence mode) -->
+        <div id="set-cfg-char-seq-wrap" class="form-group" style="display:none">
+          <label>Character Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-separated character slugs in order)</span></label>
+          <input type="text" id="set-cfg-char-seq" placeholder="e.g. dalvi,rou,tyr,yuri,mamonir" autocomplete="off">
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, rou, tyr, yuri, mamonir, liatris, zenith.</div>
         </div>
         <!-- Unlock Reveal (image + message) -->
         <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
@@ -1185,8 +1217,9 @@ var _bondsSelections  = [null,null,null,null,null]; // {name, slug, costume} per
 var _currentUnitOrder = [];
 var _bondsCurElem     = 'all';
 
-var elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD', Physical:'#95A5A6', Magic:'#16A085' };
-var elemOrderJs = ['Water','Fire','Wind','Light','Dark','Physical','Magic'];
+var elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD' };
+var elemOrderJs = ['Water','Fire','Wind','Light','Dark'];
+var atkTypesJs = ['Physical','Magic'];
 
 /* ═══════════════════════════════════════════════════════════ HELPERS ══ */
 function escH(s) {
@@ -2124,6 +2157,14 @@ function renderSetConfig(sn) {
   if ((s.unlock_mode || 'count') === 'who_am_i') {
     if (g('set-cfg-wai-answer')) g('set-cfg-wai-answer').value = s.unlock_sequence || '';
   }
+  // count_then_seal seal target — stored in unlock_sequence
+  if ((s.unlock_mode || '') === 'count_then_seal') {
+    if (g('set-cfg-seal')) g('set-cfg-seal').value = (s.unlock_sequence || 'magic').toLowerCase();
+  }
+  // char_sequence — comma list in unlock_sequence
+  if ((s.unlock_mode || '') === 'char_sequence') {
+    if (g('set-cfg-char-seq')) g('set-cfg-char-seq').value = s.unlock_sequence || '';
+  }
   updateSetCfgModeUI(s.unlock_mode || 'count');
   // If who_am_i, load char list with preselect AFTER updateSetCfgModeUI shows the wrap
   if ((s.unlock_mode || 'count') === 'who_am_i') {
@@ -2136,38 +2177,40 @@ function renderSetConfig(sn) {
 function updateElemPickerDisplay(elem) {
   var d = document.getElementById('set-cfg-target-display');
   if (!d) return;
-  var lbl = { water:'Water', fire:'Fire', wind:'Wind', light:'Light', dark:'Dark', physical:'Physical', magic:'Magic' }[elem];
+  var lbl = { water:'Water', fire:'Fire', wind:'Wind', light:'Light', dark:'Dark' }[elem];
   if (!lbl) { d.textContent = '— Select Element —'; return; }
   d.innerHTML = '<img src="/img/element_' + elem + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + lbl;
 }
 
 function updateSetCfgModeUI(mode) {
   function g(id) { return document.getElementById(id); }
-  var isCount = mode === 'count';
-  var isWho   = mode === 'who_am_i';
-  var isSeq   = mode === 'sequence' || mode === 'letter_sequence';
+  var isCount      = mode === 'count';
+  var isSeal       = mode === 'count_then_seal';
+  var isWho        = mode === 'who_am_i';
+  var isSeq        = mode === 'sequence' || mode === 'letter_sequence';
+  var isCharSeq    = mode === 'char_sequence';
+  var needsTarget  = isCount || isSeal;
   // Show/hide standard fields
-  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = isCount ? '' : 'none';
-  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq   ? '' : 'none';
-  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = isCount ? '' : 'none';
-  // Show/hide who_am_i block
-  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
+  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = needsTarget ? '' : 'none';
+  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq       ? '' : 'none';
+  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = needsTarget ? '' : 'none';
+  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho       ? '' : 'none';
+  if (g('set-cfg-seal-wrap'))      g('set-cfg-seal-wrap').style.display      = isSeal      ? '' : 'none';
+  if (g('set-cfg-char-seq-wrap'))  g('set-cfg-char-seq-wrap').style.display  = isCharSeq   ? '' : 'none';
   // Update sequence labels
   if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
   if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page. Up to 8 positions; repeats allowed.';
-  // Build the 5 positional selects for the sequence
+  // Build the positional selects for the (element) sequence
   buildSequenceSelects(mode);
   // (who_am_i char list loaded by renderSetConfig after this runs)
 }
 
 var SEQ_ELEMS = [
-  { v:'water',    label:'Water',    color:'#2E86C1' },
-  { v:'fire',     label:'Fire',     color:'#C0392B' },
-  { v:'wind',     label:'Wind',     color:'#27AE60' },
-  { v:'light',    label:'Light',    color:'#F4D03F' },
-  { v:'dark',     label:'Dark',     color:'#8E44AD' },
-  { v:'physical', label:'Physical', color:'#95A5A6' },
-  { v:'magic',    label:'Magic',    color:'#16A085' }
+  { v:'water', label:'Water', color:'#2E86C1' },
+  { v:'fire',  label:'Fire',  color:'#C0392B' },
+  { v:'wind',  label:'Wind',  color:'#27AE60' },
+  { v:'light', label:'Light', color:'#F4D03F' },
+  { v:'dark',  label:'Dark',  color:'#8E44AD' }
 ];
 var SEQ_ELEM_MAP = SEQ_ELEMS.reduce(function(m, e){ m[e.v] = e; return m; }, {});
 var SEQ_MAX_POSITIONS = 8;
@@ -2359,17 +2402,24 @@ async function saveSetConfig() {
   var sn = _settingsCurrentSet || 1;
   function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var mode = gv('set-cfg-mode') || 'count';
-  var isWho = mode === 'who_am_i';
+  var isWho     = mode === 'who_am_i';
+  var isSeal    = mode === 'count_then_seal';
+  var isCharSeq = mode === 'char_sequence';
+  var sequenceVal;
+  if (isWho)          sequenceVal = gv('set-cfg-wai-answer');
+  else if (isSeal)    sequenceVal = gv('set-cfg-seal');
+  else if (isCharSeq) sequenceVal = gv('set-cfg-char-seq');
+  else                sequenceVal = gv('set-cfg-sequence');
   var body = {
     set_num: sn,
     name: gv('set-cfg-name') || ('Set ' + sn),
     set_letter: gv('set-cfg-letter'),
     hint: gv('set-cfg-hint'),
-    unlock_page: gv('set-cfg-page') || 'characters',
+    unlock_page: isCharSeq ? 'sidebar' : (gv('set-cfg-page') || 'characters'),
     unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
     unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,
     unlock_mode: mode,
-    unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
+    unlock_sequence: sequenceVal,
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
     unlock_message: gv('set-cfg-unlock-msg'),
   };
@@ -2842,7 +2892,7 @@ async function loadChars() {
       html += '<div class="elem-group-label" data-elem="' + escH(el) + '" style="font-size:0.7rem;font-weight:700;color:' + (elemColors[el]||'#888') + ';text-transform:uppercase;letter-spacing:0.08em;padding:0.3rem 0.2rem 0.15rem;margin-top:0.25rem">' + el + '</div>';
       grp.forEach(function(c) {
         var col = elemColors[c.element] || '#888';
-        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '" data-status="' + escH(c.status||'active') + '">'
+        html += '<div class="char-row" id="char-' + c.id + '" data-action="char-select" data-id="' + c.id + '" data-name="' + escH(c.name) + '" data-slug="' + escH(c.slug) + '" data-element="' + escH(el) + '" data-atk-type="' + escH(c.atk_type||'Physical') + '" data-status="' + escH(c.status||'active') + '">'
           + '<img src="/img/element_' + escH(el.toLowerCase()) + '" class="img-err-hide elem-icon" style="width:14px;height:14px;object-fit:contain;flex-shrink:0">'
           + '<span style="flex:1;font-size:0.85rem;font-weight:600">' + escH(c.name) + '</span>'
           + (c.status === 'upcoming' ? '<span style="font-size:0.7rem;color:var(--gold)">&#128284;</span>' : '')
@@ -2858,12 +2908,13 @@ async function addChar() {
   var name    = ((document.getElementById('new-char-name')    || {}).value || '').trim();
   var slug    = ((document.getElementById('new-char-slug')    || {}).value || '').trim();
   var element = (document.getElementById('new-char-element')  || {}).value || 'Dark';
+  var atkType = (document.getElementById('new-char-atk-type') || {}).value || 'Physical';
   var status  = (document.getElementById('new-char-status')   || {}).value || 'active';
   var baseCostume = ((document.getElementById('new-char-base-costume') || {}).value || '').trim();
   var portraitEl = document.getElementById('new-char-portrait');
   var portraitFile = portraitEl && portraitEl.files && portraitEl.files[0];
   if (!name || !slug) { showAlert('char-alert', false, 'Name and slug required'); return; }
-  var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, status: status });
+  var r = await apiPost('/api/admin/chars/add', { name: name, slug: slug, element: element, atk_type: atkType, status: status });
   var portraitData = '';
   if (r.success && portraitFile) {
     showAlert('char-alert', true, 'Uploading portrait…');
@@ -3035,10 +3086,12 @@ function selectChar(id, name, slug) {
   if (detail) detail.style.display = 'block';
   if (nameEl) nameEl.textContent = name;
 
-  // Pre-fill element + status from the row's data attributes (set by loadChars)
+  // Pre-fill element + atk_type + status from the row's data attributes (set by loadChars)
   var elSel = document.getElementById('detail-char-element');
+  var atSel = document.getElementById('detail-char-atk-type');
   var stSel = document.getElementById('detail-char-status');
   if (elSel && row) elSel.value = row.getAttribute('data-element') || 'Dark';
+  if (atSel && row) atSel.value = row.getAttribute('data-atk-type') || 'Physical';
   if (stSel && row) stSel.value = row.getAttribute('data-status') || 'active';
   var alertEl = document.getElementById('detail-char-meta-alert');
   if (alertEl) alertEl.textContent = '';
@@ -3052,11 +3105,13 @@ function selectChar(id, name, slug) {
 async function saveCharMeta() {
   if (!_selectedCharId) return;
   var element = (document.getElementById('detail-char-element')||{}).value || 'Dark';
+  var atkType = (document.getElementById('detail-char-atk-type')||{}).value || 'Physical';
   var status  = (document.getElementById('detail-char-status') ||{}).value || 'active';
   var r = await apiPost('/api/admin/chars/update', {
     id: _selectedCharId,
     name: _selectedCharName,
     element: element,
+    atk_type: atkType,
     status: status
   });
   var alertEl = document.getElementById('detail-char-meta-alert');

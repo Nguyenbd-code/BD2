@@ -15,18 +15,20 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
 
+  const set1Riddle = "The one I cherish hides a number in the length of her name. Uncover it, then awaken her element with that same number of touches, and when the awakening is complete, seal it with Magic.";
   const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
   const set2Riddle = "Six marks lie hidden where expressions live.\nFive belong to the name you seek. One does not.\nPress what feels out of place last.\nBefore it, trace the name that was always there: not spoken in order, but remembered in feeling.\nBegin where silence feels sharp, not soft, and end with what does not belong.";
+  const set4Riddle = "I start where silence learns to walk without being seen, I follow the edge of warmth that lingers just behind it, I move into the call that answers the night in numbers rather than voice, I rise into the shadow that wears the shape of command, and I end where thought dissolves beneath a patient, endless depth.";
   const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
   const set6Hint = "Among the many who are remembered, one does not belong to memory.\nNot in strength, not in name… but in presence.\n\nLook carefully through those who should feel familiar.\nSomething exists that was never meant to be part of them.\n\nA portrait that does not match the world around it.\nA face that does not answer to any story.\n\nWhen you find what should not exist, do not treat it as a character.\nOpen it. Listen. Then ask the question it offers you.\n\n\"Who am I?\"\n\nThe answer is already known, it only forgot its shape.";
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
     const defaults = [
-      [1, 'S', 'S', 'My favorite girl has how many letters? Count them and click her element that many times on the Characters page.', 'characters', 'water', 7, 'count', ''],
+      [1, 'S', 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic'],
       [2, 'T', 'T', set2Riddle, 'emotes', '', 0, 'letter_sequence', 'K,I,T,S,U'],
       [3, 'K', 'K', set3Riddle, 'navigation', '', 0, 'nav_icon_tap', ''],
-      [4, 'I', 'I', 'Secret hint coming soon.', 'characters', 'light', 5, 'count', ''],
+      [4, 'I', 'I', set4Riddle, 'sidebar', '', 0, 'char_sequence', 'dalvi,rou,tyr,yuri,mamonir'],
       [5, 'M', 'M', set5Riddle, 'characters', '', 0, 'sequence', 'water,fire,light,dark,wind'],
       [6, 'U', 'U', set6Hint, 'characters', 'synae', 0, 'who_am_i', 'Synae'],
     ];
@@ -54,6 +56,13 @@ async function ensureSchema(env) {
     if (!set3MigDone) {
       await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_set3_nav_migrated','1')").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='navigation', unlock_target='', unlock_count=0, unlock_mode='nav_icon_tap', unlock_sequence='' WHERE set_num=3").bind(set3Riddle).run().catch(()=>{});
+    }
+    // v3 migration: set 1 -> count_then_seal (+magic), set 4 -> char_sequence
+    const v3 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v3_migrated'").first().catch(()=>null);
+    if (!v3) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v3_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_mode='count_then_seal', unlock_sequence='magic' WHERE set_num=1").bind(set1Riddle).run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='sidebar', unlock_target='', unlock_count=0, unlock_mode='char_sequence', unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4").bind(set4Riddle).run().catch(()=>{});
     }
   }
 }
