@@ -280,11 +280,18 @@ document.addEventListener('click', function(e) {
 });
 
 function showUnlockToast(n) {
-  var t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.4rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.88rem;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap';
-  t.textContent = "Unlocked! Visit Kitsu's Emotes to see set " + n + '.';
-  document.body.appendChild(t);
-  setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
+  var s = (KITSU_SETS || []).find(function(x) { return x.set_num === n; }) || {};
+  var name = s.name || ('Set ' + n);
+  var msg = s.unlock_message || ("Unlocked! Visit Kitsu's Emotes to see set " + n + '.');
+  if (window.showSetUnlockModal) {
+    window.showSetUnlockModal(n, name, msg);
+  } else {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.4rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.88rem;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
+  }
 }
 
 /* Costume picker — delegated so it works even if some cards render late */

@@ -42,19 +42,14 @@ export async function layout(title, content, activePage = '', env = null) {
         wrap.style.opacity = '0';
         setTimeout(function() {
           wrap.style.display = 'none';
-          var ov = document.createElement('div');
-          ov.id = 'mam-ov';
-          ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center';
-          ov.innerHTML = '<div style="background:#13131a;border:1px solid rgba(201,168,76,0.35);border-radius:12px;padding:2rem 2.5rem;max-width:420px;width:90%;text-align:center;font-family:Cinzel,serif;box-shadow:0 8px 40px rgba(0,0,0,0.7)">'
-            + '<div style="font-size:2rem;margin-bottom:0.75rem">&#127381;</div>'
-            + '<div style="color:#c9a84c;font-size:1.1rem;font-weight:700;letter-spacing:0.08em;margin-bottom:0.5rem">UNLOCKED &mdash; Set K (K)</div>'
-            + '<div style="color:#888;font-size:0.85rem;font-family:inherit;line-height:1.6;margin-bottom:1.25rem">The figure could not withstand your persistence.<br>This set is now yours.</div>'
-            + '<button id="mam-ov-close" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:#c9a84c;padding:8px 28px;border-radius:6px;font-size:0.9rem;cursor:pointer;font-family:Cinzel,serif">Close</button>'
-            + '</div>';
-          document.body.appendChild(ov);
-          ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
-          var closeBtn = document.getElementById('mam-ov-close');
-          if (closeBtn) closeBtn.addEventListener('click', function() { ov.remove(); });
+          fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d) {
+            var s = (d.sets || []).find(function(x) { return x.set_num === 3; }) || {};
+            var name = s.name || 'Set K';
+            var msg = s.unlock_message || 'The figure could not withstand your persistence. This set is now yours.';
+            if (window.showSetUnlockModal) window.showSetUnlockModal(3, name, msg);
+          }).catch(function() {
+            if (window.showSetUnlockModal) window.showSetUnlockModal(3, 'Set K', 'This set is now yours.');
+          });
         }, 750);
       }
     });
@@ -70,6 +65,35 @@ export async function layout(title, content, activePage = '', env = null) {
 <style>${getStyles()}</style>
 </head>
 <body>
+<script>
+window.showSetUnlockModal = function(setNum, setName, message) {
+  var existing = document.getElementById('kitsu-unlock-ov');
+  if (existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'kitsu-unlock-ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;padding:1rem';
+  var imgUrl = '/img/emote_set_' + setNum + '_unlock_img';
+  var safeName = String(setName || ('Set ' + setNum));
+  var safeMsg = String(message || 'This set is now yours.');
+  var html = '<div style="background:#13131a;border:1px solid rgba(201,168,76,0.35);border-radius:12px;padding:2rem 2.5rem;max-width:440px;width:100%;text-align:center;font-family:Cinzel,serif;box-shadow:0 8px 40px rgba(0,0,0,0.7)">'
+    + '<div style="width:130px;height:130px;margin:0 auto 1rem;border-radius:10px;overflow:hidden;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);display:flex;align-items:center;justify-content:center">'
+    +   '<img src="' + imgUrl + '" alt="" class="kus-img" style="width:100%;height:100%;object-fit:contain">'
+    +   '<div class="kus-fallback" style="font-size:2.4rem;display:none">&#127381;</div>'
+    + '</div>'
+    + '<div style="color:#c9a84c;font-size:1.1rem;font-weight:700;letter-spacing:0.08em;margin-bottom:0.5rem">UNLOCKED &mdash; ' + safeName.replace(/[<>&"]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];}) + '</div>'
+    + '<div style="color:#888;font-size:0.85rem;font-family:inherit;line-height:1.65;margin-bottom:1.25rem;white-space:pre-line">' + safeMsg.replace(/[<>&"]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];}) + '</div>'
+    + '<button id="kus-close-btn" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:#c9a84c;padding:8px 28px;border-radius:6px;font-size:0.9rem;cursor:pointer;font-family:Cinzel,serif">Close</button>'
+    + '</div>';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  var img = ov.querySelector('.kus-img');
+  var fb = ov.querySelector('.kus-fallback');
+  if (img) img.addEventListener('error', function() { img.style.display = 'none'; if (fb) fb.style.display = 'block'; });
+  ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
+  var btn = document.getElementById('kus-close-btn');
+  if (btn) btn.addEventListener('click', function() { ov.remove(); });
+};
+</script>
 <nav>
   <a href="/" class="nav-logo">⚔ BnKitsu</a>
   <div class="nav-links">
