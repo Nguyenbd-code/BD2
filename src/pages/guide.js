@@ -87,9 +87,9 @@ function charStrip(chars, compId, bondsData) {
         <span style="color:var(--text3);font-size:0.75rem">No gear image</span>
         <img src="/img/char_${slug}_gear" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--bg2)">
       </div>
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/char_${slug}_gear');return false;" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:var(--gold);cursor:pointer;border-radius:3px;padding:4px 9px;font-size:0.85rem;z-index:5;pointer-events:auto">⤢</button>
     </div>
   </div>
+  <button class="card-zoom-overlay" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/char_${slug}_gear');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:1px solid rgba(201,168,76,0.5);color:var(--gold);cursor:pointer;border-radius:4px;padding:4px 10px;font-size:0.9rem;z-index:100;display:none;pointer-events:auto">⤢</button>
 </div>`;
   }).join('');
 }
@@ -478,6 +478,8 @@ function toggleFlip(cardId) {
   var inner = document.getElementById('card-' + cardId);
   if (!inner) return;
   inner.classList.toggle('flipped');
+  var wrap = inner.parentElement;
+  if (wrap) wrap.classList.toggle('flipped', inner.classList.contains('flipped'));
 }
 
 function toggleBoardFlip(tier) {

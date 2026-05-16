@@ -210,7 +210,7 @@ export async function handleEmotes(request, env) {
 .emote-dl:hover { text-decoration:underline; }
 .set-lock-img-wrap { width:80px;height:80px;margin-bottom:0.5rem;display:none; }
 .set-lock-img-wrap img { width:100%;height:100%;object-fit:contain; }
-.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:none;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto; }
+.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:none;align-items:center;justify-content:center;padding:2rem 1rem;overflow-y:auto; }
 .emote-modal-overlay.open { display:flex; }
 .emote-modal { background:var(--bg2);border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:1.5rem;max-width:800px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative; }
 .emote-modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem; }
