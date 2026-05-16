@@ -44,19 +44,22 @@ export async function handleAdmin(request, env) {
   if (!isAuthed(request)) return renderLogin();
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
+  let mamonirTapCount = 7;
   try {
-    const [cr, er, compr, imgr, charr] = await Promise.all([
+    const [cr, er, compr, imgr, charr, mamRow] = await Promise.all([
       env.DB.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all(),
       env.DB.prepare('SELECT * FROM emotes ORDER BY created_at DESC').all(),
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare("SELECT key FROM images WHERE key NOT LIKE 'notes_%' AND key != 'unit_order' AND key != 'board_layout' ORDER BY key").all().catch(() => ({ results: [] })),
       env.DB.prepare('SELECT * FROM char_registry ORDER BY name ASC').all().catch(() => ({ results: [] })),
+      env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first().catch(() => null),
     ]);
     coupons = cr.results || [];
     emotes  = er.results || [];
     comps   = compr.results || [];
     images  = imgr.results || [];
     chars   = charr.results || [];
+    if (mamRow && mamRow.data) mamonirTapCount = Math.max(1, parseInt(mamRow.data, 10) || 7);
   } catch(e) {}
 
   const tierOptions = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
@@ -139,7 +142,7 @@ export async function handleAdmin(request, env) {
     '<option value="' + c.id + '" data-tier="' + esc(c.tier) + '" data-name="' + esc(c.name) + '" data-type="' + esc(c.type||'ATK') + '" data-color="' + esc(c.color||'#c9a84c') + '" data-short-desc="' + esc(c.short_description||'') + '" data-notes="' + esc(c.description||'') + '" data-unit-order="' + esc(c.unit_order||'[]') + '" data-cby="' + esc(c.countered_by||'') + '">' + esc(c.tier) + ' &mdash; ' + esc(c.name) + ' (' + esc(c.type || '') + ')</option>'
   ).join('');
 
-  return layout('Admin Panel', `
+  return await layout('Admin Panel', `
 <div class="admin-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
     <h1 style="font-family:'Cinzel',serif;font-size:1.5rem;color:var(--gold2)">Admin Panel</h1>
@@ -947,6 +950,7 @@ export async function handleAdmin(request, env) {
             <option value="sequence">Sequence (elements in exact order)</option>
             <option value="letter_sequence">Letter Sequence (click set cards)</option>
             <option value="who_am_i">Who Am I? (ghost portrait)</option>
+            <option value="nav_icon_tap">Nav Icon Tap (Mamonir icon in navbar)</option>
           </select>
         </div>
 
@@ -1017,6 +1021,17 @@ export async function handleAdmin(request, env) {
           <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-sets">Re-lock All Sets (clear kitsu_set_*)</button>
           <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset Everything (page + sets + click trackers)</button>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks the associated set.</p>
+        <div class="form-group">
+          <label style="font-size:0.78rem">Taps to Fall (default 7)</label>
+          <input type="number" id="mamonir-tap-count" min="1" max="99" value="${mamonirTapCount}" style="width:100px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px">
+        </div>
+        <div id="nav-icon-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
+        <button class="btn" style="width:auto;padding:8px 20px" data-action="save-nav-icon-settings">Save Nav Icon Settings</button>
       </div>
     </div>
 
@@ -2143,6 +2158,14 @@ async function uploadLockImg() {
   }
 }
 
+async function saveNavIconSettings() {
+  var inp = document.getElementById('mamonir-tap-count');
+  var count = parseInt((inp && inp.value) || '7', 10);
+  if (!count || count < 1) count = 7;
+  var r = await apiPost('/api/admin/image/upload', { key: 'mamonir_tap_count', data: String(count) });
+  showAlert('nav-icon-alert', r.success, r.success ? 'Saved! Icon will fall after ' + count + ' taps (refresh to apply).' : (r.message || 'Error'));
+}
+
 async function saveSpecialCodeConfig() {
   var code = ((document.getElementById('sc-code') || {}).value || '').trim();
   var passcode = ((document.getElementById('sc-passcode') || {}).value || '').trim();
@@ -3167,8 +3190,10 @@ document.addEventListener('click', function(e) {
       var kk = localStorage.key(j);
       if (kk && kk.indexOf('kitsu_') === 0) { localStorage.removeItem(kk); m++; }
     }
+    localStorage.removeItem('kitsu_mamonir_taps');
     showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
   }
+  if (action === 'save-nav-icon-settings') saveNavIconSettings();
   if (action === 'admin-elem-filter') {
     document.querySelectorAll('.elem-dot-btn').forEach(function(x) { x.classList.remove('active'); });
     b.classList.add('active');
@@ -3284,7 +3309,7 @@ function initCompDragDrop() {
 }
 try { initCompDragDrop(); } catch(_e) {}
 </script>
-`);
+`, undefined, env);
 }
 
 function renderLogin(error = '') {

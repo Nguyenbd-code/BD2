@@ -15,6 +15,7 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
 
+  const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
   const set2Riddle = "Six marks lie hidden where expressions live.\nFive belong to the name you seek. One does not.\nPress what feels out of place last.\nBefore it, trace the name that was always there: not spoken in order, but remembered in feeling.\nBegin where silence feels sharp, not soft, and end with what does not belong.";
   const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
   const set6Hint = "Among the many who are remembered, one does not belong to memory.\nNot in strength, not in name… but in presence.\n\nLook carefully through those who should feel familiar.\nSomething exists that was never meant to be part of them.\n\nA portrait that does not match the world around it.\nA face that does not answer to any story.\n\nWhen you find what should not exist, do not treat it as a character.\nOpen it. Listen. Then ask the question it offers you.\n\n\"Who am I?\"\n\nThe answer is already known, it only forgot its shape.";
@@ -24,7 +25,7 @@ async function ensureSchema(env) {
     const defaults = [
       [1, 'S', 'S', 'My favorite girl has how many letters? Count them and click her element that many times on the Characters page.', 'characters', 'water', 7, 'count', ''],
       [2, 'T', 'T', set2Riddle, 'emotes', '', 0, 'letter_sequence', 'K,I,T,S,U'],
-      [3, 'K', 'K', 'Secret hint coming soon.', 'characters', 'wind', 5, 'count', ''],
+      [3, 'K', 'K', set3Riddle, 'navigation', '', 0, 'nav_icon_tap', ''],
       [4, 'I', 'I', 'Secret hint coming soon.', 'characters', 'light', 5, 'count', ''],
       [5, 'M', 'M', set5Riddle, 'characters', '', 0, 'sequence', 'water,fire,light,dark,wind'],
       [6, 'U', 'U', set6Hint, 'characters', 'synae', 0, 'who_am_i', 'Synae'],
@@ -48,6 +49,12 @@ async function ensureSchema(env) {
     }
     // Always ensure set 6 exists
     await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
+    // Migrate set 3 to nav_icon_tap mode (once)
+    const set3MigDone = await env.DB.prepare("SELECT data FROM images WHERE key='emote_set3_nav_migrated'").first().catch(()=>null);
+    if (!set3MigDone) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_set3_nav_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='navigation', unlock_target='', unlock_count=0, unlock_mode='nav_icon_tap', unlock_sequence='' WHERE set_num=3").bind(set3Riddle).run().catch(()=>{});
+    }
   }
 }
 
@@ -100,7 +107,7 @@ export async function handleEmotes(request, env) {
       </div>`).join('');
     return `
     <div class="set-card" data-set="${sn}">
-      <div class="set-cover">
+      <div class="set-cover" data-cover-set="${sn}">
         ${cover ? `<img src="${cover}" alt="${displayName}" class="img-err-hide">` : `<span class="set-cover-placeholder">${displayName}</span>`}
         <div class="set-lock-overlay">
           <div class="set-lock-img-wrap"></div>
@@ -109,7 +116,8 @@ export async function handleEmotes(request, env) {
         </div>
       </div>
       <div class="set-info">
-        <div class="set-title">${displayName}
+        <div class="set-title">
+          <span class="set-letter-btn" data-letter-set="${sn}" tabindex="0">${displayName}</span>
           <span class="set-hint-icon" data-set="${sn}" style="cursor:pointer">?</span>
         </div>
         <div class="set-meta">${list.length} emote${list.length === 1 ? '' : 's'}</div>
@@ -120,7 +128,7 @@ export async function handleEmotes(request, env) {
     </div>`;
   }).join('');
 
-  return layout("Kitsu's Emotes", `
+  return await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center">
@@ -187,6 +195,10 @@ export async function handleEmotes(request, env) {
 .set-lock-text { font-family:'Cinzel',serif;font-size:0.82rem;letter-spacing:0.08em; }
 .set-info { padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem; }
 .set-title { font-family:'Cinzel',serif;font-weight:700;font-size:0.95rem;color:var(--gold);display:flex;align-items:center;gap:0.5rem; }
+.set-letter-btn { display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:5px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);color:var(--gold);cursor:pointer;user-select:none;transition:transform 0.08s ease,background 0.15s ease,box-shadow 0.15s ease;box-shadow:0 1px 0 rgba(201,168,76,0.25),0 2px 6px rgba(0,0,0,0.4); }
+.set-letter-btn:hover { background:rgba(201,168,76,0.18); }
+.set-letter-btn:active, .set-letter-btn.pressed { transform:translateY(1px) scale(0.96);background:rgba(201,168,76,0.32);box-shadow:inset 0 2px 4px rgba(0,0,0,0.5); }
+.set-cover { cursor:pointer; }
 .set-hint-icon { display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:0.7rem;font-weight:700;cursor:help;flex-shrink:0; }
 .set-hint-icon:hover { background:rgba(201,168,76,0.32); }
 .set-meta { font-size:0.72rem;color:var(--text3); }
@@ -353,26 +365,32 @@ export async function handleEmotes(request, env) {
       return;
     }
 
-    var card = e.target.closest('.set-card');
-    if (!card) return;
-    var sn = parseInt(card.dataset.set, 10);
-    var setData = SETS.find(function(x) { return x.set_num === sn; });
-
-    // Record letter click for letter_sequence mechanic
-    if (setData) {
-      var letter = getLetter(setData);
-      if (letter) {
-        var lclicks = [];
-        try { lclicks = JSON.parse(localStorage.getItem('kitsu_letter_clicks') || '[]'); } catch(ex) {}
-        lclicks.push(letter);
-        if (lclicks.length > 20) lclicks = lclicks.slice(-20);
-        localStorage.setItem('kitsu_letter_clicks', JSON.stringify(lclicks));
-        checkLetterSequence(lclicks);
+    var letterBtn = e.target.closest('.set-letter-btn');
+    if (letterBtn && letterBtn.dataset.letterSet) {
+      e.stopPropagation();
+      var lsn = parseInt(letterBtn.dataset.letterSet, 10);
+      var lsetData = SETS.find(function(x) { return x.set_num === lsn; });
+      letterBtn.classList.add('pressed');
+      setTimeout(function() { letterBtn.classList.remove('pressed'); }, 160);
+      if (lsetData) {
+        var letter = getLetter(lsetData);
+        if (letter) {
+          var lclicks = [];
+          try { lclicks = JSON.parse(localStorage.getItem('kitsu_letter_clicks') || '[]'); } catch(ex) {}
+          lclicks.push(letter);
+          if (lclicks.length > 20) lclicks = lclicks.slice(-20);
+          localStorage.setItem('kitsu_letter_clicks', JSON.stringify(lclicks));
+          checkLetterSequence(lclicks);
+        }
       }
+      return;
     }
 
+    var cover = e.target.closest('[data-cover-set]');
+    if (!cover) return;
+    var sn = parseInt(cover.dataset.coverSet, 10);
+    var setData = SETS.find(function(x) { return x.set_num === sn; });
     if (!isUnlocked(sn)) return;
-    // Open emote modal
     openEmoteModal(sn, setData);
   });
 
@@ -381,5 +399,5 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
-`, 'emotes');
+`, 'emotes', env);
 }
