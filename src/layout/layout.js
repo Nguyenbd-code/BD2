@@ -15,7 +15,7 @@ export async function layout(title, content, activePage = '', env = null) {
   }
 
   const mamonirHtml = hasMamonir ? `
-  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
+  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer;opacity:0;transition:opacity 0.25s ease" title="...">
     <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
   </div>
   <script>
@@ -26,6 +26,13 @@ export async function layout(title, content, activePage = '', env = null) {
     var icon = document.getElementById('mam-icon');
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
+    function showWrap() { wrap.style.opacity = '1'; }
+    if (icon.complete && icon.naturalWidth > 0) {
+      showWrap();
+    } else {
+      icon.addEventListener('load', showWrap);
+      icon.addEventListener('error', showWrap);
+    }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
