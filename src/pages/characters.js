@@ -208,10 +208,14 @@ function setupWhoAmI() {
   if (!KITSU_SETS) return;
   KITSU_SETS.forEach(function(s) {
     if ((s.unlock_mode || '') !== 'who_am_i') return;
-    if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
     var targetSlug = (s.unlock_target || '').toLowerCase();
     if (!targetSlug) return;
     var picker = document.querySelector('.char-costume-picker[data-slug="' + targetSlug + '"]');
+    var ghostCard = picker ? picker.closest('.char-page-card') : null;
+    if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') {
+      if (ghostCard) ghostCard.style.display = 'none';
+      return;
+    }
     if (!picker) return;
     var opt = document.createElement('option');
     opt.value = '__who_am_i__';
@@ -241,6 +245,11 @@ function setupWhoAmI() {
         }
         picker.selectedIndex = 0;
         showUnlockToast(setNum);
+        if (ghostCard) {
+          ghostCard.style.transition = 'opacity 0.6s ease';
+          ghostCard.style.opacity = '0';
+          setTimeout(function() { ghostCard.style.display = 'none'; }, 650);
+        }
       } else {
         if (errEl) { errEl.textContent = 'Incorrect. Try again.'; setTimeout(function() { if (errEl) errEl.textContent = ''; }, 2000); }
         if (inp) { inp.value = ''; inp.focus(); }

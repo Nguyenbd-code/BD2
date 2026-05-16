@@ -233,7 +233,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 </script>
 <main>${content}</main>
 <footer>
-  <div class="footer-copyright">&copy; 2024 <span>BD2Guide</span> by BnKitsu. All rights reserved.</div>
+  <div class="footer-copyright">&copy; 2026 <span>BD2Guide</span> by BnKitsu. All rights reserved.</div>
   <div class="footer-disclaimer">This website is not affiliated with or endorsed by Brown Dust 2. All trademarks and copyrights of the game and its characters are owned by their respective owners.</div>
 </footer>
 </body>
