@@ -17,7 +17,6 @@ export async function layout(title, content, activePage = '', env = null) {
   const mamonirHtml = hasMamonir ? `
   <div id="mam-wrap" class="mam-wrap" aria-label="Octovius">
     <img id="mam-icon" src="/img/mamonir_nav" alt="" draggable="false">
-    <span class="mam-tooltip">Octovius, finish it off!</span>
     <span class="mam-bubble" id="mam-bubble"></span>
   </div>
   <script>
@@ -147,9 +146,8 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 </script>
 <main>${content}</main>
 <footer>
-  <div class="footer-brand">BnKitsu BD2 Guide — browndust2-bnkitsu.com</div>
-  <div class="footer-disclaimer">This website is not affiliated with or endorsed by Brown Dust 2. All trademarks and copyrights of the game and its characters belong to their respective owners.</div>
   <div class="footer-copyright">&copy; 2024 <span>BD2Guide</span> by BnKitsu. All rights reserved.</div>
+  <div class="footer-disclaimer">This website is not affiliated with or endorsed by Brown Dust 2. All trademarks and copyrights of the game and its characters are owned by their respective owners.</div>
 </footer>
 </body>
 </html>`;
