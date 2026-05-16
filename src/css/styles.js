@@ -93,6 +93,10 @@ main{padding-top:74px;position:relative;z-index:1;}
 .comp-meta{color:var(--text3);font-size:0.85rem;margin-top:0.25rem;}
 .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}
 @media(max-width:768px){.comp-grid{grid-template-columns:1fr;}}
+@media(max-width:820px){
+  .comp-expand-grid{grid-template-columns:1fr !important;}
+  .comp-howmatch-grid{grid-template-columns:1fr !important;height:auto !important;}
+}
 .card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.5rem;}
 .card-title{font-family:'Cinzel',serif;font-size:0.85rem;font-weight:600;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border2);}
 .char-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;}

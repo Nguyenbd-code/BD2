@@ -252,7 +252,7 @@ function renderComp(comp, mediaMap) {
   <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem">Character Bonds</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
-  <div style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
+  <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;overflow:hidden;">
       <div class="card" style="height:430px;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;">
         <div class="card-title" style="flex-shrink:0">Skill Rotation</div>
@@ -265,7 +265,7 @@ function renderComp(comp, mediaMap) {
         <div class="card-title">Board Positioning</div>
         ${boardSectionHtml}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
+      <div class="comp-howmatch-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
         <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
           <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
           <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:auto">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
