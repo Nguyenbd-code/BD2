@@ -17,20 +17,19 @@ export async function handleCoupons(request, env) {
     }
   } catch(e) {}
 
-  const codeCards = codes.length
+  // Read-only table view of every active coupon. Redeemed state lives in
+  // localStorage per-browser; the Copy button mirrors the existing copy-code
+  // handler. Empty state if there's nothing in the DB.
+  const codeTableRows = codes.length
     ? codes.map(c => `
-<div class="code-card">
-  <div class="code-value">
-    ${esc(c.code)}
-    <button class="copy-btn" data-action="copy-code" data-code="${esc(c.code)}">Copy</button>
-  </div>
-  <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem">
-    ${c.rewards ? `<div class="code-expiry" style="flex:1">${esc(c.rewards)}</div>` : ''}
-    ${c.expiry ? `<div class="code-expiry">Expires: ${esc(c.expiry)}</div>` : ''}
-    <button class="copy-btn" style="font-size:0.72rem" data-action="redeem-one" data-code="${esc(c.code)}">Quick Redeem</button>
-  </div>
-</div>`).join('')
-    : '<p style="text-align:center;color:var(--text3);padding:2rem">No active codes right now - check back soon!</p>';
+        <tr data-row-code="${esc(c.code)}">
+          <td class="ct-redeemed"><input type="checkbox" class="ct-check" data-code="${esc(c.code)}"></td>
+          <td class="ct-code">${esc(c.code)}</td>
+          <td class="ct-reward">${esc(c.rewards || '—')}</td>
+          <td class="ct-expiry">${esc(c.expiry || '—')}</td>
+          <td class="ct-action"><button class="copy-btn ct-copy-btn" data-action="copy-code" data-code="${esc(c.code)}">Copy</button></td>
+        </tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:1.5rem">No active codes right now — check back soon!</td></tr>`;
 
   // Safe JSON injection: escape </ to prevent </script> from breaking the HTML parser
   const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })))
@@ -72,6 +71,29 @@ export async function handleCoupons(request, env) {
         Redeem Code
       </button>
     </div>
+  </div>
+</div>
+
+<div class="coupon-table-wrap">
+  <div class="coupon-table-head">
+    <h3 class="coupon-table-title">Coupon Codes</h3>
+    <span class="coupon-table-sub">Tick the box once you've redeemed a code — saved on this device.</span>
+  </div>
+  <div class="coupon-table-scroll">
+    <table class="coupon-table">
+      <thead>
+        <tr>
+          <th class="ct-col-redeemed">Redeemed</th>
+          <th class="ct-col-code">Code</th>
+          <th class="ct-col-reward">Reward</th>
+          <th class="ct-col-expiry">End Date</th>
+          <th class="ct-col-action">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${codeTableRows}
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -147,6 +169,30 @@ ${specialConfig.enabled ? `
 .toast.t-info    { background:rgba(52,73,94,0.95);   color:#fff; border:1px solid rgba(52,73,94,1); }
 .toast b { font-family:'Cinzel',serif;display:block;margin-bottom:0.15rem;font-size:0.78rem;letter-spacing:0.04em; }
 @keyframes toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Coupon-codes table — read-only view of all active codes with a per-device
+   "redeemed" checkbox and per-row Copy button. */
+.coupon-table-wrap { max-width:1100px;margin:1.5rem auto 0;padding:0 1.5rem;width:100%;box-sizing:border-box; }
+.coupon-table-head { margin-bottom:0.85rem; }
+.coupon-table-title { font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.35rem;color:#eef0fa;letter-spacing:-0.01em;margin-bottom:0.2rem; }
+.coupon-table-sub { font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.45); }
+.coupon-table-scroll { overflow-x:auto;border-radius:6px;background:#14141e;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 8px 22px rgba(0,0,0,0.5); }
+.coupon-table { width:100%;border-collapse:collapse;min-width:520px;font-family:'Inter',system-ui,sans-serif; }
+.coupon-table thead th { font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.5);padding:0.85rem 1rem;text-align:left;border-bottom:1px solid rgba(220,230,255,0.06); }
+.coupon-table tbody td { padding:0.75rem 1rem;font-size:0.85rem;color:#eef0fa;border-bottom:1px solid rgba(220,230,255,0.05);vertical-align:middle; }
+.coupon-table tbody tr:last-child td { border-bottom:none; }
+.coupon-table tbody tr:hover td { background:rgba(220,230,255,0.025); }
+.ct-col-redeemed { width:88px; }
+.ct-col-action { width:90px; }
+.ct-code { font-family:'JetBrains Mono','Consolas',monospace;font-size:0.82rem;letter-spacing:0.04em;color:#c9a84c; }
+.ct-reward { color:rgba(220,228,245,0.8); }
+.ct-expiry { color:rgba(220,228,245,0.55);font-size:0.78rem; }
+.ct-check { width:16px;height:16px;cursor:pointer;accent-color:#c9a84c; }
+.ct-copy-btn { background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#c9a84c;font-size:0.72rem;padding:4px 12px;border-radius:3px;cursor:pointer;font-family:inherit;letter-spacing:0.06em;transition:background 0.15s; }
+.ct-copy-btn:hover { background:rgba(201,168,76,0.22); }
+.coupon-table tbody tr.ct-row-done td { opacity:0.45; }
+.coupon-table tbody tr.ct-row-done .ct-code,
+.coupon-table tbody tr.ct-row-done .ct-reward { text-decoration:line-through; }
 </style>
 
 <div id="toast-stack"></div>
@@ -449,6 +495,33 @@ document.addEventListener('click', function(e) {
   }
   if (action === 'redeem-special-code') redeemSpecialCode();
 });
+
+// Coupon table — restore per-code redeemed state from localStorage and persist on change.
+(function(){
+  var REDEEMED_KEY = 'bd2_coupon_redeemed';
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(REDEEMED_KEY) || '{}') || {}; } catch(e) { return {}; }
+  }
+  function saveState(s) { try { localStorage.setItem(REDEEMED_KEY, JSON.stringify(s)); } catch(e) {} }
+  var state = loadState();
+  document.querySelectorAll('.ct-check').forEach(function(cb){
+    var code = cb.dataset.code;
+    if (!code) return;
+    if (state[code]) {
+      cb.checked = true;
+      var row = cb.closest('tr');
+      if (row) row.classList.add('ct-row-done');
+    }
+    cb.addEventListener('change', function(){
+      var s = loadState();
+      if (cb.checked) s[code] = 1;
+      else delete s[code];
+      saveState(s);
+      var row = cb.closest('tr');
+      if (row) row.classList.toggle('ct-row-done', cb.checked);
+    });
+  });
+})();
 
 var manualInput = document.getElementById('manual-code');
 if (manualInput) manualInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') redeemManual(); });
