@@ -1035,8 +1035,10 @@ export async function handleAdmin(request, env) {
           <label>Unlock Mode</label>
           <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <option value="count">Count (click element N times)</option>
+            <option value="count_then_seal">Count then Seal (count an element, then click Phys/Magic)</option>
             <option value="sequence">Sequence (elements in exact order)</option>
             <option value="letter_sequence">Letter Sequence (click set cards)</option>
+            <option value="char_sequence">Character Sequence (click characters in side-nav circle)</option>
             <option value="who_am_i">Who Am I? (ghost portrait)</option>
             <option value="nav_icon_tap">Nav Icon Tap (Mamonir icon in navbar)</option>
           </select>
@@ -1093,6 +1095,22 @@ export async function handleAdmin(request, env) {
             <input type="text" id="set-cfg-wai-answer" placeholder="e.g. Synae">
             <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
           </div>
+        </div>
+
+        <!-- Seal target (count_then_seal mode) -->
+        <div id="set-cfg-seal-wrap" class="form-group" style="display:none">
+          <label>Seal Target <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(Atk type the player must click after the count is reached)</span></label>
+          <select id="set-cfg-seal" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
+            ${atkTypesServer.map(t => '<option value="' + esc(t.toLowerCase()) + '">' + esc(t) + '</option>').join('')}
+          </select>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">After clicking the Element Target N times, the player clicks the chosen Atk filter button to seal the unlock.</div>
+        </div>
+
+        <!-- Character sequence (char_sequence mode) -->
+        <div id="set-cfg-char-seq-wrap" class="form-group" style="display:none">
+          <label>Character Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-separated character slugs in order)</span></label>
+          <input type="text" id="set-cfg-char-seq" placeholder="e.g. dalvi,rou,tyr,yuri,mamonir" autocomplete="off">
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, rou, tyr, yuri, mamonir, liatris, zenith.</div>
         </div>
         <!-- Unlock Reveal (image + message) -->
         <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
@@ -2139,6 +2157,14 @@ function renderSetConfig(sn) {
   if ((s.unlock_mode || 'count') === 'who_am_i') {
     if (g('set-cfg-wai-answer')) g('set-cfg-wai-answer').value = s.unlock_sequence || '';
   }
+  // count_then_seal seal target — stored in unlock_sequence
+  if ((s.unlock_mode || '') === 'count_then_seal') {
+    if (g('set-cfg-seal')) g('set-cfg-seal').value = (s.unlock_sequence || 'magic').toLowerCase();
+  }
+  // char_sequence — comma list in unlock_sequence
+  if ((s.unlock_mode || '') === 'char_sequence') {
+    if (g('set-cfg-char-seq')) g('set-cfg-char-seq').value = s.unlock_sequence || '';
+  }
   updateSetCfgModeUI(s.unlock_mode || 'count');
   // If who_am_i, load char list with preselect AFTER updateSetCfgModeUI shows the wrap
   if ((s.unlock_mode || 'count') === 'who_am_i') {
@@ -2158,19 +2184,23 @@ function updateElemPickerDisplay(elem) {
 
 function updateSetCfgModeUI(mode) {
   function g(id) { return document.getElementById(id); }
-  var isCount = mode === 'count';
-  var isWho   = mode === 'who_am_i';
-  var isSeq   = mode === 'sequence' || mode === 'letter_sequence';
+  var isCount      = mode === 'count';
+  var isSeal       = mode === 'count_then_seal';
+  var isWho        = mode === 'who_am_i';
+  var isSeq        = mode === 'sequence' || mode === 'letter_sequence';
+  var isCharSeq    = mode === 'char_sequence';
+  var needsTarget  = isCount || isSeal;
   // Show/hide standard fields
-  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = isCount ? '' : 'none';
-  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq   ? '' : 'none';
-  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = isCount ? '' : 'none';
-  // Show/hide who_am_i block
-  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho   ? '' : 'none';
+  if (g('set-cfg-target-wrap'))    g('set-cfg-target-wrap').style.display    = needsTarget ? '' : 'none';
+  if (g('set-cfg-sequence-wrap'))  g('set-cfg-sequence-wrap').style.display  = isSeq       ? '' : 'none';
+  if (g('set-cfg-count-wrap'))     g('set-cfg-count-wrap').style.display     = needsTarget ? '' : 'none';
+  if (g('set-cfg-who-am-i-wrap'))  g('set-cfg-who-am-i-wrap').style.display  = isWho       ? '' : 'none';
+  if (g('set-cfg-seal-wrap'))      g('set-cfg-seal-wrap').style.display      = isSeal      ? '' : 'none';
+  if (g('set-cfg-char-seq-wrap'))  g('set-cfg-char-seq-wrap').style.display  = isCharSeq   ? '' : 'none';
   // Update sequence labels
   if (g('set-cfg-sequence-label')) g('set-cfg-sequence-label').textContent = mode === 'letter_sequence' ? 'Letter Sequence' : 'Element Sequence';
   if (g('set-cfg-sequence-note'))  g('set-cfg-sequence-note').textContent   = mode === 'letter_sequence' ? 'Player must click these set cards in this order on the Emotes page.' : 'Player must click elements in this order on the Characters page. Up to 8 positions; repeats allowed.';
-  // Build the 5 positional selects for the sequence
+  // Build the positional selects for the (element) sequence
   buildSequenceSelects(mode);
   // (who_am_i char list loaded by renderSetConfig after this runs)
 }
@@ -2372,17 +2402,24 @@ async function saveSetConfig() {
   var sn = _settingsCurrentSet || 1;
   function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
   var mode = gv('set-cfg-mode') || 'count';
-  var isWho = mode === 'who_am_i';
+  var isWho     = mode === 'who_am_i';
+  var isSeal    = mode === 'count_then_seal';
+  var isCharSeq = mode === 'char_sequence';
+  var sequenceVal;
+  if (isWho)          sequenceVal = gv('set-cfg-wai-answer');
+  else if (isSeal)    sequenceVal = gv('set-cfg-seal');
+  else if (isCharSeq) sequenceVal = gv('set-cfg-char-seq');
+  else                sequenceVal = gv('set-cfg-sequence');
   var body = {
     set_num: sn,
     name: gv('set-cfg-name') || ('Set ' + sn),
     set_letter: gv('set-cfg-letter'),
     hint: gv('set-cfg-hint'),
-    unlock_page: gv('set-cfg-page') || 'characters',
+    unlock_page: isCharSeq ? 'sidebar' : (gv('set-cfg-page') || 'characters'),
     unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
     unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,
     unlock_mode: mode,
-    unlock_sequence: isWho ? gv('set-cfg-wai-answer') : gv('set-cfg-sequence'),
+    unlock_sequence: sequenceVal,
     cover_key: (_esSets[sn] && _esSets[sn].cover_key) || '',
     unlock_message: gv('set-cfg-unlock-msg'),
   };

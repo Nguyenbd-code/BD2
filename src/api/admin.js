@@ -193,10 +193,10 @@ export async function handleAdminApi(request, env) {
       await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
-      const validModes = ['count', 'sequence', 'letter_sequence', 'who_am_i', 'nav_icon_tap'];
+      const validModes = ['count', 'count_then_seal', 'sequence', 'letter_sequence', 'char_sequence', 'who_am_i', 'nav_icon_tap'];
       const mode = validModes.includes(body.unlock_mode) ? body.unlock_mode : 'count';
       let sequence = (body.unlock_sequence || '').toString().trim();
-      if (mode === 'sequence') {
+      if (mode === 'sequence' || mode === 'char_sequence' || mode === 'count_then_seal') {
         sequence = sequence.toLowerCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
       } else if (mode === 'letter_sequence') {
         sequence = sequence.toUpperCase().split(',').map(s => s.trim()).filter(Boolean).join(',');

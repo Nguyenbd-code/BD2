@@ -142,6 +142,17 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   <a href="/coupons"${activePage === 'coupons' ? ' class="nav-active"' : ''}>Coupons</a>
   <a href="/emotes"${activePage === 'emotes' ? ' class="nav-active"' : ''}>Kitsu's Emotes</a>
   <a href="/characters"${activePage === 'characters' ? ' class="nav-active"' : ''}>Characters</a>
+  <div id="char-circle" class="char-circle" aria-hidden="true">
+    <button type="button" class="char-pos char-pos-center" data-char="mamonir" aria-label="Mamonir">
+      <img src="/img/char_idle_mamonir" alt="" draggable="false">
+    </button>
+    <button type="button" class="char-pos" style="--a:0deg" data-char="zenith" aria-label="Zenith"><img src="/img/char_idle_zenith" alt="" draggable="false"></button>
+    <button type="button" class="char-pos" style="--a:60deg" data-char="rou" aria-label="Rou"><img src="/img/char_idle_rou" alt="" draggable="false"></button>
+    <button type="button" class="char-pos" style="--a:120deg" data-char="tyr" aria-label="Tyr"><img src="/img/char_idle_tyr" alt="" draggable="false"></button>
+    <button type="button" class="char-pos" style="--a:180deg" data-char="yuri" aria-label="Yuri"><img src="/img/char_idle_yuri" alt="" draggable="false"></button>
+    <button type="button" class="char-pos" style="--a:240deg" data-char="liatris" aria-label="Liatris"><img src="/img/char_idle_liatris" alt="" draggable="false"></button>
+    <button type="button" class="char-pos" style="--a:300deg" data-char="dalvi" aria-label="Dalvi"><img src="/img/char_idle_dalvi" alt="" draggable="false"></button>
+  </div>
 </aside>
 <div id="nav-backdrop" class="nav-backdrop"></div>
 <script>
@@ -168,6 +179,60 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   if (bd) bd.addEventListener('click', close);
   side.addEventListener('click', function(e){ if (e.target.tagName === 'A') close(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+})();
+
+// Character-circle widget — Set 4 (char_sequence) unlock mechanic.
+(function(){
+  var circle = document.getElementById('char-circle');
+  if (!circle) return;
+  function hideIfSolved() {
+    if (localStorage.getItem('kitsu_set_4') === '1') circle.style.display = 'none';
+  }
+  hideIfSolved();
+  var charSetCache = null;
+  function loadSets() {
+    if (charSetCache) return Promise.resolve(charSetCache);
+    return fetch('/api/emote-sets').then(function(r){return r.json();}).then(function(d){
+      charSetCache = (d && d.sets) || [];
+      return charSetCache;
+    }).catch(function(){ return []; });
+  }
+  circle.addEventListener('click', function(e){
+    var b = e.target.closest('.char-pos');
+    if (!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var slug = (b.dataset.char || '').toLowerCase();
+    if (!slug) return;
+    b.classList.remove('char-pos-tap');
+    void b.offsetWidth;
+    b.classList.add('char-pos-tap');
+    setTimeout(function(){ b.classList.remove('char-pos-tap'); }, 250);
+    loadSets().then(function(sets){
+      sets.forEach(function(s){
+        if ((s.unlock_mode||'') !== 'char_sequence') return;
+        if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+        var seq = (s.unlock_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
+        if (!seq.length) return;
+        var recentKey = 'kitsu_char_clicks';
+        var recent = [];
+        try { recent = JSON.parse(localStorage.getItem(recentKey) || '[]'); } catch(_){}
+        recent.push(slug);
+        if (recent.length > 30) recent = recent.slice(-30);
+        localStorage.setItem(recentKey, JSON.stringify(recent));
+        var tail = recent.slice(-seq.length);
+        if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
+          localStorage.setItem('kitsu_set_' + s.set_num, '1');
+          hideIfSolved();
+          if (window.showSetUnlockModal) {
+            var name = s.name || ('Set ' + s.set_num);
+            var msg = s.unlock_message || 'Set unlocked!';
+            window.showSetUnlockModal(s.set_num, name, msg);
+          }
+        }
+      });
+    });
+  });
 })();
 </script>
 <main>${content}</main>

@@ -43,7 +43,7 @@ export async function handleCharacters(request, env) {
       ? `/img/char_${esc(slug)}_${esc(baseCostume.costume_slug)}_icon`
       : `/img/char_${esc(slug)}_portrait`;
 
-    return `<div class="char-page-card" data-element="${esc(el)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
+    return `<div class="char-page-card" data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
   <div class="char-img-wrap">
     <span class="char-initial">${esc(char.name.charAt(0))}</span>
     <img src="${defaultImg}" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
@@ -95,6 +95,13 @@ export async function handleCharacters(request, env) {
         <span class="efb-fallback" style="color:${elemColors[el]}">${esc(el.charAt(0))}</span>
       </span>
       <span>${esc(el)}</span>
+    </button>`).join('')}
+    ${atkTypes.map(at => `
+    <button class="elem-filter-btn atk-filter-btn" data-atk-type="${esc(at)}" style="--el:#FFFFFF">
+      <span class="efb-icon-wrap">
+        <img src="/img/atk_${esc(at.toLowerCase())}" class="img-err-hide efb-icon" alt="">
+      </span>
+      <span>${esc(at)}</span>
     </button>`).join('')}
   </div>
 
@@ -246,6 +253,36 @@ function setupWhoAmI() {
 
 // Delegated element-filter handler — survives if KITSU_SETS load fails
 document.addEventListener('click', function(e) {
+  var atkBtn = e.target.closest('.atk-filter-btn');
+  if (atkBtn) {
+    try {
+      document.querySelectorAll('.elem-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      atkBtn.classList.add('active');
+      var at = (atkBtn.dataset.atkType || '').toLowerCase();
+      document.querySelectorAll('#char-grid .char-page-card').forEach(function(card) {
+        if (card.classList.contains('char-coming-soon')) return;
+        var ca = (card.dataset.atkType || '').toLowerCase();
+        card.style.display = (!at || ca === at) ? '' : 'none';
+      });
+      // Track atk-type click for count_then_seal sealing
+      if (at && (window.KITSU_SETS || []).length) {
+        window.KITSU_SETS.forEach(function(s) {
+          if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+          if ((s.unlock_mode || '') !== 'count_then_seal') return;
+          var countKey = 'kitsu_set_' + s.set_num + '_count';
+          var c = parseInt(localStorage.getItem(countKey) || '0', 10);
+          var needed = s.unlock_count || 7;
+          var seal = (s.unlock_sequence || '').toLowerCase().trim();
+          if (c >= needed && seal && at === seal) {
+            localStorage.setItem('kitsu_set_' + s.set_num, '1');
+            localStorage.removeItem(countKey);
+            showUnlockToast(s.set_num);
+          }
+        });
+      }
+    } catch (err) {}
+    return;
+  }
   var btn = e.target.closest('.elem-filter-btn');
   if (!btn) return;
   try {
@@ -286,6 +323,16 @@ document.addEventListener('click', function(e) {
             localStorage.setItem('kitsu_set_' + s.set_num, '1');
             showUnlockToast(s.set_num);
           }
+        } else if (mode === 'count_then_seal') {
+          if (!(s.unlock_target || '')) return;
+          if ((s.unlock_target || '').toLowerCase() !== el) return;
+          var ckey = 'kitsu_set_' + s.set_num + '_count';
+          var cc = parseInt(localStorage.getItem(ckey) || '0', 10);
+          if (cc < (s.unlock_count || 7)) {
+            cc++;
+            localStorage.setItem(ckey, String(cc));
+          }
+          // Unlock only after the seal atk-type click — see atk-filter handler.
         }
         // letter_sequence and who_am_i handled elsewhere
       });
