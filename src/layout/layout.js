@@ -16,7 +16,7 @@ export async function layout(title, content, activePage = '', env = null) {
 
   const mamonirHtml = hasMamonir ? `
   <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
-    <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:58px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
+    <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
   </div>
   <script>
   (function(){
