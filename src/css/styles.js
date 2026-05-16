@@ -6,8 +6,8 @@ export function getStyles() {
    Editorial dark-theme tier card. Used so far only by the home page's
    compCard(); we'll roll the same direction out to other components if
    this lands well. */
-.codex-card{position:relative;display:block;text-decoration:none;background:#100c0a;border-radius:4px;overflow:hidden;isolation:isolate;box-shadow:0 1px 0 rgba(255,255,255,0.02) inset,0 8px 24px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.6);transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s ease;}
-.codex-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 16px 36px rgba(0,0,0,0.6),0 2px 4px rgba(0,0,0,0.7);}
+.codex-card{position:relative;display:block;text-decoration:none;background:#1a1612;border-radius:4px;overflow:hidden;isolation:isolate;box-shadow:0 1px 0 rgba(255,235,200,0.06) inset,0 0 0 1px rgba(255,235,200,0.04),0 10px 28px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s ease;}
+.codex-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,235,200,0.09) inset,0 0 0 1px rgba(255,235,200,0.07),0 18px 38px rgba(0,0,0,0.65),0 3px 6px rgba(0,0,0,0.7);}
 .codex-card::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.18;z-index:0;}
 .codex-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--codex-accent,#b48e3c);z-index:2;}
 .codex-card-inner{position:relative;z-index:1;padding:1.15rem 1.25rem 1.15rem 1.45rem;display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;}
@@ -153,7 +153,7 @@ main{padding-top:74px;position:relative;z-index:1;}
 @media(max-width:600px){
   .char-card-wrap{flex:0 1 calc(50% - 0.375rem) !important;max-width:calc(50% - 0.375rem) !important;min-width:0 !important;}
 }
-.card{position:relative;background:#100c0a;border-radius:4px;padding:1.5rem;isolation:isolate;box-shadow:0 1px 0 rgba(255,255,255,0.02) inset,0 6px 18px rgba(0,0,0,0.4),0 1px 2px rgba(0,0,0,0.55);}
+.card{position:relative;background:#1a1612;border-radius:4px;padding:1.5rem;isolation:isolate;box-shadow:0 1px 0 rgba(255,235,200,0.06) inset,0 0 0 1px rgba(255,235,200,0.04),0 8px 22px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);}
 .card::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.14;z-index:0;border-radius:4px;}
 .card > *{position:relative;z-index:1;}
 .card-title{display:inline-flex;align-items:center;gap:0.7rem;font-family:'Inter',system-ui,sans-serif;font-size:0.66rem;font-weight:600;color:rgba(245,235,216,0.5);letter-spacing:0.24em;text-transform:uppercase;margin:0 0 1.1rem 0;padding:0;border:none;}
