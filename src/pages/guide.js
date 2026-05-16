@@ -216,15 +216,15 @@ function renderComp(comp, mediaMap) {
   const counters    = comp.counters || [];
   const counteredBy = comp.countered_by || [];
 
-  // Parse card label (stored as "green:text" or "red:text" in short_description)
+  // Parse guide card label (stored as "green:text" or "red:text" in guide_label)
   let cardLabelHtml = '';
-  const sdRaw = comp.short_description || '';
-  if (sdRaw) {
-    const sdMatch = sdRaw.match(/^(green|red):(.+)$/s);
-    const labelColor = sdMatch ? (sdMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
-    const labelBg    = sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
-    const labelBorder= sdMatch ? (sdMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
-    const labelText  = sdMatch ? sdMatch[2] : sdRaw;
+  const glRaw = comp.guide_label || '';
+  if (glRaw) {
+    const glMatch = glRaw.match(/^(green|red):(.+)$/s);
+    const labelColor = glMatch ? (glMatch[1] === 'green' ? '#2ecc71' : '#e74c3c') : 'var(--gold)';
+    const labelBg    = glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.15)' : 'rgba(192,57,43,0.15)') : 'rgba(201,168,76,0.1)';
+    const labelBorder= glMatch ? (glMatch[1] === 'green' ? 'rgba(39,174,96,0.3)' : 'rgba(192,57,43,0.3)') : 'rgba(201,168,76,0.3)';
+    const labelText  = glMatch ? glMatch[2] : glRaw;
     cardLabelHtml = `<div style="display:inline-block;background:${labelBg};border:1px solid ${labelBorder};color:${labelColor};font-size:0.78rem;padding:4px 14px;border-radius:3px;margin-top:0.3rem">${esc(labelText)}</div>`;
   }
 
@@ -293,6 +293,7 @@ function renderComp(comp, mediaMap) {
 
 export async function handleGuide(request, env) {
   let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {};
+  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
     const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
