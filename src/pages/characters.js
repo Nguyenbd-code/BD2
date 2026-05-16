@@ -68,7 +68,7 @@ export async function handleCharacters(request, env) {
 </div>`;
   }).join('');
 
-  return layout('Characters', `
+  return await layout('Characters', `
 <div style="max-width:1400px;margin:0 auto;padding:2rem 1.5rem">
   <h1 style="font-family:'Cinzel',serif;color:var(--gold);font-size:1.8rem;margin-bottom:0.25rem">Characters</h1>
   <div style="width:40px;height:2px;background:var(--gold);margin-bottom:0.5rem;opacity:0.5"></div>
@@ -306,5 +306,5 @@ document.addEventListener('change', function(e) {
   } catch(err) {}
 });
 </script>
-`, 'characters');
+`, 'characters', env);
 }

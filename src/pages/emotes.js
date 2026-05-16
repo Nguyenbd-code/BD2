@@ -15,6 +15,7 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
 
+  const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
   const set2Riddle = "Six marks lie hidden where expressions live.\nFive belong to the name you seek. One does not.\nPress what feels out of place last.\nBefore it, trace the name that was always there: not spoken in order, but remembered in feeling.\nBegin where silence feels sharp, not soft, and end with what does not belong.";
   const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
   const set6Hint = "Among the many who are remembered, one does not belong to memory.\nNot in strength, not in name… but in presence.\n\nLook carefully through those who should feel familiar.\nSomething exists that was never meant to be part of them.\n\nA portrait that does not match the world around it.\nA face that does not answer to any story.\n\nWhen you find what should not exist, do not treat it as a character.\nOpen it. Listen. Then ask the question it offers you.\n\n\"Who am I?\"\n\nThe answer is already known, it only forgot its shape.";
@@ -24,7 +25,7 @@ async function ensureSchema(env) {
     const defaults = [
       [1, 'S', 'S', 'My favorite girl has how many letters? Count them and click her element that many times on the Characters page.', 'characters', 'water', 7, 'count', ''],
       [2, 'T', 'T', set2Riddle, 'emotes', '', 0, 'letter_sequence', 'K,I,T,S,U'],
-      [3, 'K', 'K', 'Secret hint coming soon.', 'characters', 'wind', 5, 'count', ''],
+      [3, 'K', 'K', set3Riddle, 'navigation', '', 0, 'nav_icon_tap', ''],
       [4, 'I', 'I', 'Secret hint coming soon.', 'characters', 'light', 5, 'count', ''],
       [5, 'M', 'M', set5Riddle, 'characters', '', 0, 'sequence', 'water,fire,light,dark,wind'],
       [6, 'U', 'U', set6Hint, 'characters', 'synae', 0, 'who_am_i', 'Synae'],
@@ -48,6 +49,12 @@ async function ensureSchema(env) {
     }
     // Always ensure set 6 exists
     await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
+    // Migrate set 3 to nav_icon_tap mode (once)
+    const set3MigDone = await env.DB.prepare("SELECT data FROM images WHERE key='emote_set3_nav_migrated'").first().catch(()=>null);
+    if (!set3MigDone) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_set3_nav_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='navigation', unlock_target='', unlock_count=0, unlock_mode='nav_icon_tap', unlock_sequence='' WHERE set_num=3").bind(set3Riddle).run().catch(()=>{});
+    }
   }
 }
 
@@ -121,7 +128,7 @@ export async function handleEmotes(request, env) {
     </div>`;
   }).join('');
 
-  return layout("Kitsu's Emotes", `
+  return await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center">
@@ -392,5 +399,5 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
-`, 'emotes');
+`, 'emotes', env);
 }

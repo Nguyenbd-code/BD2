@@ -1,6 +1,51 @@
 import { getStyles } from '../css/styles.js';
 
-export function layout(title, content, activePage = '') {
+export async function layout(title, content, activePage = '', env = null) {
+  let tapTarget = 7;
+  let hasMamonir = false;
+  if (env) {
+    try {
+      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first();
+      if (row && row.data) hasMamonir = true;
+    } catch {}
+    try {
+      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first();
+      if (row && row.data) tapTarget = Math.max(1, parseInt(row.data, 10) || 7);
+    } catch {}
+  }
+
+  const mamonirHtml = hasMamonir ? `
+  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
+    <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:32px;width:auto;display:block;image-rendering:pixelated;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
+  </div>
+  <script>
+  (function(){
+    var KEY = 'kitsu_mamonir_taps';
+    var TARGET = ${tapTarget};
+    var wrap = document.getElementById('mam-wrap');
+    var icon = document.getElementById('mam-icon');
+    if (!wrap || !icon) return;
+    if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
+    var n = parseInt(localStorage.getItem(KEY) || '0', 10);
+    wrap.addEventListener('click', function(e) {
+      e.preventDefault();
+      n++;
+      localStorage.setItem(KEY, String(n));
+      icon.style.transform = 'scale(0.85)';
+      setTimeout(function() { icon.style.transform = ''; }, 120);
+      if (n >= TARGET) {
+        localStorage.setItem('kitsu_set_3', '1');
+        localStorage.removeItem(KEY);
+        wrap.style.transition = 'transform 0.7s ease-in, opacity 0.7s ease-in';
+        wrap.style.transformOrigin = 'top center';
+        wrap.style.transform = 'translateY(80px) rotate(25deg)';
+        wrap.style.opacity = '0';
+        setTimeout(function() { wrap.style.display = 'none'; }, 750);
+      }
+    });
+  })();
+  </script>` : '';
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,7 +64,10 @@ export function layout(title, content, activePage = '') {
     <a href="/emotes"${activePage === 'emotes' ? ' style="color:var(--gold)"' : ''}>Kitsu's Emotes</a>
     <a href="/characters"${activePage === 'characters' ? ' style="color:var(--gold)"' : ''}>Characters</a>
   </div>
-  <div class="nav-admin"><a href="/admin">Admin</a></div>
+  <div class="nav-admin" style="display:flex;align-items:center;gap:4px">
+    ${mamonirHtml}
+    <a href="/admin">Admin</a>
+  </div>
 </nav>
 <main>${content}</main>
 <footer>

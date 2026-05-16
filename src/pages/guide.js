@@ -437,7 +437,7 @@ export async function handleGuide(request, env) {
     compsHtml += defComps.map(buildCompHtml).join('');
   }
 
-  return layout('PvP Guide', `
+  return await layout('PvP Guide', `
 <div style="display:flex;padding-top:1rem">
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
@@ -550,5 +550,5 @@ function openLightbox(src) {
   document.body.appendChild(ov);
 }
 </script>
-`, 'guide');
+`, 'guide', env);
 }

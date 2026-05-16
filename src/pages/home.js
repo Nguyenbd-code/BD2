@@ -53,7 +53,7 @@ export async function handleHome(request, env) {
     }
   } catch { /* ignore */ }
 
-  return layout('Home', `
+  return await layout('Home', `
 <div class="hero">
   <div class="hero-tag">PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
@@ -155,5 +155,5 @@ export async function handleHome(request, env) {
   };
 })();
 </script>
-`, 'home');
+`, 'home', env);
 }
