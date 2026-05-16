@@ -1,6 +1,22 @@
 export function getStyles() {
   return `
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap');
+
+/* ── Codex card (Brown Dust Codex direction pilot) ────────────────────────
+   Editorial dark-theme tier card. Used so far only by the home page's
+   compCard(); we'll roll the same direction out to other components if
+   this lands well. */
+.codex-card{position:relative;display:block;text-decoration:none;background:#100c0a;border-radius:4px;overflow:hidden;isolation:isolate;box-shadow:0 1px 0 rgba(255,255,255,0.02) inset,0 8px 24px rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.6);transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s ease;}
+.codex-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 16px 36px rgba(0,0,0,0.6),0 2px 4px rgba(0,0,0,0.7);}
+.codex-card::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.18;z-index:0;}
+.codex-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--codex-accent,#b48e3c);z-index:2;}
+.codex-card-inner{position:relative;z-index:1;padding:1.15rem 1.25rem 1.15rem 1.45rem;display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;}
+.codex-tier{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:2.4rem;line-height:0.85;color:var(--codex-accent,#b48e3c);letter-spacing:-0.025em;margin-top:0.05em;text-shadow:0 1px 2px rgba(0,0,0,0.4);}
+.codex-body{display:flex;flex-direction:column;gap:0.45rem;min-width:0;}
+.codex-meta{display:flex;align-items:center;gap:0.55rem;font-family:'Inter',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,235,216,0.42);}
+.codex-meta-dot{width:4px;height:4px;border-radius:50%;background:var(--codex-accent,#b48e3c);box-shadow:0 0 6px var(--codex-accent,#b48e3c);}
+.codex-name{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:1.05rem;line-height:1.25;color:#f5ebd8;letter-spacing:-0.005em;margin:0;}
+.codex-desc{font-family:'Inter',system-ui,sans-serif;font-size:0.76rem;line-height:1.6;color:rgba(245,235,216,0.6);margin:0;}
 :root {
   --bg:#0a0a0f; --bg2:#0f0f18; --bg3:#13131e; --bg4:#1a1a28;
   --gold:#c9a84c; --gold2:#e8c76a; --gold3:#a07830;

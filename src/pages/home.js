@@ -1,20 +1,23 @@
 import { layout, esc } from '../layout/layout.js';
 
 function compCard(comp) {
-  const color     = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
-  const rawDesc = (comp.short_description || comp.description || '').replace(/^(green|red):/, '').substring(0, 80);
-  const shortDesc = esc(rawDesc);
-  const typeIcon  = comp.type === 'ATK' ? '⚔' : '🛡';
-  const tier      = comp.tier || '';
-  const anchor    = tier.toLowerCase().replace(/[^a-z0-9]/g,'');
-  return `<a href="/guide#${anchor}" style="text-decoration:none">
-    <div class="comp-card" style="--comp-card-hover-color:${color};background:var(--bg3);border:1px solid rgba(201,168,76,0.1);border-top:3px solid ${color};border-radius:8px;padding:1rem;transition:border-color 0.2s">
-      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
-        <span style="background:${color};color:#fff;font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:3px">${esc(tier)}</span>
-        <span style="font-size:0.72rem;color:var(--text3)">${typeIcon} ${esc(comp.type||'')}</span>
+  const color = (comp.color && comp.color !== 'undefined') ? comp.color : '#b48e3c';
+  const rawDesc = (comp.short_description || comp.description || '').replace(/^(green|red):/, '');
+  const tier = comp.tier || '';
+  const type = (comp.type || 'ATK').toUpperCase();
+  const typeLabel = type === 'ATK' ? 'Attack' : 'Defense';
+  const anchor = tier.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `<a class="codex-card" style="--codex-accent:${color}" href="/guide#${anchor}">
+    <div class="codex-card-inner">
+      <div class="codex-tier">${esc(tier)}</div>
+      <div class="codex-body">
+        <div class="codex-meta">
+          <span class="codex-meta-dot"></span>
+          <span>${esc(typeLabel)}</span>
+        </div>
+        <h3 class="codex-name">${esc(comp.name || '')}</h3>
+        <p class="codex-desc">${esc(rawDesc)}</p>
       </div>
-      <div style="font-family:'Cinzel',serif;font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:0.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(comp.name||'')}</div>
-      <div style="font-size:0.75rem;color:var(--text3);line-height:1.4">${shortDesc}</div>
     </div>
   </a>`;
 }
