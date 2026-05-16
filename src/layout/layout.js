@@ -15,8 +15,10 @@ export async function layout(title, content, activePage = '', env = null) {
   }
 
   const mamonirHtml = hasMamonir ? `
-  <div id="mam-wrap" style="position:relative;display:inline-flex;align-items:center;margin-left:6px;cursor:pointer" title="...">
-    <img id="mam-icon" src="/img/mamonir_nav" alt="" style="height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease" draggable="false">
+  <div id="mam-wrap" class="mam-wrap" aria-label="Octovius">
+    <img id="mam-icon" src="/img/mamonir_nav" alt="" draggable="false">
+    <span class="mam-tooltip">Octovius, finish it off!</span>
+    <span class="mam-bubble" id="mam-bubble"></span>
   </div>
   <script>
   (function(){
@@ -24,15 +26,32 @@ export async function layout(title, content, activePage = '', env = null) {
     var TARGET = ${tapTarget};
     var wrap = document.getElementById('mam-wrap');
     var icon = document.getElementById('mam-icon');
+    var bubble = document.getElementById('mam-bubble');
     if (!wrap || !icon) return;
     if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
+    var lines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'Hey!', 'Not again!', 'Quit it!'];
+    var lastLine = -1;
+    var bubbleTimer = null;
+    function showBubble() {
+      if (!bubble) return;
+      var idx;
+      do { idx = Math.floor(Math.random() * lines.length); } while (idx === lastLine && lines.length > 1);
+      lastLine = idx;
+      bubble.textContent = lines[idx];
+      bubble.classList.remove('mam-bubble-show');
+      void bubble.offsetWidth;
+      bubble.classList.add('mam-bubble-show');
+      if (bubbleTimer) clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(function(){ bubble.classList.remove('mam-bubble-show'); }, 1400);
+    }
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
       n++;
       localStorage.setItem(KEY, String(n));
       icon.style.transform = 'scale(0.85)';
       setTimeout(function() { icon.style.transform = ''; }, 120);
+      showBubble();
       if (n >= TARGET) {
         localStorage.setItem('kitsu_set_3', '1');
         localStorage.removeItem(KEY);
@@ -96,19 +115,36 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 };
 </script>
 <nav>
+  <button id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
   <a href="/" class="nav-logo">⚔ BnKitsu</a>
-  <div class="nav-links">
-    <a href="/"${activePage === 'home' ? ' style="color:var(--gold)"' : ''}>Home</a>
-    <a href="/guide"${activePage === 'guide' ? ' style="color:var(--gold)"' : ''}>PvP Guide</a>
-    <a href="/coupons"${activePage === 'coupons' ? ' style="color:var(--gold)"' : ''}>Coupons</a>
-    <a href="/emotes"${activePage === 'emotes' ? ' style="color:var(--gold)"' : ''}>Kitsu's Emotes</a>
-    <a href="/characters"${activePage === 'characters' ? ' style="color:var(--gold)"' : ''}>Characters</a>
+  <div class="nav-links" id="nav-links">
+    <a href="/"${activePage === 'home' ? ' class="nav-active"' : ''}>Home</a>
+    <a href="/guide"${activePage === 'guide' ? ' class="nav-active"' : ''}>PvP Guide</a>
+    <a href="/coupons"${activePage === 'coupons' ? ' class="nav-active"' : ''}>Coupons</a>
+    <a href="/emotes"${activePage === 'emotes' ? ' class="nav-active"' : ''}>Kitsu's Emotes</a>
+    <a href="/characters"${activePage === 'characters' ? ' class="nav-active"' : ''}>Characters</a>
   </div>
-  <div class="nav-admin" style="display:flex;align-items:center;gap:4px">
+  <div id="nav-backdrop" class="nav-backdrop"></div>
+  <div class="nav-admin">
     ${mamonirHtml}
     <a href="/admin">Admin</a>
   </div>
 </nav>
+<script>
+(function(){
+  var btn = document.getElementById('nav-toggle');
+  var links = document.getElementById('nav-links');
+  var bd = document.getElementById('nav-backdrop');
+  if (!btn || !links) return;
+  function close(){ links.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); if(bd) bd.classList.remove('open'); }
+  function open(){ links.classList.add('open'); btn.classList.add('open'); btn.setAttribute('aria-expanded','true'); if(bd) bd.classList.add('open'); }
+  btn.addEventListener('click', function(){ links.classList.contains('open') ? close() : open(); });
+  if (bd) bd.addEventListener('click', close);
+  links.addEventListener('click', function(e){ if (e.target.tagName === 'A') close(); });
+})();
+</script>
 <main>${content}</main>
 <footer>
   BnKitsu BD2 Guide — browndust2-bnkitsu.com<br>

@@ -31,7 +31,7 @@ export async function handleImage(request, env) {
   return new Response(bytes.buffer, {
     headers: {
       'Content-Type': mimeType,
-      'Cache-Control': 'no-store',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
     },
   });
 }

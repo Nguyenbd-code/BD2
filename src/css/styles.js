@@ -16,8 +16,37 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-links{display:flex;gap:1.5rem;align-items:center;overflow-x:auto;flex:1;}
 .nav-links a{color:var(--text2);text-decoration:none;font-size:0.85rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;transition:color 0.2s;white-space:nowrap;}
 .nav-links a:hover{color:var(--gold);}
-.nav-admin{margin-left:auto;}
-.nav-admin a{background:var(--gold3);color:var(--bg);padding:6px 14px;border-radius:4px;text-decoration:none;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;}
+.nav-links a.nav-active{color:var(--gold);}
+.nav-admin{margin-left:auto;display:flex;align-items:center;gap:4px;}
+.nav-admin>a{background:var(--gold3);color:var(--bg);padding:6px 14px;border-radius:4px;text-decoration:none;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;}
+.nav-toggle{display:none;background:transparent;border:1px solid var(--border);border-radius:5px;width:38px;height:34px;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.nav-toggle span{display:block;width:18px;height:2px;background:var(--gold);border-radius:1px;transition:transform 0.2s,opacity 0.2s;}
+.nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+.nav-toggle.open span:nth-child(2){opacity:0;}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+.nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
+.nav-backdrop.open{display:block;}
+
+/* Mamonir nav icon */
+.mam-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;min-width:80px;}
+.mam-wrap img{height:120px;width:auto;display:block;image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transition:transform 0.08s ease;-webkit-user-drag:none;pointer-events:none;}
+.mam-tooltip{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--gold);font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:0.06em;padding:5px 10px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;box-shadow:0 4px 14px rgba(0,0,0,0.6);z-index:101;}
+.mam-wrap:hover .mam-tooltip{opacity:1;}
+.mam-bubble{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%) translateY(4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
+.mam-bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(201,168,76,0.45);}
+.mam-bubble-show{animation:mam-bubble-pop 1.4s ease-out forwards;}
+@keyframes mam-bubble-pop{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(0.85);}15%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}80%{opacity:1;transform:translateX(-50%) translateY(-2px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(0.95);}}
+
+@media(max-width:820px){
+  nav{padding:0 1rem;gap:0.75rem;}
+  .nav-toggle{display:flex;}
+  .nav-links{position:fixed;top:60px;left:0;bottom:0;width:260px;max-width:80vw;background:rgba(10,10,15,0.98);border-right:1px solid var(--border);flex-direction:column;align-items:stretch;gap:0;padding:1rem 0;overflow-y:auto;transform:translateX(-100%);transition:transform 0.22s ease;z-index:100;}
+  .nav-links.open{transform:translateX(0);}
+  .nav-links a{padding:0.9rem 1.5rem;border-left:3px solid transparent;font-size:0.95rem;}
+  .nav-links a:hover{background:rgba(201,168,76,0.06);}
+  .nav-links a.nav-active{border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
+  .mam-wrap{display:none;}
+}
 main{padding-top:60px;position:relative;z-index:1;}
 .hero{padding:5rem 2rem 3rem;text-align:center;position:relative;}
 .hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
