@@ -100,7 +100,7 @@ export async function handleEmotes(request, env) {
       </div>`).join('');
     return `
     <div class="set-card" data-set="${sn}">
-      <div class="set-cover">
+      <div class="set-cover" data-cover-set="${sn}">
         ${cover ? `<img src="${cover}" alt="${displayName}" class="img-err-hide">` : `<span class="set-cover-placeholder">${displayName}</span>`}
         <div class="set-lock-overlay">
           <div class="set-lock-img-wrap"></div>
@@ -109,7 +109,8 @@ export async function handleEmotes(request, env) {
         </div>
       </div>
       <div class="set-info">
-        <div class="set-title">${displayName}
+        <div class="set-title">
+          <span class="set-letter-btn" data-letter-set="${sn}" tabindex="0">${displayName}</span>
           <span class="set-hint-icon" data-set="${sn}" style="cursor:pointer">?</span>
         </div>
         <div class="set-meta">${list.length} emote${list.length === 1 ? '' : 's'}</div>
@@ -187,6 +188,10 @@ export async function handleEmotes(request, env) {
 .set-lock-text { font-family:'Cinzel',serif;font-size:0.82rem;letter-spacing:0.08em; }
 .set-info { padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem; }
 .set-title { font-family:'Cinzel',serif;font-weight:700;font-size:0.95rem;color:var(--gold);display:flex;align-items:center;gap:0.5rem; }
+.set-letter-btn { display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:5px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);color:var(--gold);cursor:pointer;user-select:none;transition:transform 0.08s ease,background 0.15s ease,box-shadow 0.15s ease;box-shadow:0 1px 0 rgba(201,168,76,0.25),0 2px 6px rgba(0,0,0,0.4); }
+.set-letter-btn:hover { background:rgba(201,168,76,0.18); }
+.set-letter-btn:active, .set-letter-btn.pressed { transform:translateY(1px) scale(0.96);background:rgba(201,168,76,0.32);box-shadow:inset 0 2px 4px rgba(0,0,0,0.5); }
+.set-cover { cursor:pointer; }
 .set-hint-icon { display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:0.7rem;font-weight:700;cursor:help;flex-shrink:0; }
 .set-hint-icon:hover { background:rgba(201,168,76,0.32); }
 .set-meta { font-size:0.72rem;color:var(--text3); }
@@ -353,26 +358,32 @@ export async function handleEmotes(request, env) {
       return;
     }
 
-    var card = e.target.closest('.set-card');
-    if (!card) return;
-    var sn = parseInt(card.dataset.set, 10);
-    var setData = SETS.find(function(x) { return x.set_num === sn; });
-
-    // Record letter click for letter_sequence mechanic
-    if (setData) {
-      var letter = getLetter(setData);
-      if (letter) {
-        var lclicks = [];
-        try { lclicks = JSON.parse(localStorage.getItem('kitsu_letter_clicks') || '[]'); } catch(ex) {}
-        lclicks.push(letter);
-        if (lclicks.length > 20) lclicks = lclicks.slice(-20);
-        localStorage.setItem('kitsu_letter_clicks', JSON.stringify(lclicks));
-        checkLetterSequence(lclicks);
+    var letterBtn = e.target.closest('.set-letter-btn');
+    if (letterBtn && letterBtn.dataset.letterSet) {
+      e.stopPropagation();
+      var lsn = parseInt(letterBtn.dataset.letterSet, 10);
+      var lsetData = SETS.find(function(x) { return x.set_num === lsn; });
+      letterBtn.classList.add('pressed');
+      setTimeout(function() { letterBtn.classList.remove('pressed'); }, 160);
+      if (lsetData) {
+        var letter = getLetter(lsetData);
+        if (letter) {
+          var lclicks = [];
+          try { lclicks = JSON.parse(localStorage.getItem('kitsu_letter_clicks') || '[]'); } catch(ex) {}
+          lclicks.push(letter);
+          if (lclicks.length > 20) lclicks = lclicks.slice(-20);
+          localStorage.setItem('kitsu_letter_clicks', JSON.stringify(lclicks));
+          checkLetterSequence(lclicks);
+        }
       }
+      return;
     }
 
+    var cover = e.target.closest('[data-cover-set]');
+    if (!cover) return;
+    var sn = parseInt(cover.dataset.coverSet, 10);
+    var setData = SETS.find(function(x) { return x.set_num === sn; });
     if (!isUnlocked(sn)) return;
-    // Open emote modal
     openEmoteModal(sn, setData);
   });
 
