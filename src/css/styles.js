@@ -37,7 +37,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
    navbar vertically. The bubble lives outside the clip so it can escape. */
 .mam-wrap{position:relative;display:inline-block;width:64px;height:74px;cursor:pointer;margin-left:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;vertical-align:middle;}
 .mam-clip{position:absolute;inset:0;overflow:hidden;}
-.mam-wrap img{height:140px;width:auto;display:block;position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
+.mam-wrap img{height:160px;width:auto;display:block;position:absolute;bottom:-44px;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
 .mam-wrap img.mam-press{transform:translateX(-50%) scale(0.85);transition:transform 0.08s ease;}
 .mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
 .mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.45);}
@@ -49,7 +49,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
   .nav-admin{gap:6px;}
   .nav-admin>a{padding:5px 10px;font-size:0.72rem;}
   .mam-wrap{margin-left:0;width:56px;height:74px;}
-  .mam-wrap img{height:130px;bottom:-10px;}
+  .mam-wrap img{height:150px;bottom:-40px;}
   .mam-bubble{font-size:0.72rem;padding:5px 10px;}
 }
 main{padding-top:74px;position:relative;z-index:1;}
