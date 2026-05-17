@@ -229,10 +229,12 @@ main{padding-top:74px;position:relative;z-index:1;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
 .rot-table{display:flex;flex-direction:column;}
-.rot-row{display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;}
+.rot-table{display:flex;flex-direction:column;align-items:center;gap:0.45rem;padding:0.25rem 0;flex:1;overflow:visible;}
+.rot-row{display:flex;justify-content:center;padding:0.35rem 0;border-bottom:1px solid var(--border2);width:100%;}
 .rot-row:last-child{border-bottom:none;}
-.rot-char{font-weight:700;font-size:0.78rem;color:var(--text2);padding-top:0.25rem;text-align:center;}
-.rot-skills{display:flex;flex-wrap:nowrap;gap:0.3rem;overflow:visible;}
+/* 5 icons per visual row — flex-wrap kicks in past the 5th. Each icon
+   wrapper is ~38px; with a 0.35rem gap, five fit inside ~220px. */
+.rot-skills{display:flex;flex-wrap:wrap;justify-content:center;gap:0.45rem 0.35rem;max-width:225px;}
 .skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}
 .skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}

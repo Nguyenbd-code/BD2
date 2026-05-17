@@ -153,10 +153,10 @@ function renderComp(comp, mediaMap) {
   ${cos ? `<div class="tt-popup"><div class="tt-name">${esc(cos)}</div></div>` : ''}
 </div>`;
       }).join('');
-      return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;
+      return `<div class="rot-row"><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div style="flex:1;overflow:hidden;position:relative;"><div class="rot-table" style="position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">${rows}</div></div>`
+      ? `<div class="rot-table">${rows}</div>`
       : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
     rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;

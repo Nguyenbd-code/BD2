@@ -270,7 +270,10 @@ export async function handleEmotes(request, env) {
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
-    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6">Hit the red rabbit twice and the green rabbit thrice.</div>
+    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      Hit the red rabbit twice and the green rabbit thrice.
+    </div>
   </div>
 </div>
 <script>(function(){
@@ -547,11 +550,11 @@ export async function handleEmotes(request, env) {
         showHintModal('LOCKED', 'This hint becomes available once the previous difficulty tier is fully unlocked.');
         return;
       }
-      var extraBody = (es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.';
-      // Set M nested clue — pressing rou → dalvi → yuri in the char-circle
-      // reveals the "Max 8 Elements" follow-up alongside the rabbit riddle.
+      var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.');
+      // Set M nested clue — pressing rou → zenith → yuri in the char-circle
+      // reveals the "Only 8 Elements" follow-up alongside the rabbit riddle.
       if (es && es.set_num === 5 && localStorage.getItem('kitsu_set_5_extra_revealed') === '1') {
-        extraBody += '\\n\\n— — —\\n\\nMax 8 Elements.';
+        extraBody += '\\n\\n— — —\\n\\nOnly 8 Elements.';
       }
       showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;
