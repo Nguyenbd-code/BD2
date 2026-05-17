@@ -287,30 +287,40 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
       }
-      // Set M sub-puzzle: rou then zenith then yuri in the char-circle reveals
-      // the "Only 8 Elements" follow-up hint inside Set M extra modal. Only
-      // arms once Hard tier is available so the rabbit riddle has actually
-      // been read. The toast is suppressed after the first show per browser
-      // session (via sessionStorage) so re-triggering doesn't spam; the
-      // localStorage flag is still set every match so the modal text stays
-      // in sync even if the user lands here from stale state.
-      if (tierUnlocked('hard')) {
-        var subSeq = ['rou','zenith','yuri'];
-        var subTail = clicks.slice(-subSeq.length);
-        if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
-          localStorage.setItem('kitsu_set_5_extra_revealed', '1');
+      // Generic extra_hint sub-puzzle: any set with an extra_sequence (a
+      // comma-list of char-circle slugs) and a non-empty extra_reveal gets
+      // a nested puzzle inside its EXTRA HINT modal. The reveal text appends
+      // to the modal after the player matches the slug sequence as the tail
+      // of kitsu_char_clicks. Gated to the set's difficulty tier so the
+      // sub-puzzle only arms when the player can legitimately reach the
+      // extra hint. Toast is suppressed per browser session via sessionStorage.
+      sets.forEach(function(s){
+        if (unlocked(s.set_num)) {
+          // Once the parent set is solved, the extra hint isn't visible
+          // anyway — no reason to keep firing the sub-puzzle.
+          return;
+        }
+        var extraSeq = (s.extra_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
+        if (!extraSeq.length) return;
+        if (!(s.extra_reveal||'').trim()) return;
+        if (!tierUnlocked(s.difficulty || 'easy')) return;
+        var revealKey = 'kitsu_set_' + s.set_num + '_extra_revealed';
+        var subTail = clicks.slice(-extraSeq.length);
+        if (subTail.length === extraSeq.length && subTail.every(function(v,i){return v === extraSeq[i];})) {
+          localStorage.setItem(revealKey, '1');
+          var toastKey = 'kitsu_set_' + s.set_num + '_toast_shown';
           var alreadyToasted = false;
-          try { alreadyToasted = sessionStorage.getItem('kitsu_set_5_toast_shown') === '1'; } catch(_){}
+          try { alreadyToasted = sessionStorage.getItem(toastKey) === '1'; } catch(_){}
           if (!alreadyToasted) {
-            try { sessionStorage.setItem('kitsu_set_5_toast_shown', '1'); } catch(_){}
+            try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
             var toast = document.createElement('div');
             toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
-            toast.textContent = 'A new whisper rests inside Set M’s extra hint.';
+            toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s extra hint.';
             document.body.appendChild(toast);
             setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
           }
         }
-      }
+      });
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;
         if (unlocked(s.set_num)) return;

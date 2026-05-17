@@ -1032,6 +1032,27 @@ export async function handleAdmin(request, env) {
         <input type="hidden" id="set-cfg-page" value="characters">
 
         <div class="form-group">
+          <label>Display Location <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(overrides the auto-derived Location: ... line in the hint modal — leave blank to use the page name)</span></label>
+          <input type="text" id="set-cfg-display-location" placeholder="e.g. Hamburger, ?????, Kitsu's Emotes">
+        </div>
+
+        <div class="form-group">
+          <label>Extra Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(optional second ? button — leave blank to hide it)</span></label>
+          <textarea id="set-cfg-extra-hint" rows="3" placeholder="Optional second-tier riddle..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Extra Sub-Puzzle Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-list of hamburger character slugs — leave blank to skip)</span></label>
+            <input type="text" id="set-cfg-extra-sequence" placeholder="e.g. rou,zenith,yuri">
+          </div>
+          <div class="form-group">
+            <label>Extra Reveal Text <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(appended to the extra hint once the sequence is pressed)</span></label>
+            <input type="text" id="set-cfg-extra-reveal" placeholder="e.g. Only 8 Elements.">
+          </div>
+        </div>
+
+        <div class="form-group">
           <label>Unlock Mode</label>
           <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <option value="count">Count (click element N times)</option>
@@ -2133,6 +2154,10 @@ function renderSetConfig(sn) {
   if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
   if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-display-location')) g('set-cfg-display-location').value = s.display_location || '';
+  if (g('set-cfg-extra-hint')) g('set-cfg-extra-hint').value = s.extra_hint || '';
+  if (g('set-cfg-extra-sequence')) g('set-cfg-extra-sequence').value = s.extra_sequence || '';
+  if (g('set-cfg-extra-reveal')) g('set-cfg-extra-reveal').value = s.extra_reveal || '';
   if (g('set-cfg-unlock-msg')) g('set-cfg-unlock-msg').value = s.unlock_message || '';
   var imgPrev = g('set-cfg-unlock-img-preview');
   if (imgPrev) {
@@ -2415,6 +2440,10 @@ async function saveSetConfig() {
     name: gv('set-cfg-name') || ('Set ' + sn),
     set_letter: gv('set-cfg-letter'),
     hint: gv('set-cfg-hint'),
+    display_location: gv('set-cfg-display-location'),
+    extra_hint: gv('set-cfg-extra-hint'),
+    extra_sequence: (gv('set-cfg-extra-sequence') || '').toLowerCase(),
+    extra_reveal: gv('set-cfg-extra-reveal'),
     unlock_page: isCharSeq ? 'sidebar' : (gv('set-cfg-page') || 'characters'),
     unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
     unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,

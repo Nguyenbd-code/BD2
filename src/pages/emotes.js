@@ -24,6 +24,12 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{});
+  // extra_sequence/extra_reveal: optional nested sub-puzzle inside extra_hint.
+  // When extra_sequence is a comma-list of char-circle slugs and the player
+  // matches that tail in kitsu_char_clicks, extra_reveal gets appended to the
+  // extra_hint modal. Per-set so admin can drive it without code changes.
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{});
 
   const set1Riddle = "The one I cherish hides a number in the length of her name. Uncover it, then awaken her element with that same number of touches, and when the awakening is complete, seal it with Magic.";
   const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
@@ -40,16 +46,16 @@ async function ensureSchema(env) {
     // to its native mechanic. KITSU sequence stays solvable across tiers
     // because letter buttons remain clickable even on tier-locked cards.
     const defaults = [
-      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location
-      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              ''],
-      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes"],
-      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????'],
-      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger'],
-      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  ''],
-      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              ''],
+      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location, extra_sequence, extra_reveal
+      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              '',              '',                  ''],
+      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes",'',                  ''],
+      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????',         '',                  ''],
+      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger',     '',                  ''],
+      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  '',              'rou,zenith,yuri',   'Only 8 Elements.'],
+      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              '',              '',                  ''],
     ];
-    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc] of defaults) {
-      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc).run().catch(()=>{});
+    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal] of defaults) {
+      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location, extra_sequence, extra_reveal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal).run().catch(()=>{});
     }
   } else {
     // One-time v2 migration: update sets to new config if not yet done
@@ -142,6 +148,10 @@ async function ensureSchema(env) {
       await env.DB.prepare("UPDATE emote_sets SET extra_hint='' WHERE set_num=6").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{});
     }
+    // Always seed Set M's nested sub-puzzle (sequence + reveal) when blank.
+    // Admin can change these via Settings; we only write when both fields
+    // are empty so a deliberate admin edit isn't clobbered.
+    await env.DB.prepare("UPDATE emote_sets SET extra_sequence='rou,zenith,yuri', extra_reveal='Only 8 Elements.' WHERE set_num=5 AND (extra_sequence IS NULL OR extra_sequence='') AND (extra_reveal IS NULL OR extra_reveal='')").run().catch(()=>{});
   }
   _schemaReady = true;
 }
@@ -204,6 +214,8 @@ export async function handleEmotes(request, env) {
     set_letter: s.set_letter || s.name || String(s.set_num),
     hint: s.hint || '',
     extra_hint: s.extra_hint || '',
+    extra_sequence: s.extra_sequence || '',
+    extra_reveal: s.extra_reveal || '',
     display_location: s.display_location || '',
     difficulty: s.difficulty || 'easy',
     unlock_page: s.unlock_page || '',
@@ -566,10 +578,11 @@ export async function handleEmotes(request, env) {
         return;
       }
       var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.');
-      // Set M nested clue — pressing rou → zenith → yuri in the char-circle
-      // reveals the "Only 8 Elements" follow-up alongside the rabbit riddle.
-      if (es && es.set_num === 5 && localStorage.getItem('kitsu_set_5_extra_revealed') === '1') {
-        extraBody += '\\n\\n— — —\\n\\nOnly 8 Elements.';
+      // Generic extra-reveal append. Any set whose extra_sequence has been
+      // matched in the char-circle gets its extra_reveal appended below the
+      // primary extra_hint via an em-dash divider.
+      if (es && (es.extra_reveal||'').trim() && localStorage.getItem('kitsu_set_' + es.set_num + '_extra_revealed') === '1') {
+        extraBody += '\\n\\n— — —\\n\\n' + es.extra_reveal;
       }
       showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;
