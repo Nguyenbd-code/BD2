@@ -395,44 +395,49 @@ export async function handleAdmin(request, env) {
           <div id="comp-matchups-alert"></div>
         </div>
 
-        <!-- Board images (front / back) -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>Board Image — Front</label>
-          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
-          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
-        </div>
-        <div class="form-group">
-          <label>Board Image — Back</label>
-          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas-back" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
-          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
-        </div>
-
-        <!-- Preemptive Skills -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>PREEMPTIVE SKILLS</label>
-          <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;min-height:48px"></div>
-          <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.4rem">
-          <canvas id="preemptive-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="add-preemptive">Add Preemptive Image</button>
-          <div id="comp-preemptive-alert"></div>
+        <!-- Compact 3-column row: Board Front | Board Back | Preemptive Skills.
+             Stacks back to single column on narrow screens via .comp-edit-trio. -->
+        <div class="comp-edit-trio" style="border-top:1px solid var(--border2);padding-top:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Board Image — Front</label>
+            <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
+            <canvas id="comp-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-front">Upload Front</button>
+            <div id="comp-board-preview" style="margin-top:0.4rem"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Board Image — Back</label>
+            <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
+            <canvas id="comp-canvas-back" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-back">Upload Back</button>
+            <div id="comp-board-back-preview" style="margin-top:0.4rem"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Preemptive Skills</label>
+            <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem;min-height:42px"></div>
+            <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+            <canvas id="preemptive-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="add-preemptive">Add Image</button>
+            <div id="comp-preemptive-alert"></div>
+          </div>
         </div>
 
         <!-- Video URL -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>Battle Video URL</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <input type="url" id="comp-video-url" placeholder="YouTube link, direct .mp4 URL, or leave blank" style="flex:1;min-width:200px">
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
+            <button class="btn" style="width:auto;padding:8px 16px;white-space:nowrap;background:rgba(192,57,43,0.18);border-color:rgba(192,57,43,0.5);color:#e88a7d" onclick="clearCompVideo()">Clear</button>
           </div>
           <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
             <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
           </div>
-          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem;line-height:1.5">
+            YouTube links work — paste any youtube.com/watch or youtu.be URL and the guide page will embed it as a player.<br>
+            Direct upload is best for short clips under ~12 MB. Larger files are silently rejected by D1 row limits.
+          </div>
           <div id="comp-video-alert"></div>
         </div>
 
@@ -493,8 +498,10 @@ export async function handleAdmin(request, env) {
           </div>
         </div>
         <div class="form-group"><label>Name</label><input type="text" id="new-comp-name" placeholder="Team Name"></div>
-        <div class="form-group"><label>Description / Notes</label><textarea id="new-comp-desc" rows="3" placeholder="Build notes and details..."></textarea></div>
-        <div class="form-group"><label>Countered By</label><input type="text" id="new-comp-cby" placeholder="T1, Schera teams"></div>
+        <!-- Description / Notes and Countered By moved exclusively to the
+             edit panel — keeping the create form short avoids redundancy. -->
+        <input type="hidden" id="new-comp-desc" value="">
+        <input type="hidden" id="new-comp-cby" value="">
         <div id="comp-add-alert"></div>
         <button class="btn" style="width:auto;padding:10px 24px" onclick="addComp()">Add Composition</button>
       </div>
@@ -1505,6 +1512,17 @@ async function saveCompVideo() {
   if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
   var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: url });
   showAlert('comp-video-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+}
+
+async function clearCompVideo() {
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
+  if (!confirm('Clear the battle video for ' + _compTier + '? The URL and any uploaded clip will be wiped.')) return;
+  var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: '' });
+  if (r.success) {
+    var urlEl = document.getElementById('comp-video-url');
+    if (urlEl) urlEl.value = '';
+  }
+  showAlert('comp-video-alert', r.success, r.success ? 'Video cleared.' : (r.message || 'Error'));
 }
 
 async function uploadCompVideoFile() {
