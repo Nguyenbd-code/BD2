@@ -1,4 +1,4 @@
-import { getStyles } from '../css/styles.js';
+import { getStyles, getCssVersion } from '../css/styles.js';
 
 export async function layout(title, content, activePage = '', env = null) {
   let tapTarget = 7;
@@ -92,7 +92,12 @@ export async function layout(title, content, activePage = '', env = null) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(title)} — BnKitsu BD2 Guide</title>
-<style>${getStyles()}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 </head>
 <body>
@@ -273,7 +278,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
           if (subRecent.length > 30) subRecent = subRecent.slice(-30);
           localStorage.setItem('kitsu_char_clicks', JSON.stringify(subRecent));
         }
-        var subSeq = ['rou','dalvi','yuri'];
+        var subSeq = ['rou','zenith','yuri'];
         var subTail = subRecent.slice(-subSeq.length);
         if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
           localStorage.setItem('kitsu_set_5_extra_revealed', '1');
