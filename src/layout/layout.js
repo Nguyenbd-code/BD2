@@ -1,4 +1,4 @@
-import { getStyles } from '../css/styles.js';
+import { getStyles, getCssVersion } from '../css/styles.js';
 
 export async function layout(title, content, activePage = '', env = null) {
   let tapTarget = 7;
@@ -92,7 +92,12 @@ export async function layout(title, content, activePage = '', env = null) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(title)} — BnKitsu BD2 Guide</title>
-<style>${getStyles()}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 </head>
 <body>
@@ -256,6 +261,33 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var prev = d === 'medium' ? 'easy' : 'medium';
         var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
+      }
+      // Set M sub-puzzle: rou then dalvi then yuri in the char-circle reveals
+      // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
+      // arms once Hard tier is available so the rabbit riddle has actually
+      // been read. Reads the click buffer directly (the forEach below has
+      // already pushed slug into kitsu_char_clicks on previous clicks, so
+      // just trust the persisted state).
+      if (tierUnlocked('hard') && localStorage.getItem('kitsu_set_5_extra_revealed') !== '1') {
+        var subRecent = [];
+        try { subRecent = JSON.parse(localStorage.getItem('kitsu_char_clicks') || '[]'); } catch(_){}
+        // Make sure the current click is included even if no char_sequence
+        // set ran its forEach branch (e.g. Set I already solved).
+        if (subRecent[subRecent.length - 1] !== slug) {
+          subRecent.push(slug);
+          if (subRecent.length > 30) subRecent = subRecent.slice(-30);
+          localStorage.setItem('kitsu_char_clicks', JSON.stringify(subRecent));
+        }
+        var subSeq = ['rou','zenith','yuri'];
+        var subTail = subRecent.slice(-subSeq.length);
+        if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
+          localStorage.setItem('kitsu_set_5_extra_revealed', '1');
+          var toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
+          toast.textContent = 'A new whisper rests inside Set M’s extra hint.';
+          document.body.appendChild(toast);
+          setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+        }
       }
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;

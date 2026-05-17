@@ -34,19 +34,19 @@ async function ensureSchema(env) {
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
-    const newSet4Riddle = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-    const setMExtraHint = "Press them in the order of: ocean, flame, sun, void, breeze.";
+    const setIRiddle = "I begin with desire that hides behind a smile,\nI follow with warmth that asks only to be noticed,\nI drift through a mind too simple to question the world,\nI move in silence that chooses not to be seen,\nI end where strength rests beneath endless depth.";
+    const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     // Letters keep their original set-num positions so each letter still maps
     // to its native mechanic. KITSU sequence stays solvable across tiers
     // because letter buttons remain clickable even on tier-locked cards.
     const defaults = [
       // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location
-      [1, 'S', set1Riddle,    'characters', 'water', 7, 'count_then_seal', 'magic',                      'easy',   '', ''],
-      [2, 'T', set2Riddle,    'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                 'medium', '', "Kitsu's Emotes"],
-      [3, 'K', set3Riddle,    'navigation', '',      0, 'nav_icon_tap',    '',                           'easy',   '', '?????'],
-      [4, 'I', newSet4Riddle, 'sidebar',    '',      0, 'char_sequence',   'rou,dalvi,yuri',             'medium', '', 'Hamburger'],
-      [5, 'M', set5Riddle,    'characters', '',      0, 'sequence',        'water,fire,light,dark,wind', 'hard',   setMExtraHint, ''],
-      [6, 'U', set6Hint,      'characters', 'synae', 0, 'who_am_i',        'Synae',                      'hard',   '', ''],
+      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              ''],
+      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes"],
+      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????'],
+      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger'],
+      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  ''],
+      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              ''],
     ];
     for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc] of defaults) {
       await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc).run().catch(()=>{});
@@ -107,16 +107,17 @@ async function ensureSchema(env) {
       const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
     }
-    // Idempotent re-sync of Set 4's riddle text. Lives outside the v4 guard
-    // so already-migrated installs pick up the "What are they?" addition.
-    const set4RiddleCurrent = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-    await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence' AND hint LIKE 'In the quiet fields%'").bind(set4RiddleCurrent).run().catch(()=>{});
-    // Force-restore Set T's original letter_sequence riddle (set_num=2). The
-    // v4 letter shuffle never touched set 2's hint, but the user reported the
-    // riddle had drifted on their install — likely an admin edit or v2-era
-    // residue. Resync is gated to letter_sequence so we don't clobber a
-    // legitimately-changed mode.
-    await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{});
+    // Idempotent re-sync block — runs once per isolate (inside the
+    // _schemaReady guard) to align Set I + Set M's sub-puzzle and force-
+    // restore Set T's letter_sequence riddle. Three independent UPDATEs
+    // fired in parallel; previous version awaited them sequentially.
+    const setIRiddle = "I begin with desire that hides behind a smile,\nI follow with warmth that asks only to be noticed,\nI drift through a mind too simple to question the world,\nI move in silence that chooses not to be seen,\nI end where strength rests beneath endless depth.";
+    const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
+    await Promise.all([
+      env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddle).run().catch(()=>{}),
+      env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{}),
+      env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{}),
+    ]);
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
     // but kept mechanics fixed, which broke the K-I-T-S-U letter sequence
@@ -269,7 +270,7 @@ export async function handleEmotes(request, env) {
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
-    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6">hit the red rabbit twice and the green rabbit thrice</div>
+    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6">Hit the red rabbit twice and the green rabbit thrice.</div>
   </div>
 </div>
 <script>(function(){
@@ -547,6 +548,11 @@ export async function handleEmotes(request, env) {
         return;
       }
       var extraBody = (es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.';
+      // Set M nested clue — pressing rou → dalvi → yuri in the char-circle
+      // reveals the "Max 8 Elements" follow-up alongside the rabbit riddle.
+      if (es && es.set_num === 5 && localStorage.getItem('kitsu_set_5_extra_revealed') === '1') {
+        extraBody += '\\n\\n— — —\\n\\nMax 8 Elements.';
+      }
       showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;
     }
