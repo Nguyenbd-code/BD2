@@ -248,7 +248,8 @@ function renderComp(comp, mediaMap) {
     </div>
   </div>
 
-  <div class="card-title" style="border:none;padding:0;margin-bottom:0.75rem">Character Bonds</div>
+  <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
+  <div style="font-family:'Inter',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">

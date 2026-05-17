@@ -24,6 +24,12 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{});
+  // extra_sequence/extra_reveal: optional nested sub-puzzle inside extra_hint.
+  // When extra_sequence is a comma-list of char-circle slugs and the player
+  // matches that tail in kitsu_char_clicks, extra_reveal gets appended to the
+  // extra_hint modal. Per-set so admin can drive it without code changes.
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{});
+  await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{});
 
   const set1Riddle = "The one I cherish hides a number in the length of her name. Uncover it, then awaken her element with that same number of touches, and when the awakening is complete, seal it with Magic.";
   const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
@@ -40,16 +46,16 @@ async function ensureSchema(env) {
     // to its native mechanic. KITSU sequence stays solvable across tiers
     // because letter buttons remain clickable even on tier-locked cards.
     const defaults = [
-      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location
-      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              ''],
-      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes"],
-      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????'],
-      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger'],
-      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  ''],
-      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              ''],
+      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location, extra_sequence, extra_reveal
+      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              '',              '',                  ''],
+      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes",'',                  ''],
+      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????',         '',                  ''],
+      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger',     '',                  ''],
+      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  '',              'rou,zenith,yuri',   'Only 8 Elements.'],
+      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              '',              '',                  ''],
     ];
-    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc] of defaults) {
-      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc).run().catch(()=>{});
+    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal] of defaults) {
+      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location, extra_sequence, extra_reveal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal).run().catch(()=>{});
     }
   } else {
     // One-time v2 migration: update sets to new config if not yet done
@@ -142,6 +148,10 @@ async function ensureSchema(env) {
       await env.DB.prepare("UPDATE emote_sets SET extra_hint='' WHERE set_num=6").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{});
     }
+    // Always seed Set M's nested sub-puzzle (sequence + reveal) when blank.
+    // Admin can change these via Settings; we only write when both fields
+    // are empty so a deliberate admin edit isn't clobbered.
+    await env.DB.prepare("UPDATE emote_sets SET extra_sequence='rou,zenith,yuri', extra_reveal='Only 8 Elements.' WHERE set_num=5 AND (extra_sequence IS NULL OR extra_sequence='') AND (extra_reveal IS NULL OR extra_reveal='')").run().catch(()=>{});
   }
   _schemaReady = true;
 }
@@ -150,6 +160,21 @@ export async function handleEmotes(request, env) {
   await ensureSchema(env);
 
   const DEFAULT_LOCK_HINT = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
+
+  // Cookie-gate: if the player hasn't solved the secret code (set by /home),
+  // skip every D1 read for the puzzle content and ship a slim lock-screen
+  // page. Saves ~60% of the HTML payload + 6 image lookups for locked users.
+  // localStorage stays the source of truth on the client; the cookie is just
+  // a mirror so the server can short-circuit. The migration script in
+  // layout.js head reconciles existing localStorage-only unlocks.
+  const cookie = request.headers.get('Cookie') || '';
+  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+
+  if (!isUnlocked) {
+    const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
+    const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
+    return await renderLocked(lockHintText, env);
+  }
 
   // Run the four read queries in parallel instead of awaiting them one at a
   // time. Emotes are *not* fetched in full — we only need per-set counts and
@@ -189,6 +214,8 @@ export async function handleEmotes(request, env) {
     set_letter: s.set_letter || s.name || String(s.set_num),
     hint: s.hint || '',
     extra_hint: s.extra_hint || '',
+    extra_sequence: s.extra_sequence || '',
+    extra_reveal: s.extra_reveal || '',
     display_location: s.display_location || '',
     difficulty: s.difficulty || 'easy',
     unlock_page: s.unlock_page || '',
@@ -551,10 +578,11 @@ export async function handleEmotes(request, env) {
         return;
       }
       var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.');
-      // Set M nested clue — pressing rou → zenith → yuri in the char-circle
-      // reveals the "Only 8 Elements" follow-up alongside the rabbit riddle.
-      if (es && es.set_num === 5 && localStorage.getItem('kitsu_set_5_extra_revealed') === '1') {
-        extraBody += '\\n\\n— — —\\n\\nOnly 8 Elements.';
+      // Generic extra-reveal append. Any set whose extra_sequence has been
+      // matched in the char-circle gets its extra_reveal appended below the
+      // primary extra_hint via an em-dash divider.
+      if (es && (es.extra_reveal||'').trim() && localStorage.getItem('kitsu_set_' + es.set_num + '_extra_revealed') === '1') {
+        extraBody += '\\n\\n— — —\\n\\n' + es.extra_reveal;
       }
       showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;
@@ -611,5 +639,43 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
+`, 'emotes', env);
+}
+
+// Slim render for locked users — just the lock screen + the layout chrome.
+// No puzzle content, no setsJson, no image lookups for set covers. The
+// /styles.css link in <head> still loads cached, and the side-nav circle
+// (where the rabbit-tap shortcut lives) comes from layout.js so it's still
+// fully functional for the player.
+async function renderLocked(lockHintText, env) {
+  return await layout("Kitsu's Emotes", `
+<div id="emote-lock-screen" style="display:flex;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
+  <div style="max-width:460px;width:100%;text-align:center;position:relative">
+    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cinzel',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
+    <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:3.5rem">&#128274;</span>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
+    <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cinzel',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
+      <div style="font-size:0.72rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
+      <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
+    </div>
+    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
+    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      Hit the red rabbit twice and the green rabbit thrice.
+    </div>
+  </div>
+</div>
+<script>(function(){
+  var btn = document.getElementById('lock-hint-btn');
+  var bubble = document.getElementById('lock-hint-bubble');
+  if (btn && bubble) {
+    btn.addEventListener('click', function(){
+      bubble.style.display = bubble.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+})();</script>
 `, 'emotes', env);
 }
