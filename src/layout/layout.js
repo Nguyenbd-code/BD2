@@ -257,6 +257,33 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
       }
+      // Set M sub-puzzle: rou then dalvi then yuri in the char-circle reveals
+      // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
+      // arms once Hard tier is available so the rabbit riddle has actually
+      // been read. Reads the click buffer directly (the forEach below has
+      // already pushed slug into kitsu_char_clicks on previous clicks, so
+      // just trust the persisted state).
+      if (tierUnlocked('hard') && localStorage.getItem('kitsu_set_5_extra_revealed') !== '1') {
+        var subRecent = [];
+        try { subRecent = JSON.parse(localStorage.getItem('kitsu_char_clicks') || '[]'); } catch(_){}
+        // Make sure the current click is included even if no char_sequence
+        // set ran its forEach branch (e.g. Set I already solved).
+        if (subRecent[subRecent.length - 1] !== slug) {
+          subRecent.push(slug);
+          if (subRecent.length > 30) subRecent = subRecent.slice(-30);
+          localStorage.setItem('kitsu_char_clicks', JSON.stringify(subRecent));
+        }
+        var subSeq = ['rou','dalvi','yuri'];
+        var subTail = subRecent.slice(-subSeq.length);
+        if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
+          localStorage.setItem('kitsu_set_5_extra_revealed', '1');
+          var toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
+          toast.textContent = 'A new whisper rests inside Set M’s extra hint.';
+          document.body.appendChild(toast);
+          setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+        }
+      }
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;
         if (unlocked(s.set_num)) return;
