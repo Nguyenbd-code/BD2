@@ -99,6 +99,19 @@ export async function layout(title, content, activePage = '', env = null) {
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"></noscript>
 <link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
+<script>try{
+  // One-time migration: if the player solved the /emotes secret on an old
+  // build (localStorage only), mirror the unlock into a cookie so the server
+  // can lean-render the locked page. Reload exactly once per session if we
+  // landed on /emotes so the freshly-set cookie reaches the worker.
+  if (localStorage.getItem('kitsu_unlocked') === 'true' && !/(?:^|;\\s*)kitsu_unlocked=1/.test(document.cookie)) {
+    document.cookie = 'kitsu_unlocked=1; Path=/; Max-Age=31536000; SameSite=Lax';
+    if (location.pathname === '/emotes' && !sessionStorage.getItem('kitsu_cookie_migrated')) {
+      sessionStorage.setItem('kitsu_cookie_migrated', '1');
+      location.reload();
+    }
+  }
+}catch(e){}</script>
 </head>
 <body>
 <script>

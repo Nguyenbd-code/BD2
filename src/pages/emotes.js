@@ -151,6 +151,21 @@ export async function handleEmotes(request, env) {
 
   const DEFAULT_LOCK_HINT = 'One character keeps something unusual by their side. The octopus there isn’t just decoration.';
 
+  // Cookie-gate: if the player hasn't solved the secret code (set by /home),
+  // skip every D1 read for the puzzle content and ship a slim lock-screen
+  // page. Saves ~60% of the HTML payload + 6 image lookups for locked users.
+  // localStorage stays the source of truth on the client; the cookie is just
+  // a mirror so the server can short-circuit. The migration script in
+  // layout.js head reconciles existing localStorage-only unlocks.
+  const cookie = request.headers.get('Cookie') || '';
+  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+
+  if (!isUnlocked) {
+    const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
+    const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
+    return await renderLocked(lockHintText, env);
+  }
+
   // Run the four read queries in parallel instead of awaiting them one at a
   // time. Emotes are *not* fetched in full — we only need per-set counts and
   // a fallback cover URL (only used when the set has no cover_key set).
@@ -611,5 +626,43 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
+`, 'emotes', env);
+}
+
+// Slim render for locked users — just the lock screen + the layout chrome.
+// No puzzle content, no setsJson, no image lookups for set covers. The
+// /styles.css link in <head> still loads cached, and the side-nav circle
+// (where the rabbit-tap shortcut lives) comes from layout.js so it's still
+// fully functional for the player.
+async function renderLocked(lockHintText, env) {
+  return await layout("Kitsu's Emotes", `
+<div id="emote-lock-screen" style="display:flex;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
+  <div style="max-width:460px;width:100%;text-align:center;position:relative">
+    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cinzel',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
+    <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:3.5rem">&#128274;</span>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
+    <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cinzel',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
+      <div style="font-size:0.72rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
+      <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
+    </div>
+    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
+    <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'Cinzel',serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      Hit the red rabbit twice and the green rabbit thrice.
+    </div>
+  </div>
+</div>
+<script>(function(){
+  var btn = document.getElementById('lock-hint-btn');
+  var bubble = document.getElementById('lock-hint-bubble');
+  if (btn && bubble) {
+    btn.addEventListener('click', function(){
+      bubble.style.display = bubble.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+})();</script>
 `, 'emotes', env);
 }
