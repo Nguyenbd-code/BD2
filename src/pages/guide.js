@@ -202,11 +202,16 @@ function renderComp(comp, mediaMap) {
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
   const imageBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
-  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
-    video
-      ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
-      : '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
-  }</div>`;
+  // YouTube URLs need an <iframe> embed; raw <video src> would silently fail
+  // because YouTube serves the HTML watch page, not a video stream. Extract
+  // the 11-char video id from any watch/youtu.be/embed/short variant.
+  const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const videoInner = !video
+    ? '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+    : (ytMatch
+        ? `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:100%;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+        : `<video controls style="width:100%;height:100%;object-fit:contain" src="${esc(video)}"></video>`);
+  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${videoInner}</div>`;
   const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;height:220px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
 
