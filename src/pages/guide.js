@@ -153,10 +153,10 @@ function renderComp(comp, mediaMap) {
   ${cos ? `<div class="tt-popup"><div class="tt-name">${esc(cos)}</div></div>` : ''}
 </div>`;
       }).join('');
-      return `<div class="rot-row" style="display:grid;grid-template-columns:70px 1fr;align-items:start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid var(--border2);min-width:340px;"><div class="rot-char">${esc(name)}</div><div class="rot-skills" style="display:flex;flex-wrap:nowrap;gap:0.3rem;">${icons}</div></div>`;
+      return `<div class="rot-row"><div class="rot-skills">${icons}</div></div>`;
     }).filter(Boolean).join('');
     rotHtml = rows
-      ? `<div style="flex:1;overflow:hidden;position:relative;"><div class="rot-table" style="position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">${rows}</div></div>`
+      ? `<div class="rot-table">${rows}</div>`
       : `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
   } else {
     rotHtml = `<div style="flex:1;display:flex;align-items:center;justify-content:center">${NA}</div>`;
@@ -202,11 +202,16 @@ function renderComp(comp, mediaMap) {
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
   const imageBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
-  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${
-    video
-      ? `<video controls style="width:100%;height:100%;object-fit:contain"><source src="${esc(video)}"></video>`
-      : '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
-  }</div>`;
+  // YouTube URLs need an <iframe> embed; raw <video src> would silently fail
+  // because YouTube serves the HTML watch page, not a video stream. Extract
+  // the 11-char video id from any watch/youtu.be/embed/short variant.
+  const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const videoInner = !video
+    ? '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+    : (ytMatch
+        ? `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:100%;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+        : `<video controls style="width:100%;height:100%;object-fit:contain" src="${esc(video)}"></video>`);
+  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${videoInner}</div>`;
   const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;height:220px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
 
@@ -248,7 +253,8 @@ function renderComp(comp, mediaMap) {
     </div>
   </div>
 
-  <div class="card-title" style="border:none;padding:0;margin-bottom:0.75rem">Character Bonds</div>
+  <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
+  <div style="font-family:'Inter',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">

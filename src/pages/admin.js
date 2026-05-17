@@ -395,44 +395,49 @@ export async function handleAdmin(request, env) {
           <div id="comp-matchups-alert"></div>
         </div>
 
-        <!-- Board images (front / back) -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>Board Image — Front</label>
-          <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-front">Upload Front</button>
-          <div id="comp-board-preview" style="margin-top:0.5rem"></div>
-        </div>
-        <div class="form-group">
-          <label>Board Image — Back</label>
-          <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;width:100%">
-          <canvas id="comp-canvas-back" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px;margin-top:0.5rem" data-action="upload-board-back">Upload Back</button>
-          <div id="comp-board-back-preview" style="margin-top:0.5rem"></div>
-        </div>
-
-        <!-- Preemptive Skills -->
-        <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
-          <label>PREEMPTIVE SKILLS</label>
-          <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;min-height:48px"></div>
-          <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%;margin-bottom:0.4rem">
-          <canvas id="preemptive-canvas" style="display:none"></canvas>
-          <button class="btn" style="width:auto;padding:8px 20px" data-action="add-preemptive">Add Preemptive Image</button>
-          <div id="comp-preemptive-alert"></div>
+        <!-- Compact 3-column row: Board Front | Board Back | Preemptive Skills.
+             Stacks back to single column on narrow screens via .comp-edit-trio. -->
+        <div class="comp-edit-trio" style="border-top:1px solid var(--border2);padding-top:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Board Image — Front</label>
+            <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
+            <canvas id="comp-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-front">Upload Front</button>
+            <div id="comp-board-preview" style="margin-top:0.4rem"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Board Image — Back</label>
+            <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
+            <canvas id="comp-canvas-back" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-back">Upload Back</button>
+            <div id="comp-board-back-preview" style="margin-top:0.4rem"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Preemptive Skills</label>
+            <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem;min-height:42px"></div>
+            <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+            <canvas id="preemptive-canvas" style="display:none"></canvas>
+            <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="add-preemptive">Add Image</button>
+            <div id="comp-preemptive-alert"></div>
+          </div>
         </div>
 
         <!-- Video URL -->
         <div class="form-group" style="border-top:1px solid var(--border2);padding-top:1rem">
           <label>Battle Video URL</label>
-          <div style="display:flex;gap:0.5rem;align-items:center">
-            <input type="url" id="comp-video-url" placeholder="https://... or upload below" style="flex:1">
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+            <input type="url" id="comp-video-url" placeholder="YouTube link, direct .mp4 URL, or leave blank" style="flex:1;min-width:200px">
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="saveCompVideo()">Save URL</button>
+            <button class="btn" style="width:auto;padding:8px 16px;white-space:nowrap;background:rgba(192,57,43,0.18);border-color:rgba(192,57,43,0.5);color:#e88a7d" onclick="clearCompVideo()">Clear</button>
           </div>
           <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
             <input type="file" id="comp-video-file" accept="video/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;flex:1">
             <button class="btn" style="width:auto;padding:8px 20px;white-space:nowrap" onclick="uploadCompVideoFile()">Upload Video</button>
           </div>
-          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Tip: keep files under ~5 MB; trim/compress clips before uploading.</div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem;line-height:1.5">
+            YouTube links work — paste any youtube.com/watch or youtu.be URL and the guide page will embed it as a player.<br>
+            Direct upload is best for short clips under ~12 MB. Larger files are silently rejected by D1 row limits.
+          </div>
           <div id="comp-video-alert"></div>
         </div>
 
@@ -493,8 +498,10 @@ export async function handleAdmin(request, env) {
           </div>
         </div>
         <div class="form-group"><label>Name</label><input type="text" id="new-comp-name" placeholder="Team Name"></div>
-        <div class="form-group"><label>Description / Notes</label><textarea id="new-comp-desc" rows="3" placeholder="Build notes and details..."></textarea></div>
-        <div class="form-group"><label>Countered By</label><input type="text" id="new-comp-cby" placeholder="T1, Schera teams"></div>
+        <!-- Description / Notes and Countered By moved exclusively to the
+             edit panel — keeping the create form short avoids redundancy. -->
+        <input type="hidden" id="new-comp-desc" value="">
+        <input type="hidden" id="new-comp-cby" value="">
         <div id="comp-add-alert"></div>
         <button class="btn" style="width:auto;padding:10px 24px" onclick="addComp()">Add Composition</button>
       </div>
@@ -1032,6 +1039,27 @@ export async function handleAdmin(request, env) {
         <input type="hidden" id="set-cfg-page" value="characters">
 
         <div class="form-group">
+          <label>Display Location <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(overrides the auto-derived Location: ... line in the hint modal — leave blank to use the page name)</span></label>
+          <input type="text" id="set-cfg-display-location" placeholder="e.g. Hamburger, ?????, Kitsu's Emotes">
+        </div>
+
+        <div class="form-group">
+          <label>Extra Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(optional second ? button — leave blank to hide it)</span></label>
+          <textarea id="set-cfg-extra-hint" rows="3" placeholder="Optional second-tier riddle..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Extra Sub-Puzzle Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-list of hamburger character slugs — leave blank to skip)</span></label>
+            <input type="text" id="set-cfg-extra-sequence" placeholder="e.g. rou,zenith,yuri">
+          </div>
+          <div class="form-group">
+            <label>Extra Reveal Text <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(appended to the extra hint once the sequence is pressed)</span></label>
+            <input type="text" id="set-cfg-extra-reveal" placeholder="e.g. Only 8 Elements.">
+          </div>
+        </div>
+
+        <div class="form-group">
           <label>Unlock Mode</label>
           <select id="set-cfg-mode" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
             <option value="count">Count (click element N times)</option>
@@ -1484,6 +1512,17 @@ async function saveCompVideo() {
   if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
   var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: url });
   showAlert('comp-video-alert', r.success, r.message || (r.success ? 'Saved!' : 'Error'));
+}
+
+async function clearCompVideo() {
+  if (!_compTier) { showAlert('comp-video-alert', false, 'Select a composition first'); return; }
+  if (!confirm('Clear the battle video for ' + _compTier + '? The URL and any uploaded clip will be wiped.')) return;
+  var r = await apiPost('/api/admin/comp/media/save', { tier: _compTier, media_type: 'video', value: '' });
+  if (r.success) {
+    var urlEl = document.getElementById('comp-video-url');
+    if (urlEl) urlEl.value = '';
+  }
+  showAlert('comp-video-alert', r.success, r.success ? 'Video cleared.' : (r.message || 'Error'));
 }
 
 async function uploadCompVideoFile() {
@@ -2133,6 +2172,10 @@ function renderSetConfig(sn) {
   if (g('set-cfg-name')) g('set-cfg-name').value = s.name || ('Set ' + sn);
   if (g('set-cfg-letter')) g('set-cfg-letter').value = s.set_letter || '';
   if (g('set-cfg-hint')) g('set-cfg-hint').value = s.hint || '';
+  if (g('set-cfg-display-location')) g('set-cfg-display-location').value = s.display_location || '';
+  if (g('set-cfg-extra-hint')) g('set-cfg-extra-hint').value = s.extra_hint || '';
+  if (g('set-cfg-extra-sequence')) g('set-cfg-extra-sequence').value = s.extra_sequence || '';
+  if (g('set-cfg-extra-reveal')) g('set-cfg-extra-reveal').value = s.extra_reveal || '';
   if (g('set-cfg-unlock-msg')) g('set-cfg-unlock-msg').value = s.unlock_message || '';
   var imgPrev = g('set-cfg-unlock-img-preview');
   if (imgPrev) {
@@ -2415,6 +2458,10 @@ async function saveSetConfig() {
     name: gv('set-cfg-name') || ('Set ' + sn),
     set_letter: gv('set-cfg-letter'),
     hint: gv('set-cfg-hint'),
+    display_location: gv('set-cfg-display-location'),
+    extra_hint: gv('set-cfg-extra-hint'),
+    extra_sequence: (gv('set-cfg-extra-sequence') || '').toLowerCase(),
+    extra_reveal: gv('set-cfg-extra-reveal'),
     unlock_page: isCharSeq ? 'sidebar' : (gv('set-cfg-page') || 'characters'),
     unlock_target: isWho ? gv('set-cfg-wai-char') : gv('set-cfg-target'),
     unlock_count: parseInt(gv('set-cfg-count'), 10) || 0,

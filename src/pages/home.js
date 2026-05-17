@@ -137,6 +137,9 @@ export async function handleHome(request, env) {
       var data = await res.json();
       if (data.success) {
         localStorage.setItem('kitsu_unlocked', 'true');
+        // Set the cookie alongside localStorage so the server can skip the
+        // heavy /emotes render for locked users. 1-year SameSite=Lax.
+        document.cookie = 'kitsu_unlocked=1; Path=/; Max-Age=31536000; SameSite=Lax';
         result.textContent = '✓ Access Granted — Emotes page is now unlocked!';
         result.style.color = '#d4af37';
         input.style.borderColor = '#d4af37';

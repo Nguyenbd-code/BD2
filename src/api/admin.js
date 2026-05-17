@@ -187,10 +187,17 @@ export async function handleAdminApi(request, env) {
     }
     if (path === '/api/admin/emote-set/save' && method === 'POST') {
       await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
-      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{});
-      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{});
-      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{});
-      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
+      await Promise.all([
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{}),
+        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{}),
+      ]);
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
       const validModes = ['count', 'count_then_seal', 'sequence', 'letter_sequence', 'char_sequence', 'who_am_i', 'nav_icon_tap'];
@@ -202,10 +209,28 @@ export async function handleAdminApi(request, env) {
         sequence = sequence.toUpperCase().split(',').map(s => s.trim()).filter(Boolean).join(',');
       }
       // who_am_i: keep as-is (it's the answer text)
+      // Normalize the optional sub-puzzle sequence the same way as unlock_sequence.
+      const extraSequence = ((body.extra_sequence || '').toString().toLowerCase().split(',').map(s => s.trim()).filter(Boolean)).join(',');
       await env.DB.prepare(
-        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence, set_letter, unlock_message) VALUES (?,?,?,?,?,?,?,?,?,?,?) ' +
-        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence, set_letter=excluded.set_letter, unlock_message=excluded.unlock_message'
-      ).bind(sn, body.name||('Set '+sn), body.hint||'', body.unlock_page||'characters', (body.unlock_target||''), parseInt(body.unlock_count,10)||0, body.cover_key||'', mode, sequence, body.set_letter||'', body.unlock_message||'').run();
+        'INSERT INTO emote_sets (set_num, name, hint, unlock_page, unlock_target, unlock_count, cover_key, unlock_mode, unlock_sequence, set_letter, unlock_message, display_location, extra_hint, extra_sequence, extra_reveal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ' +
+        'ON CONFLICT(set_num) DO UPDATE SET name=excluded.name, hint=excluded.hint, unlock_page=excluded.unlock_page, unlock_target=excluded.unlock_target, unlock_count=excluded.unlock_count, cover_key=excluded.cover_key, unlock_mode=excluded.unlock_mode, unlock_sequence=excluded.unlock_sequence, set_letter=excluded.set_letter, unlock_message=excluded.unlock_message, display_location=excluded.display_location, extra_hint=excluded.extra_hint, extra_sequence=excluded.extra_sequence, extra_reveal=excluded.extra_reveal'
+      ).bind(
+        sn,
+        body.name || ('Set ' + sn),
+        body.hint || '',
+        body.unlock_page || 'characters',
+        body.unlock_target || '',
+        parseInt(body.unlock_count, 10) || 0,
+        body.cover_key || '',
+        mode,
+        sequence,
+        body.set_letter || '',
+        body.unlock_message || '',
+        body.display_location || '',
+        body.extra_hint || '',
+        extraSequence,
+        body.extra_reveal || ''
+      ).run();
       return json({ success:true, message:'Set saved.' });
     }
     if (path === '/api/admin/emote/list-by-set' && method === 'GET') {

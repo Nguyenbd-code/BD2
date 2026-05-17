@@ -99,6 +99,19 @@ export async function layout(title, content, activePage = '', env = null) {
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"></noscript>
 <link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
+<script>try{
+  // One-time migration: if the player solved the /emotes secret on an old
+  // build (localStorage only), mirror the unlock into a cookie so the server
+  // can lean-render the locked page. Reload exactly once per session if we
+  // landed on /emotes so the freshly-set cookie reaches the worker.
+  if (localStorage.getItem('kitsu_unlocked') === 'true' && !/(?:^|;\\s*)kitsu_unlocked=1/.test(document.cookie)) {
+    document.cookie = 'kitsu_unlocked=1; Path=/; Max-Age=31536000; SameSite=Lax';
+    if (location.pathname === '/emotes' && !sessionStorage.getItem('kitsu_cookie_migrated')) {
+      sessionStorage.setItem('kitsu_cookie_migrated', '1');
+      location.reload();
+    }
+  }
+}catch(e){}</script>
 </head>
 <body>
 <script>
@@ -201,14 +214,14 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     }).catch(function(){ return []; });
   }
   // Rabbit-tap shortcut — 2x Liatris + 3x Zenith reveals where the lock-screen
-  // secret-code lives. Disabled once kitsu_unlocked is set.
+  // secret-code lives. Only short-circuits once the user is properly unlocked;
+  // the popup itself can re-trigger as many times as the player wants, since
+  // each trigger clears the counters and forces them to do the sequence again.
   function checkRabbitShortcut() {
     if (localStorage.getItem('kitsu_unlocked') === 'true') return;
-    if (localStorage.getItem('kitsu_rabbit_hint_shown') === '1') return;
     var li = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10);
     var ze = parseInt(localStorage.getItem('kitsu_rabbit_zenith')  || '0', 10);
     if (li >= 2 && ze >= 3) {
-      localStorage.setItem('kitsu_rabbit_hint_shown', '1');
       localStorage.removeItem('kitsu_rabbit_liatris');
       localStorage.removeItem('kitsu_rabbit_zenith');
       showRabbitHint();
@@ -238,8 +251,9 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     e.stopPropagation();
     var slug = (b.dataset.char || '').toLowerCase();
     if (!slug) return;
-    // Bump rabbit-tap counters before everything else.
-    if (localStorage.getItem('kitsu_unlocked') !== 'true' && localStorage.getItem('kitsu_rabbit_hint_shown') !== '1') {
+    // Bump rabbit-tap counters before everything else. Only gated by
+    // kitsu_unlocked so a locked player can always re-attempt the shortcut.
+    if (localStorage.getItem('kitsu_unlocked') !== 'true') {
       if (slug === 'liatris') {
         var n = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10) + 1;
         localStorage.setItem('kitsu_rabbit_liatris', String(n));
@@ -273,22 +287,40 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
       }
-      // Set M sub-puzzle: rou then zenith then yuri in the char-circle reveals
-      // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
-      // arms once Hard tier is available so the rabbit riddle has actually
-      // been read.
-      if (tierUnlocked('hard') && localStorage.getItem('kitsu_set_5_extra_revealed') !== '1') {
-        var subSeq = ['rou','zenith','yuri'];
-        var subTail = clicks.slice(-subSeq.length);
-        if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
-          localStorage.setItem('kitsu_set_5_extra_revealed', '1');
-          var toast = document.createElement('div');
-          toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
-          toast.textContent = 'A new whisper rests inside Set M’s extra hint.';
-          document.body.appendChild(toast);
-          setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+      // Generic extra_hint sub-puzzle: any set with an extra_sequence (a
+      // comma-list of char-circle slugs) and a non-empty extra_reveal gets
+      // a nested puzzle inside its EXTRA HINT modal. The reveal text appends
+      // to the modal after the player matches the slug sequence as the tail
+      // of kitsu_char_clicks. Gated to the set's difficulty tier so the
+      // sub-puzzle only arms when the player can legitimately reach the
+      // extra hint. Toast is suppressed per browser session via sessionStorage.
+      sets.forEach(function(s){
+        if (unlocked(s.set_num)) {
+          // Once the parent set is solved, the extra hint isn't visible
+          // anyway — no reason to keep firing the sub-puzzle.
+          return;
         }
-      }
+        var extraSeq = (s.extra_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
+        if (!extraSeq.length) return;
+        if (!(s.extra_reveal||'').trim()) return;
+        if (!tierUnlocked(s.difficulty || 'easy')) return;
+        var revealKey = 'kitsu_set_' + s.set_num + '_extra_revealed';
+        var subTail = clicks.slice(-extraSeq.length);
+        if (subTail.length === extraSeq.length && subTail.every(function(v,i){return v === extraSeq[i];})) {
+          localStorage.setItem(revealKey, '1');
+          var toastKey = 'kitsu_set_' + s.set_num + '_toast_shown';
+          var alreadyToasted = false;
+          try { alreadyToasted = sessionStorage.getItem(toastKey) === '1'; } catch(_){}
+          if (!alreadyToasted) {
+            try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
+            var toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
+            toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s extra hint.';
+            document.body.appendChild(toast);
+            setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+          }
+        }
+      });
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;
         if (unlocked(s.set_num)) return;
