@@ -257,7 +257,7 @@ export async function handleEmotes(request, env) {
 
   return await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
-<div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
+<div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
     <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cinzel',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
     <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
@@ -327,12 +327,12 @@ export async function handleEmotes(request, env) {
 .diff-tier-sub { font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
 .diff-tier.tier-locked .diff-tier-sub { color:rgba(232,138,125,0.6); }
 .sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
-.set-card.tier-locked { filter:grayscale(0.7);opacity:0.55; }
+.set-card.tier-locked { filter:grayscale(0.7);opacity:0.55;cursor:default; }
 .set-card.tier-locked .set-cover,
-.set-card.tier-locked .set-hint-icon { pointer-events:none; }
+.set-card.tier-locked .set-hint-icon { pointer-events:none;cursor:default; }
 /* Letter buttons stay clickable on tier-locked cards so the letter_sequence
    puzzle (Set T) can still receive K-I-T-S-U input — U + M live on Hard. */
-.set-card.tier-locked .set-letter-btn { pointer-events:auto;filter:none;opacity:1; }
+.set-card.tier-locked .set-letter-btn { pointer-events:auto;filter:none;opacity:1;cursor:pointer; }
 .set-card.tier-locked .set-tier-overlay { display:flex !important;position:absolute;inset:0;background:rgba(8,8,14,0.78);align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;color:#e88a7d;font-family:'Inter',system-ui,sans-serif;font-size:0.7rem;text-align:center;padding:1rem;letter-spacing:0.05em;z-index:5; }
 .set-card.tier-locked .set-tier-icon { font-size:1.6rem;line-height:1; }
 .set-card.tier-locked .set-cover { position:relative; }
