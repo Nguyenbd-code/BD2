@@ -552,9 +552,9 @@ export async function handleEmotes(request, env) {
       }
       var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.');
       // Set M nested clue — pressing rou → zenith → yuri in the char-circle
-      // reveals the "Max 8 Elements" follow-up alongside the rabbit riddle.
+      // reveals the "Only 8 Elements" follow-up alongside the rabbit riddle.
       if (es && es.set_num === 5 && localStorage.getItem('kitsu_set_5_extra_revealed') === '1') {
-        extraBody += '\\n\\n— — —\\n\\nMax 8 Elements.';
+        extraBody += '\\n\\n— — —\\n\\nOnly 8 Elements.';
       }
       showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;

@@ -275,7 +275,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
       }
       // Set M sub-puzzle: rou then zenith then yuri in the char-circle reveals
-      // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
+      // the "Only 8 Elements" follow-up hint inside Set M extra modal. Only
       // arms once Hard tier is available so the rabbit riddle has actually
       // been read. The toast is suppressed after the first show per browser
       // session (via sessionStorage) so re-triggering doesn't spam; the
