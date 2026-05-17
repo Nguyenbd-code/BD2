@@ -1,4 +1,4 @@
-import { getStyles } from '../css/styles.js';
+import { getStyles, getCssVersion } from '../css/styles.js';
 
 export async function layout(title, content, activePage = '', env = null) {
   let tapTarget = 7;
@@ -57,6 +57,7 @@ export async function layout(title, content, activePage = '', env = null) {
     }
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
+      if (localStorage.getItem('kitsu_set_3') === '1') return;
       n++;
       localStorage.setItem(KEY, String(n));
       icon.classList.add('mam-press');
@@ -91,7 +92,12 @@ export async function layout(title, content, activePage = '', env = null) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(title)} — BnKitsu BD2 Guide</title>
-<style>${getStyles()}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 </head>
 <body>
@@ -194,6 +200,37 @@ window.showSetUnlockModal = function(setNum, setName, message) {
       return charSetCache;
     }).catch(function(){ return []; });
   }
+  // Rabbit-tap shortcut — 2x Liatris + 3x Zenith reveals where the lock-screen
+  // secret-code lives. Disabled once kitsu_unlocked is set.
+  function checkRabbitShortcut() {
+    if (localStorage.getItem('kitsu_unlocked') === 'true') return;
+    if (localStorage.getItem('kitsu_rabbit_hint_shown') === '1') return;
+    var li = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10);
+    var ze = parseInt(localStorage.getItem('kitsu_rabbit_zenith')  || '0', 10);
+    if (li >= 2 && ze >= 3) {
+      localStorage.setItem('kitsu_rabbit_hint_shown', '1');
+      localStorage.removeItem('kitsu_rabbit_liatris');
+      localStorage.removeItem('kitsu_rabbit_zenith');
+      showRabbitHint();
+    }
+  }
+  function showRabbitHint() {
+    var existing = document.getElementById('rabbit-hint-modal');
+    if (existing) existing.remove();
+    var m = document.createElement('div');
+    m.id = 'rabbit-hint-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;padding:1.5rem;cursor:pointer;';
+    m.innerHTML = '<div style="background:#14141e;border:1px solid rgba(201,168,76,0.45);border-radius:8px;padding:2rem 2.25rem;max-width:420px;width:100%;text-align:center;font-family:\\'Inter\\',system-ui,sans-serif;cursor:default;box-shadow:0 20px 60px rgba(0,0,0,0.6)" onclick="event.stopPropagation()">'
+      + '<div style="font-family:\\'Fraunces\\',Georgia,serif;font-weight:600;font-size:1.4rem;color:#c9a84c;margin-bottom:0.85rem;letter-spacing:-0.01em">A whisper reaches you</div>'
+      + '<div style="font-size:0.9rem;color:#eef0fa;line-height:1.6;margin-bottom:1.25rem;font-style:italic">The answer lies at the bottom of the Home page.</div>'
+      + '<button id="rabbit-hint-close" style="background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:7px 22px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase">Close</button>'
+      + '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function(){ m.remove(); });
+    var cb = document.getElementById('rabbit-hint-close');
+    if (cb) cb.addEventListener('click', function(){ m.remove(); });
+  }
+
   circle.addEventListener('click', function(e){
     var b = e.target.closest('.char-pos');
     if (!b) return;
@@ -201,25 +238,67 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     e.stopPropagation();
     var slug = (b.dataset.char || '').toLowerCase();
     if (!slug) return;
+    // Bump rabbit-tap counters before everything else.
+    if (localStorage.getItem('kitsu_unlocked') !== 'true' && localStorage.getItem('kitsu_rabbit_hint_shown') !== '1') {
+      if (slug === 'liatris') {
+        var n = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10) + 1;
+        localStorage.setItem('kitsu_rabbit_liatris', String(n));
+      } else if (slug === 'zenith') {
+        var n2 = parseInt(localStorage.getItem('kitsu_rabbit_zenith') || '0', 10) + 1;
+        localStorage.setItem('kitsu_rabbit_zenith', String(n2));
+      }
+      checkRabbitShortcut();
+    }
     b.classList.remove('char-pos-tap');
     void b.offsetWidth;
     b.classList.add('char-pos-tap');
     setTimeout(function(){ b.classList.remove('char-pos-tap'); }, 250);
+
+    // Centralize the click-buffer push here so neither the Set M sub-puzzle
+    // check nor the per-set forEach loop has to do its own. Previously both
+    // pushed, so a single tap landed in kitsu_char_clicks twice and the
+    // sequence tail never matched.
+    var clicks = [];
+    try { clicks = JSON.parse(localStorage.getItem('kitsu_char_clicks') || '[]'); } catch(_){}
+    clicks.push(slug);
+    if (clicks.length > 30) clicks = clicks.slice(-30);
+    localStorage.setItem('kitsu_char_clicks', JSON.stringify(clicks));
+
     loadSets().then(function(sets){
+      // Difficulty gating — a tier is available only after every set in the previous tier is solved.
+      function unlocked(n){ return localStorage.getItem('kitsu_set_' + n) === '1'; }
+      function tierUnlocked(d){
+        if (d === 'easy') return true;
+        var prev = d === 'medium' ? 'easy' : 'medium';
+        var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
+        return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
+      }
+      // Set M sub-puzzle: rou then zenith then yuri in the char-circle reveals
+      // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
+      // arms once Hard tier is available so the rabbit riddle has actually
+      // been read.
+      if (tierUnlocked('hard') && localStorage.getItem('kitsu_set_5_extra_revealed') !== '1') {
+        var subSeq = ['rou','zenith','yuri'];
+        var subTail = clicks.slice(-subSeq.length);
+        if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
+          localStorage.setItem('kitsu_set_5_extra_revealed', '1');
+          var toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
+          toast.textContent = 'A new whisper rests inside Set M’s extra hint.';
+          document.body.appendChild(toast);
+          setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+        }
+      }
       sets.forEach(function(s){
         if ((s.unlock_mode||'') !== 'char_sequence') return;
-        if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+        if (unlocked(s.set_num)) return;
+        if (!tierUnlocked(s.difficulty || 'easy')) return;
         var seq = (s.unlock_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
         if (!seq.length) return;
-        var recentKey = 'kitsu_char_clicks';
-        var recent = [];
-        try { recent = JSON.parse(localStorage.getItem(recentKey) || '[]'); } catch(_){}
-        recent.push(slug);
-        if (recent.length > 30) recent = recent.slice(-30);
-        localStorage.setItem(recentKey, JSON.stringify(recent));
-        var tail = recent.slice(-seq.length);
+        var tail = clicks.slice(-seq.length);
         if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
           localStorage.setItem('kitsu_set_' + s.set_num, '1');
+          localStorage.removeItem('kitsu_char_clicks');
           if (window.showSetUnlockModal) {
             var name = s.name || ('Set ' + s.set_num);
             var msg = s.unlock_message || 'Set unlocked!';

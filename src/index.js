@@ -7,6 +7,7 @@ import { handleAdmin, handleAdminLogin, handleAdminLogout } from './pages/admin.
 import { handleRedeem }                            from './api/redeem.js';
 import { handleAdminApi }                          from './api/admin.js';
 import { handleImage }                             from './api/images.js';
+import { handleStylesheet }                        from './css/styles.js';
 
 export default {
   async fetch(request, env) {
@@ -36,6 +37,9 @@ export default {
 
       // Image serving
       if (path.startsWith('/img/')) return handleImage(request, env);
+
+      // Cached stylesheet (immutable, busted via ?v= query string)
+      if (path === '/styles.css') return handleStylesheet();
 
       // Secret code check (public, no auth)
       if (path === '/api/secret/check' && method === 'POST') {

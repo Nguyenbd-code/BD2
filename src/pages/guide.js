@@ -430,6 +430,7 @@ export async function handleGuide(request, env) {
       warning: STATIC_WARNINGS[tier] || null,
       preemptive,
       howToPlay,
+      guide_label: dbComp.guide_label || '',
       compGear: compGearMap[tier.toLowerCase()] || {},
     }, mediaMap);
   };

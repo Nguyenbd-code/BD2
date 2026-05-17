@@ -1,6 +1,33 @@
+// Cached CSS body + content-version hash. Computed once per isolate so the
+// stylesheet response and the cache-busting query string come for free.
+let _cssBody = null;
+let _cssVer = null;
+
+export function getCssVersion() {
+  if (_cssVer) return _cssVer;
+  const body = getStyles();
+  let h = 0;
+  for (let i = 0; i < body.length; i++) h = ((h << 5) - h + body.charCodeAt(i)) | 0;
+  _cssVer = Math.abs(h).toString(36);
+  return _cssVer;
+}
+
+export function handleStylesheet() {
+  return new Response(getStyles(), {
+    headers: {
+      'Content-Type': 'text/css; charset=utf-8',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  });
+}
+
 export function getStyles() {
-  return `
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600;700&family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap');
+  if (_cssBody) return _cssBody;
+  _cssBody = `
+/* Fonts are now loaded via <link> tags in <head> (see layout.js) so the
+   inline CSS doesn't block on a Google Fonts CSS request. The @import here
+   was forcing every page to serialize on a separate HTTPS round-trip before
+   the rest of the styles could parse. */
 
 /* ── Codex card (Brown Dust Codex direction pilot) ────────────────────────
    Editorial dark-theme tier card. Used so far only by the home page's
@@ -298,4 +325,5 @@ footer span{color:var(--gold);}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px;}
 `;
+  return _cssBody;
 }

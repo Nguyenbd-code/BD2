@@ -204,6 +204,14 @@ fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d)
   setupWhoAmI();
 }).catch(function() {});
 
+function tierUnlocked(d) {
+  if (d === 'easy') return true;
+  if (!KITSU_SETS) return false;
+  var prev = d === 'medium' ? 'easy' : 'medium';
+  var list = KITSU_SETS.filter(function(x){ return (x.difficulty || 'easy') === prev; });
+  return list.length > 0 && list.every(function(x){ return localStorage.getItem('kitsu_set_' + x.set_num) === '1'; });
+}
+
 function setupWhoAmI() {
   if (!KITSU_SETS) return;
   KITSU_SETS.forEach(function(s) {
@@ -213,6 +221,11 @@ function setupWhoAmI() {
     var picker = document.querySelector('.char-costume-picker[data-slug="' + targetSlug + '"]');
     var ghostCard = picker ? picker.closest('.char-page-card') : null;
     if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') {
+      if (ghostCard) ghostCard.style.display = 'none';
+      return;
+    }
+    // Ghost card stays hidden until the Hard difficulty tier is available.
+    if (!tierUnlocked(s.difficulty || 'easy')) {
       if (ghostCard) ghostCard.style.display = 'none';
       return;
     }
@@ -277,6 +290,7 @@ document.addEventListener('click', function(e) {
       if (at && (window.KITSU_SETS || []).length) {
         window.KITSU_SETS.forEach(function(s) {
           if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+          if (!tierUnlocked(s.difficulty || 'easy')) return;
           if ((s.unlock_mode || '') !== 'count_then_seal') return;
           var countKey = 'kitsu_set_' + s.set_num + '_count';
           var c = parseInt(localStorage.getItem(countKey) || '0', 10);
@@ -313,6 +327,7 @@ document.addEventListener('click', function(e) {
       KITSU_SETS.forEach(function(s) {
         if ((s.unlock_page || '') !== 'characters') return;
         if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
+        if (!tierUnlocked(s.difficulty || 'easy')) return;
         var mode = s.unlock_mode || 'count';
         if (mode === 'sequence') {
           var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean);
