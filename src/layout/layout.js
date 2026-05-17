@@ -201,14 +201,14 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     }).catch(function(){ return []; });
   }
   // Rabbit-tap shortcut — 2x Liatris + 3x Zenith reveals where the lock-screen
-  // secret-code lives. Disabled once kitsu_unlocked is set.
+  // secret-code lives. Only short-circuits once the user is properly unlocked;
+  // the popup itself can re-trigger as many times as the player wants, since
+  // each trigger clears the counters and forces them to do the sequence again.
   function checkRabbitShortcut() {
     if (localStorage.getItem('kitsu_unlocked') === 'true') return;
-    if (localStorage.getItem('kitsu_rabbit_hint_shown') === '1') return;
     var li = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10);
     var ze = parseInt(localStorage.getItem('kitsu_rabbit_zenith')  || '0', 10);
     if (li >= 2 && ze >= 3) {
-      localStorage.setItem('kitsu_rabbit_hint_shown', '1');
       localStorage.removeItem('kitsu_rabbit_liatris');
       localStorage.removeItem('kitsu_rabbit_zenith');
       showRabbitHint();
@@ -238,8 +238,9 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     e.stopPropagation();
     var slug = (b.dataset.char || '').toLowerCase();
     if (!slug) return;
-    // Bump rabbit-tap counters before everything else.
-    if (localStorage.getItem('kitsu_unlocked') !== 'true' && localStorage.getItem('kitsu_rabbit_hint_shown') !== '1') {
+    // Bump rabbit-tap counters before everything else. Only gated by
+    // kitsu_unlocked so a locked player can always re-attempt the shortcut.
+    if (localStorage.getItem('kitsu_unlocked') !== 'true') {
       if (slug === 'liatris') {
         var n = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10) + 1;
         localStorage.setItem('kitsu_rabbit_liatris', String(n));
