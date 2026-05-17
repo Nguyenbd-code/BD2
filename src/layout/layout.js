@@ -253,6 +253,17 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     void b.offsetWidth;
     b.classList.add('char-pos-tap');
     setTimeout(function(){ b.classList.remove('char-pos-tap'); }, 250);
+
+    // Centralize the click-buffer push here so neither the Set M sub-puzzle
+    // check nor the per-set forEach loop has to do its own. Previously both
+    // pushed, so a single tap landed in kitsu_char_clicks twice and the
+    // sequence tail never matched.
+    var clicks = [];
+    try { clicks = JSON.parse(localStorage.getItem('kitsu_char_clicks') || '[]'); } catch(_){}
+    clicks.push(slug);
+    if (clicks.length > 30) clicks = clicks.slice(-30);
+    localStorage.setItem('kitsu_char_clicks', JSON.stringify(clicks));
+
     loadSets().then(function(sets){
       // Difficulty gating — a tier is available only after every set in the previous tier is solved.
       function unlocked(n){ return localStorage.getItem('kitsu_set_' + n) === '1'; }
@@ -262,24 +273,13 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
         return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
       }
-      // Set M sub-puzzle: rou then dalvi then yuri in the char-circle reveals
+      // Set M sub-puzzle: rou then zenith then yuri in the char-circle reveals
       // the "Max 8 Elements" follow-up hint inside Set M extra modal. Only
       // arms once Hard tier is available so the rabbit riddle has actually
-      // been read. Reads the click buffer directly (the forEach below has
-      // already pushed slug into kitsu_char_clicks on previous clicks, so
-      // just trust the persisted state).
+      // been read.
       if (tierUnlocked('hard') && localStorage.getItem('kitsu_set_5_extra_revealed') !== '1') {
-        var subRecent = [];
-        try { subRecent = JSON.parse(localStorage.getItem('kitsu_char_clicks') || '[]'); } catch(_){}
-        // Make sure the current click is included even if no char_sequence
-        // set ran its forEach branch (e.g. Set I already solved).
-        if (subRecent[subRecent.length - 1] !== slug) {
-          subRecent.push(slug);
-          if (subRecent.length > 30) subRecent = subRecent.slice(-30);
-          localStorage.setItem('kitsu_char_clicks', JSON.stringify(subRecent));
-        }
         var subSeq = ['rou','zenith','yuri'];
-        var subTail = subRecent.slice(-subSeq.length);
+        var subTail = clicks.slice(-subSeq.length);
         if (subTail.length === subSeq.length && subTail.every(function(v,i){return v === subSeq[i];})) {
           localStorage.setItem('kitsu_set_5_extra_revealed', '1');
           var toast = document.createElement('div');
@@ -295,13 +295,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
         if (!tierUnlocked(s.difficulty || 'easy')) return;
         var seq = (s.unlock_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
         if (!seq.length) return;
-        var recentKey = 'kitsu_char_clicks';
-        var recent = [];
-        try { recent = JSON.parse(localStorage.getItem(recentKey) || '[]'); } catch(_){}
-        recent.push(slug);
-        if (recent.length > 30) recent = recent.slice(-30);
-        localStorage.setItem(recentKey, JSON.stringify(recent));
-        var tail = recent.slice(-seq.length);
+        var tail = clicks.slice(-seq.length);
         if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
           localStorage.setItem('kitsu_set_' + s.set_num, '1');
           localStorage.removeItem('kitsu_char_clicks');
