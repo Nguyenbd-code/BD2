@@ -1052,8 +1052,8 @@ export async function handleAdmin(request, env) {
         </div>
         <div style="font-size:0.78rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;margin-bottom:0.4rem" id="set-cfg-location-display">Location: Characters</div>
         <div class="form-group">
-          <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
-          <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
+          <label>Riddle <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when the player taps the ? on a locked set)</span></label>
+          <textarea id="set-cfg-hint" rows="4" placeholder="Write the main riddle for this set..."></textarea>
         </div>
         <!-- Hidden page field — auto-set by JS, not editable (placements are fixed) -->
         <input type="hidden" id="set-cfg-page" value="characters">
@@ -1064,8 +1064,8 @@ export async function handleAdmin(request, env) {
         </div>
 
         <div class="form-group">
-          <label>Extra Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(optional second ? button — leave blank to hide it)</span></label>
-          <textarea id="set-cfg-extra-hint" rows="3" placeholder="Optional second-tier riddle..."></textarea>
+          <label>Sub-Riddle <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(optional nested puzzle — solving it surfaces a clue inside the main Riddle modal. Leave blank to hide the second ? button.)</span></label>
+          <textarea id="set-cfg-extra-hint" rows="3" placeholder="The riddle whose answer unlocks an extra clue for the main Riddle..."></textarea>
         </div>
 
         <div class="form-row">
