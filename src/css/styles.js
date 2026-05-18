@@ -59,6 +59,22 @@ export function getStyles() {
 .codex-tag-warn{background:var(--crimson-tint);color:#e0907a;border-left-color:var(--crimson);}
 .codex-tag-pos{background:rgba(39,174,96,0.08);color:#7cd9a1;border-left-color:#27ae60;}
 .codex-tag-neg{background:rgba(192,57,43,0.08);color:#e88a7d;border-left-color:#c0392b;}
+
+/* Decorative section divider — small rhombus ornament centered between two
+   gradient hairlines. Use anywhere a horizontal break feels right. */
+.codex-divider{display:flex;align-items:center;justify-content:center;gap:0.85rem;max-width:560px;margin:2.75rem auto;color:var(--gold);opacity:0.8;pointer-events:none;}
+.codex-divider::before,.codex-divider::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(201,168,76,0.55) 50%,transparent);}
+.codex-divider::before{background:linear-gradient(to right,transparent,rgba(201,168,76,0.55));}
+.codex-divider::after{background:linear-gradient(to right,rgba(201,168,76,0.55),transparent);}
+.codex-divider span{display:inline-block;width:8px;height:8px;transform:rotate(45deg);background:linear-gradient(135deg,#e8c76a,#a07830);box-shadow:0 0 8px rgba(201,168,76,0.45);}
+
+/* Page-load stagger reveal — applied to any container with
+   data-codex-reveal. Children fade up in sequence on first paint. */
+[data-codex-reveal] > *{opacity:0;transform:translateY(8px);animation:codex-reveal-up 0.55s cubic-bezier(0.22,1,0.36,1) forwards;animation-delay:calc(var(--codex-i,0) * 60ms);}
+@keyframes codex-reveal-up{to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion:reduce){
+  [data-codex-reveal] > *{animation:none;opacity:1;transform:none;}
+}
 :root {
   --bg:#0a0a0f; --bg2:#0f0f18; --bg3:#13131e; --bg4:#1a1a28;
   --gold:#c9a84c; --gold2:#e8c76a; --gold3:#a07830;
@@ -204,8 +220,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .hero p{color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 2rem;line-height:1.7;}
 .hero-disclaimer{display:inline-block;background:var(--crimson-tint);border:1px solid var(--crimson-edge);border-left:3px solid var(--crimson);color:#e0907a;font-size:0.8rem;padding:8px 18px;border-radius:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:500;}
 .section{padding:4rem 2rem;max-width:1200px;margin:0 auto;}
-.section-title{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.4rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;letter-spacing:0.05em;}
-.section-sub{color:var(--text3);font-size:0.85rem;margin-bottom:2rem;}
+/* Section title — Fraunces display heading with a small caps eyebrow rule
+   above. Matches the hero h1 treatment in feel. */
+.section-title{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.65rem;line-height:1.1;color:#eef0fa;letter-spacing:-0.012em;margin:0.35rem 0 0.4rem;display:inline-block;}
+.section-title::before{content:'';display:block;width:32px;height:1px;background:var(--gold);opacity:0.7;margin-bottom:0.7rem;}
+.section-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.68rem;font-weight:500;letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.42);margin-bottom:2rem;}
 .tier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;}
 .tier-card{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1.25rem;cursor:pointer;transition:all 0.2s;text-decoration:none;display:block;}
 .tier-card:hover{border-color:var(--gold);background:var(--bg4);transform:translateY(-2px);}
@@ -542,10 +561,13 @@ footer span{color:var(--gold);}
 /* IMAGE ERROR HIDE */
 .img-err-hide.errored{display:none;}
 .img-err-dim.errored{opacity:0.2;}
-/* SCROLLBAR */
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px;}
+/* Codex scrollbar — thin gradient brass thumb on a faint warm-cool track */
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:rgba(10,10,15,0.6);border-left:1px solid rgba(220,230,255,0.04);}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#a07830 0%,#7a5a24 60%,#5c4520 100%);border-radius:2px;border:2px solid rgba(10,10,15,0.6);}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#c9a84c 0%,#a07830 60%,#7a5a24 100%);}
+::-webkit-scrollbar-corner{background:transparent;}
+*{scrollbar-width:thin;scrollbar-color:#7a5a24 rgba(10,10,15,0.6);}
 `;
   return _cssBody;
 }

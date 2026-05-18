@@ -68,20 +68,22 @@ export async function handleHome(request, env) {
 <div class="section" style="padding-top:0">
   <div class="section-title">Strategy Notes</div>
   <div class="section-sub">Key rules for GrandMasters ranked play</div>
-  <div class="comp-grid">
-    ${strategyCard(homeNotes[1])}
-    ${strategyCard(homeNotes[2])}
-    ${strategyCard(homeNotes[3])}
-    ${strategyCard(homeNotes[4])}
+  <div class="comp-grid" data-codex-reveal>
+    <div style="--codex-i:0">${strategyCard(homeNotes[1])}</div>
+    <div style="--codex-i:1">${strategyCard(homeNotes[2])}</div>
+    <div style="--codex-i:2">${strategyCard(homeNotes[3])}</div>
+    <div style="--codex-i:3">${strategyCard(homeNotes[4])}</div>
   </div>
 </div>
 
+<div class="codex-divider"><span></span></div>
+
 <section style="max-width:1100px;margin:0 auto 4rem;padding:0 1.5rem">
-  <h2 style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
-  <div style="width:40px;height:2px;background:var(--gold);margin-bottom:1.5rem;opacity:0.5"></div>
+  <div class="section-title">Overview</div>
+  <div class="section-sub">Every active composition at a glance</div>
   ${compRows.length === 0
     ? '<p style="color:var(--text3);font-size:0.9rem">No information yet.</p>'
-    : '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">' + compRows.map(c => compCard(c)).join('') + '</div>'
+    : '<div data-codex-reveal style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">' + compRows.map((c, i) => '<div style="--codex-i:' + i + '">' + compCard(c) + '</div>').join('') + '</div>'
   }
 </section>
 
