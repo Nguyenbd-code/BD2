@@ -76,7 +76,23 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    room. Keeps the centre clear so content isn't dimmed. */
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 110% 90% at 50% 50%,transparent 55%,rgba(0,0,0,0.55) 100%);}
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:74px;display:flex;align-items:center;padding:0 1.5rem;gap:0.85rem;}
-.nav-logo{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold);letter-spacing:0.1em;text-decoration:none;white-space:nowrap;}
+/* Nav logo — Mamonir portrait in a gold-ringed medallion + BnKitsu wordmark.
+   Weapon glyph sits inline between "Brown Dust 2" and "Guide" in the subline. */
+.nav-logo{display:inline-flex;align-items:center;gap:0.7rem;text-decoration:none;white-space:nowrap;height:100%;padding:0.25rem 0;color:inherit;}
+.nav-logo-portrait{position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#0e0c14;box-shadow:0 0 0 1px var(--gold3),0 0 0 3px rgba(10,10,15,0.95),0 0 0 4px var(--gold),0 0 0 5px rgba(0,0,0,0.7),0 4px 14px rgba(0,0,0,0.55),0 0 16px rgba(201,168,76,0.18);transition:box-shadow 0.3s ease,transform 0.3s ease;}
+.nav-logo-portrait::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at top,rgba(255,235,200,0.18),transparent 60%);pointer-events:none;}
+.nav-logo-portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;}
+.nav-logo:hover .nav-logo-portrait{transform:translateY(-1px);box-shadow:0 0 0 1px var(--gold3),0 0 0 3px rgba(10,10,15,0.95),0 0 0 4px var(--gold2),0 0 0 5px rgba(0,0,0,0.7),0 5px 18px rgba(0,0,0,0.6),0 0 26px rgba(232,199,106,0.35);}
+.nav-logo-text{display:flex;flex-direction:column;line-height:1;gap:3px;}
+.nav-logo-name{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.18rem;color:var(--gold2);letter-spacing:-0.01em;text-shadow:0 1px 0 rgba(0,0,0,0.6);}
+.nav-logo-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.58rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:rgba(220,228,245,0.42);display:inline-flex;align-items:center;gap:0.4rem;}
+.nav-logo-weapon{width:14px;height:14px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 4px rgba(201,168,76,0.45));opacity:0.85;transition:transform 0.4s cubic-bezier(0.22,1,0.36,1),opacity 0.3s ease;}
+.nav-logo:hover .nav-logo-weapon{transform:rotate(-12deg) scale(1.15);opacity:1;}
+@media (max-width:640px){
+  .nav-logo-sub{display:none;}
+  .nav-logo-name{font-size:1.05rem;}
+  .nav-logo-portrait{width:38px;height:38px;}
+}
 .nav-spacer{flex:1;}
 .nav-admin{display:flex;align-items:center;gap:4px;}
 .nav-admin>a{background:var(--gold3);color:var(--bg);padding:6px 14px;border-radius:4px;text-decoration:none;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;}
@@ -138,17 +154,6 @@ main{padding-top:74px;position:relative;z-index:1;}
 .hero h1 span{color:var(--gold);font-style:italic;font-variation-settings:'opsz' 144;}
 .hero p{color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 2rem;line-height:1.7;}
 .hero-disclaimer{display:inline-block;background:var(--crimson-tint);border:1px solid var(--crimson-edge);border-left:3px solid var(--crimson);color:#e0907a;font-size:0.8rem;padding:8px 18px;border-radius:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:500;}
-/* Custom heraldic sigil — designed for this site, not a stock motif. Slow
-   gentle rotation gives it presence without being distracting. */
-.hero-sigil{display:block;width:120px;height:120px;margin:0 auto 1.5rem;filter:drop-shadow(0 0 24px rgba(201,168,76,0.18));}
-@media (prefers-reduced-motion:no-preference){
-  .hero-sigil{animation:sigil-drift 28s linear infinite;}
-}
-@keyframes sigil-drift{
-  0%{transform:rotate(0deg);}
-  50%{transform:rotate(2deg);}
-  100%{transform:rotate(0deg);}
-}
 .section{padding:4rem 2rem;max-width:1200px;margin:0 auto;}
 .section-title{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.4rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;letter-spacing:0.05em;}
 .section-sub{color:var(--text3);font-size:0.85rem;margin-bottom:2rem;}
