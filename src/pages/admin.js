@@ -149,9 +149,14 @@ export async function handleAdmin(request, env) {
 
   return await layout('Admin Panel', `
 <div class="admin-wrap">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-    <h1 style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.5rem;color:var(--gold2)">Admin Panel</h1>
-    <a href="/admin/logout" style="font-size:0.82rem;color:var(--text3)">Logout</a>
+  <div class="admin-header">
+    <div class="admin-header-text">
+      <div class="admin-header-eyebrow">Bnkitsu Codex</div>
+      <div class="admin-header-title">Admin <em>Panel</em></div>
+    </div>
+    <div class="admin-header-actions">
+      <a href="/admin/logout" class="admin-logout">Logout</a>
+    </div>
   </div>
 
   <!-- Early, isolated tab-switching script: always wires tabs even if later JS errors -->
@@ -178,13 +183,13 @@ export async function handleAdmin(request, env) {
   </script>
 
   <div class="admin-tabs">
-    <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">&#127968; Home</button>
+    <button class="tab-btn active" data-action="tab-switch" data-tab="homepage">Home</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="chars">Characters</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="comps">Compositions</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="coupons">Coupons</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="images">Images</button>
     <button class="tab-btn"        data-action="tab-switch" data-tab="emotes">Emotes</button>
-    <button class="tab-btn"        data-action="tab-switch" data-tab="settings">&#9881; Settings</button>
+    <button class="tab-btn"        data-action="tab-switch" data-tab="settings">Settings</button>
   </div>
 
   <div id="admin-debug" style="color:#e74c3c;font-size:0.75rem;min-height:1rem;padding:4px 0"></div>
