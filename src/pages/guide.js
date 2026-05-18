@@ -202,16 +202,26 @@ function renderComp(comp, mediaMap) {
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
   const imageBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
-  // YouTube URLs need an <iframe> embed; raw <video src> would silently fail
-  // because YouTube serves the HTML watch page, not a video stream. Extract
-  // the 11-char video id from any watch/youtu.be/embed/short variant.
+  // YouTube videos are rendered as a thumbnail with a play overlay; tapping
+  // opens a fullscreen modal where the player controls (fullscreen, sound,
+  // progress bar) are actually usable. The inline iframe at 220px tall was
+  // useless — YouTube's control bar overflows and fullscreen is unreachable.
   const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const playSvg = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="rgba(10,10,15,0.78)" stroke="#c9a84c" stroke-width="1.5"/><path d="M26 20 L46 32 L26 44 Z" fill="#c9a84c"/></svg>';
   const videoInner = !video
-    ? '<div style="text-align:center"><div style="font-family:Cormorant Unicase,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+    ? '<div style="text-align:center;padding:1rem"><div style="font-family:Fraunces,Georgia,serif;color:var(--gold);opacity:0.55;font-size:1rem;font-style:italic;margin-bottom:0.3rem">Video</div><div style="font-size:0.7rem;color:var(--text3);font-family:IBM Plex Sans,system-ui,sans-serif;letter-spacing:0.22em;text-transform:uppercase">No replay yet</div></div>'
     : (ytMatch
-        ? `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:100%;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
-        : `<video controls style="width:100%;height:100%;object-fit:contain" src="${esc(video)}"></video>`);
-  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${videoInner}</div>`;
+        ? `<button type="button" class="video-thumb" data-action="open-video" data-video-id="${esc(ytMatch[1])}" data-video-kind="yt" aria-label="Play video">
+             <img src="https://img.youtube.com/vi/${esc(ytMatch[1])}/hqdefault.jpg" alt="" class="video-thumb-img" loading="lazy">
+             <span class="video-thumb-shade" aria-hidden="true"></span>
+             <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
+             <span class="video-thumb-label">Watch Replay</span>
+           </button>`
+        : `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-src="${esc(video)}" data-video-kind="file" aria-label="Play video">
+             <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
+             <span class="video-thumb-label">Watch Replay</span>
+           </button>`);
+  const videoBox = `<div class="board-video-box">${videoInner}</div>`;
   const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;height:220px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
 
@@ -575,6 +585,34 @@ function openLightbox(src) {
   }, { once: true });
   document.body.appendChild(ov);
 }
+
+// Video modal — opens a centered 16:9 iframe (YouTube) or <video> (file)
+// on click of any .video-thumb. The iframe is created lazily so we never
+// load a YouTube player until the user actually wants to watch.
+(function(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-action="open-video"]');
+    if (!btn) return;
+    e.preventDefault();
+    var kind = btn.dataset.videoKind;
+    var id = btn.dataset.videoId;
+    var src = btn.dataset.videoSrc;
+    var ov = document.createElement('div');
+    ov.className = 'video-modal';
+    var inner = '';
+    if (kind === 'yt' && id) {
+      inner = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+    } else if (kind === 'file' && src) {
+      inner = '<video controls autoplay playsinline src="' + src.replace(/"/g,'&quot;') + '"></video>';
+    }
+    ov.innerHTML = '<div class="video-modal-stage">' + inner + '<button type="button" class="video-modal-close" aria-label="Close">&#10005;</button></div>';
+    function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
+    function onKey(ev){ if (ev.key === 'Escape') close(); }
+    ov.addEventListener('click', function(ev){ if (ev.target === ov || ev.target.classList.contains('video-modal-close')) close(); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+  });
+})();
 </script>
-`, 'guide', env);
+`, 'guide', env, request);
 }

@@ -162,5 +162,5 @@ export async function handleHome(request, env) {
   };
 })();
 </script>
-`, 'home', env);
+`, 'home', env, request);
 }
