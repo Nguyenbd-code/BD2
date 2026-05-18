@@ -1,16 +1,31 @@
 import { getStyles, getCssVersion } from '../css/styles.js';
 
-export async function layout(title, content, activePage = '', env = null) {
+export async function layout(title, content, activePage = '', env = null, request = null) {
   let tapTarget = 7;
   let hasMamonir = false;
-  if (env) {
+  // Skip the two Mamonir D1 lookups entirely if the visitor isn't
+  // kitsu_unlocked yet — the falling-Mamonir feature is gated behind that
+  // anyway, so the markup never renders and we'd be paying for nothing.
+  // Saves two D1 round-trips on the critical path of every public page for
+  // every locked visitor (which is most of them).
+  let isUnlocked = false;
+  if (request) {
+    const cookie = request.headers ? (request.headers.get('Cookie') || '') : '';
+    isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  } else {
+    // Caller didn't pass request (back-compat) — assume unlocked so we don't
+    // silently hide a working feature.
+    isUnlocked = true;
+  }
+  if (env && isUnlocked) {
+    // Two independent lookups; fire in parallel.
     try {
-      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first();
-      if (row && row.data) hasMamonir = true;
-    } catch {}
-    try {
-      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first();
-      if (row && row.data) tapTarget = Math.max(1, parseInt(row.data, 10) || 7);
+      const [navRow, tapRow] = await Promise.all([
+        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first(),
+        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first(),
+      ]);
+      if (navRow && navRow.data) hasMamonir = true;
+      if (tapRow && tapRow.data) tapTarget = Math.max(1, parseInt(tapRow.data, 10) || 7);
     } catch {}
   }
 

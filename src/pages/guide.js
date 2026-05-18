@@ -614,5 +614,5 @@ function openLightbox(src) {
   });
 })();
 </script>
-`, 'guide', env);
+`, 'guide', env, request);
 }

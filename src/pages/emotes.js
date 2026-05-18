@@ -647,7 +647,7 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
-`, 'emotes', env);
+`, 'emotes', env, request);
 }
 
 // Slim render for locked users — just the lock screen + the layout chrome.
@@ -685,5 +685,5 @@ async function renderLocked(lockHintText, env) {
     });
   }
 })();</script>
-`, 'emotes', env);
+`, 'emotes', env, request);
 }
