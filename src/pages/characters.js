@@ -399,5 +399,5 @@ document.addEventListener('change', function(e) {
   } catch(err) {}
 });
 </script>
-`, 'characters', env);
+`, 'characters', env, request);
 }
