@@ -148,16 +148,10 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     <span></span><span></span><span></span>
   </button>
   <a href="/" class="nav-logo" aria-label="BnKitsu — Home">
-    <span class="nav-logo-portrait" aria-hidden="true">
-      <img src="/img/bnkitsu_logo" alt="" draggable="false">
-    </span>
-    <span class="nav-logo-text">
+    <span class="nav-logo-mark" aria-hidden="true">
+      <img src="/img/bnkitsu_logo_weapon" class="nav-logo-weapon" alt="" draggable="false">
       <span class="nav-logo-name">BnKitsu</span>
-      <span class="nav-logo-sub">
-        Brown Dust 2
-        <img src="/img/bnkitsu_logo_weapon" alt="" class="nav-logo-weapon" draggable="false">
-        Guide
-      </span>
+      <span class="nav-logo-rule"></span>
     </span>
   </a>
   <div class="nav-spacer"></div>
