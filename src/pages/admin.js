@@ -414,10 +414,10 @@ export async function handleAdmin(request, env) {
           </div>
           <div class="form-group" style="margin-bottom:0">
             <label>Preemptive Skills</label>
-            <div id="preemptive-list" class="cet-preview"></div>
-            <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%;margin-bottom:0.4rem">
+            <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
             <canvas id="preemptive-canvas" style="display:none"></canvas>
-            <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="add-preemptive">Add Image</button>
+            <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="add-preemptive">Add Image</button>
+            <div id="preemptive-list" class="cet-preview"></div>
             <div id="comp-preemptive-alert"></div>
           </div>
         </div>
@@ -3834,6 +3834,9 @@ document.addEventListener('error', function(e) {
   if (t.tagName !== 'IMG') return;
   if (t.classList.contains('img-err-hide')) t.classList.add('errored');
   if (t.classList.contains('img-err-dim'))  t.classList.add('errored');
+  // Inside a .cet-preview, fully remove the failed image so the parent
+  // becomes :empty and the "No image yet." placeholder rule can fire.
+  if (t.closest && t.closest('.cet-preview')) t.remove();
 }, true);
 try { updateImgKey(); } catch(_e) {}
 try { setupEmoteSetUI(); } catch(_e) {}
