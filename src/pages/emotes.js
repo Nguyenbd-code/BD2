@@ -40,7 +40,7 @@ async function ensureSchema(env) {
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
-    const setIRiddle = "I begin with desire that hides behind a smile,\nI follow with warmth that asks only to be noticed,\nI drift through a mind too simple to question the world,\nI move in silence that chooses not to be seen,\nI end where strength rests beneath endless depth.";
+    const setIRiddle = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
     const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     // Letters keep their original set-num positions so each letter still maps
     // to its native mechanic. KITSU sequence stays solvable across tiers
@@ -113,17 +113,22 @@ async function ensureSchema(env) {
       const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
     }
-    // Idempotent re-sync block — runs once per isolate (inside the
-    // _schemaReady guard) to align Set I + Set M's sub-puzzle and force-
-    // restore Set T's letter_sequence riddle. Three independent UPDATEs
-    // fired in parallel; previous version awaited them sequentially.
-    const setIRiddle = "I begin with desire that hides behind a smile,\nI follow with warmth that asks only to be noticed,\nI drift through a mind too simple to question the world,\nI move in silence that chooses not to be seen,\nI end where strength rests beneath endless depth.";
-    const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-    await Promise.all([
-      env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddle).run().catch(()=>{}),
-      env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{}),
-      env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{}),
-    ]);
+    // v7 migration — gated by an `images` marker so it runs once per DB
+    // (previous unconditional re-sync clobbered admin edits on every isolate
+    // cold-start). Applies the latest canonical Set I riddle / sequence, the
+    // Set M sub-puzzle riddle, and force-restores Set T's letter_sequence
+    // riddle if it ever drifted.
+    const v7 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v7_migrated'").first().catch(()=>null);
+    if (!v7) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v7_migrated','1')").run().catch(()=>{});
+      const setIRiddle = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
+      const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
+      await Promise.all([
+        env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddle).run().catch(()=>{}),
+        env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{}),
+        env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{}),
+      ]);
+    }
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
     // but kept mechanics fixed, which broke the K-I-T-S-U letter sequence

@@ -178,6 +178,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     <button type="button" class="char-pos" style="--a:240deg" data-char="liatris" aria-label="Liatris"><img src="/img/char_idle_liatris" alt="" draggable="false"></button>
     <button type="button" class="char-pos" style="--a:300deg" data-char="dalvi" aria-label="Dalvi"><img src="/img/char_idle_dalvi" alt="" draggable="false"></button>
   </div>
+  <div id="char-voice-line" class="char-voice-line" aria-live="polite"></div>
 </aside>
 <div id="nav-backdrop" class="nav-backdrop"></div>
 <script>
@@ -211,6 +212,33 @@ window.showSetUnlockModal = function(setNum, setName, message) {
 (function(){
   var circle = document.getElementById('char-circle');
   if (!circle) return;
+
+  // Per-character flavor lines. One is picked at random on tap and surfaces
+  // in the .char-voice-line caption below the circle. Adds personality to
+  // the otherwise-silent unlock widget.
+  var VOICE_LINES = {
+    dalvi:   ['A dangerous smile.','Foxfire temptation.','Desire dressed warmly.','Too sincere to trust.'],
+    rou:     ['Faithful little shadow.','Never leaves your side.','Warmth without question.','Quiet loyal paws.'],
+    tyr:     ['Just a large dog.','Gentle wandering wolf.','Too soft for fear.','Silence asks for touch.'],
+    yuri:    ['Justice never sleeps.','Small claws, sharp heart.','Lightning hides nearby.','An innocent predator.'],
+    mamonir: ['Depths conceal power.','The dead still kneel.','The abyss remembers.','Undying strategist.'],
+    liatris: ['Love turns possessive.','Jealousy smiles sweetly.','Nothing comes between.','A rabbit with fangs.'],
+    zenith:  ['Stillness hides precision.','The hunt never misses.','Watching without moving.','A calm green shadow.']
+  };
+  var voiceEl = document.getElementById('char-voice-line');
+  var voiceTimer = null;
+  function showVoiceLine(slug) {
+    var lines = VOICE_LINES[slug];
+    if (!lines || !voiceEl) return;
+    var line = lines[Math.floor(Math.random() * lines.length)];
+    voiceEl.textContent = line;
+    voiceEl.classList.remove('show');
+    void voiceEl.offsetWidth;
+    voiceEl.classList.add('show');
+    if (voiceTimer) clearTimeout(voiceTimer);
+    voiceTimer = setTimeout(function(){ voiceEl.classList.remove('show'); }, 2400);
+  }
+
   var charSetCache = null;
   function loadSets() {
     if (charSetCache) return Promise.resolve(charSetCache);
@@ -257,6 +285,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     e.stopPropagation();
     var slug = (b.dataset.char || '').toLowerCase();
     if (!slug) return;
+    showVoiceLine(slug);
     // Bump rabbit-tap counters before everything else. Only gated by
     // kitsu_unlocked so a locked player can always re-attempt the shortcut.
     if (localStorage.getItem('kitsu_unlocked') !== 'true') {

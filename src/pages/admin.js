@@ -1159,6 +1159,15 @@ export async function handleAdmin(request, env) {
           <label>Character Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-separated character slugs in order)</span></label>
           <input type="text" id="set-cfg-char-seq" placeholder="e.g. dalvi,rou,tyr,yuri,mamonir" autocomplete="off">
           <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, rou, tyr, yuri, mamonir, liatris, zenith.</div>
+          <div style="margin-top:0.6rem;padding-top:0.6rem;border-top:1px dashed var(--border2)">
+            <label style="font-size:0.78rem">Preset Riddle <span style="font-size:0.68rem;font-weight:400;color:var(--text3)">(pick one to fill in both Hint and Sequence — you can still edit after)</span></label>
+            <select id="set-cfg-charseq-preset" style="margin-top:0.25rem">
+              <option value="">— Select a preset to apply —</option>
+              <option value="hidden_hunger">Hidden Hunger — dalvi/rou/tyr/yuri/mamonir</option>
+              <option value="watchers_patience">Watcher's Patience — zenith/dalvi/tyr/liatris/mamonir</option>
+              <option value="warmth_and_depths">Warmth &amp; Depths — rou/yuri/zenith/dalvi/mamonir</option>
+            </select>
+          </div>
         </div>
         <!-- Unlock Reveal (image + message) -->
         <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
@@ -2753,6 +2762,37 @@ function setupEmoteSetUI() {
   if (waiCharSel) {
     waiCharSel.addEventListener('change', function() {
       refreshWAIPortrait(waiCharSel.value);
+    });
+  }
+  // Preset-riddle picker for char_sequence sets — fills in both the hint
+  // textarea and the sequence input when an option is selected. The admin
+  // can still hand-edit either field after applying a preset.
+  var CHAR_SEQ_PRESETS = {
+    hidden_hunger: {
+      hint: 'The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.',
+      seq: 'dalvi,rou,tyr,yuri,mamonir'
+    },
+    watchers_patience: {
+      hint: 'The first waits silently while the world moves around her.\nThe second smiles warmly while hiding ancient hunger.\nThe third wanders too gently to understand fear.\nThe fourth clings tightly enough to become dangerous.\nThe last commands even those abandoned by death.',
+      seq: 'zenith,dalvi,tyr,liatris,mamonir'
+    },
+    warmth_and_depths: {
+      hint: 'Warmth arrives first, small enough to be overlooked.\nJustice follows after with claws hidden beneath innocence.\nSilence watches next from beyond the trees.\nDesire smiles afterward like a beautiful dream.\nBelow them all waits the ruler of endless depths.',
+      seq: 'rou,yuri,zenith,dalvi,mamonir'
+    }
+  };
+  var presetSel = document.getElementById('set-cfg-charseq-preset');
+  if (presetSel) {
+    presetSel.addEventListener('change', function(){
+      var key = presetSel.value;
+      var preset = CHAR_SEQ_PRESETS[key];
+      if (!preset) return;
+      var hintEl = document.getElementById('set-cfg-hint');
+      var seqEl = document.getElementById('set-cfg-char-seq');
+      if (hintEl) hintEl.value = preset.hint;
+      if (seqEl) seqEl.value = preset.seq;
+      // Reset selector so applying the same preset twice still fires.
+      setTimeout(function(){ presetSel.value = ''; }, 50);
     });
   }
   loadEmoteSets();

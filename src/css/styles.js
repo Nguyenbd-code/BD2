@@ -155,6 +155,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .char-pos img{height:170px;width:auto;display:block;position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));pointer-events:none;-webkit-user-drag:none;transition:transform 0.12s ease;}
 .char-pos:hover img{filter:drop-shadow(0 0 6px rgba(201,168,76,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.7));}
 .char-pos.char-pos-tap img{transform:translateX(-50%) scale(0.85);}
+/* Voice-line caption under the char-circle. Italic Fraunces in gold, fades
+   in/out around 2.4s. Reserved minimum line height so the layout doesn't
+   jump when a line appears. */
+.char-voice-line{
+  display:block;margin:0.4rem 1.5rem 1.25rem;
+  min-height:2.4em;text-align:center;
+  font-family:'Fraunces',Georgia,serif;font-style:italic;
+  font-variation-settings:'opsz' 24;font-size:0.86rem;
+  line-height:1.4;letter-spacing:0.005em;
+  color:rgba(232,199,106,0);
+  transition:color 0.4s ease,transform 0.4s ease;
+  transform:translateY(2px);
+  pointer-events:none;
+}
+.char-voice-line.show{color:var(--gold2);transform:translateY(0);}
 
 /* Mamonir nav icon — the source image has transparent padding around the
    character, so we render the img larger than the wrap and clip the wrap
