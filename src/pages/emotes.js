@@ -276,17 +276,20 @@ export async function handleEmotes(request, env) {
     medium: { label: 'Medium', sub: 'Locked until every Easy set is unlocked' },
     hard:   { label: 'Hard',   sub: 'Locked until every Medium set is unlocked' },
   };
-  const setCards = ['easy', 'medium', 'hard'].map(tier => {
+  const setCards = ['easy', 'medium', 'hard'].map((tier, ti) => {
     const list = byDifficulty[tier];
     if (!list || !list.length) return '';
     const meta = difficultyLabels[tier];
+    // Stagger ties: every set card across the page reveals in sequence, so
+    // Easy → Medium → Hard cascades on first paint.
+    const baseOffset = ti * (byDifficulty.easy.length + (ti >= 1 ? byDifficulty.medium.length : 0));
     return `
       <div class="diff-tier" data-tier="${tier}">
         <div class="diff-tier-head">
           <span class="diff-tier-label diff-tier-label-${tier}">${meta.label}</span>
           <span class="diff-tier-sub">${meta.sub}</span>
         </div>
-        <div class="sets-grid">${list.map(setCardFor).join('')}</div>
+        <div class="sets-grid" data-codex-reveal>${list.map((s, si) => `<div style="--codex-i:${baseOffset + si}">${setCardFor(s)}</div>`).join('')}</div>
       </div>`;
   }).join('');
 

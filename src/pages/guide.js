@@ -453,22 +453,27 @@ export async function handleGuide(request, env) {
 
   let compsHtml = '';
 
-  if (atkComps.length) {
-    compsHtml += `
-<div style="display:flex;align-items:center;gap:1rem;margin:2rem 0 1.5rem">
-  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
-  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(93,173,226,0.6),transparent)"></div>
+  // Comp sections get a codex-divider between each so the page reads as
+  // a sequence of chapters instead of a single endless scroll. Type-section
+  // headers (Attacking / Defence) get the same eyebrow rule treatment as
+  // section-title across the rest of the codex direction.
+  const sectionHeader = (label, color, hairlineRgba) => `
+<div class="guide-type-head" style="margin:2.5rem 0 1.75rem;">
+  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;color:${color};letter-spacing:0.28em;text-transform:uppercase;display:inline-flex;align-items:center;gap:0.85rem;">
+    <span style="display:inline-block;width:28px;height:1px;background:${color};opacity:0.75"></span>
+    ${label}
+  </div>
+  <div style="font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.4rem;color:#eef0fa;letter-spacing:-0.01em;margin-top:0.35rem;">${label === 'Attacking' ? 'Attack Compositions' : 'Defence Compositions'}</div>
 </div>`;
-    compsHtml += atkComps.map(buildCompHtml).join('');
+
+  if (atkComps.length) {
+    compsHtml += sectionHeader('Attacking', '#5dade2');
+    compsHtml += atkComps.map((c, i) => buildCompHtml(c) + (i < atkComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
   if (defComps.length) {
-    compsHtml += `
-<div style="display:flex;align-items:center;gap:1rem;margin:3rem 0 1.5rem">
-  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
-  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(46,204,113,0.6),transparent)"></div>
-</div>`;
-    compsHtml += defComps.map(buildCompHtml).join('');
+    compsHtml += sectionHeader('Defence', '#2ecc71');
+    compsHtml += defComps.map((c, i) => buildCompHtml(c) + (i < defComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
   return await layout('PvP Guide', `
