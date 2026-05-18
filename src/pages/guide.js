@@ -79,12 +79,12 @@ function charStrip(chars, compId, bondsData, compGear) {
   <div class="char-card-inner${bond?' tt-parent':''}" id="card-${cid}">
     <div class="char-face">
       <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'Cormorant Unicase',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+        <span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
         ${costumeIcon}
       </div>
       <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
-        <div style="font-family:'Cormorant Unicase',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
         <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${esc(c.bond||'')}</div>
       </div>
       ${tooltip}
@@ -168,7 +168,7 @@ function renderComp(comp, mediaMap) {
     const u    = unitOrder[i-1];
     const name = u ? (typeof u === 'object' ? u.name : u) : '—';
     return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Unicase',serif;flex-shrink:0">${i}</div>
+  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;flex-shrink:0">${i}</div>
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
   }).join('');
@@ -254,7 +254,7 @@ function renderComp(comp, mediaMap) {
   </div>
 
   <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
-  <div style="font-family:'Cormorant SC',Georgia,serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
+  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
@@ -446,7 +446,7 @@ export async function handleGuide(request, env) {
   if (atkComps.length) {
     compsHtml += `
 <div style="display:flex;align-items:center;gap:1rem;margin:2rem 0 1.5rem">
-  <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
+  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
   <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(93,173,226,0.6),transparent)"></div>
 </div>`;
     compsHtml += atkComps.map(buildCompHtml).join('');
@@ -455,7 +455,7 @@ export async function handleGuide(request, env) {
   if (defComps.length) {
     compsHtml += `
 <div style="display:flex;align-items:center;gap:1rem;margin:3rem 0 1.5rem">
-  <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
+  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
   <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(46,204,113,0.6),transparent)"></div>
 </div>`;
     compsHtml += defComps.map(buildCompHtml).join('');

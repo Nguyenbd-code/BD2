@@ -59,6 +59,45 @@ export async function handleHome(request, env) {
 
   return await layout('Home', `
 <div class="hero">
+  <!-- Custom heraldic sigil — eight-pointed octovius mark with a crowned K,
+       sun-disc above, crimson-eyed center. Designed specifically for
+       BnKitsu BD2 Guide; not a generic crest from a stock library. -->
+  <svg class="hero-sigil" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="sigil-gold" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e8c76a"/>
+        <stop offset="100%" stop-color="#a07830"/>
+      </linearGradient>
+    </defs>
+    <!-- Eight-pointed star (octovius/octopus reference) framing the seal -->
+    <g stroke="url(#sigil-gold)" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M70 12 L73 36 L70 40 L67 36 Z" />
+      <path d="M70 128 L73 104 L70 100 L67 104 Z" />
+      <path d="M12 70 L36 67 L40 70 L36 73 Z" />
+      <path d="M128 70 L104 67 L100 70 L104 73 Z" />
+      <path d="M28 28 L48 44 L46 48 L42 46 Z" />
+      <path d="M112 28 L92 44 L94 48 L98 46 Z" />
+      <path d="M28 112 L48 96 L46 92 L42 94 Z" />
+      <path d="M112 112 L92 96 L94 92 L98 94 Z" />
+    </g>
+    <!-- Inner ringed seal -->
+    <circle cx="70" cy="70" r="32" fill="none" stroke="url(#sigil-gold)" stroke-width="1"/>
+    <circle cx="70" cy="70" r="28" fill="none" stroke="url(#sigil-gold)" stroke-width="0.5" stroke-dasharray="1 3" opacity="0.65"/>
+    <!-- Crimson core dot (the 2nd-accent moment) -->
+    <circle cx="70" cy="70" r="2.4" fill="#8e3a2d"/>
+    <!-- K monogram (BnKitsu) — engraved-style -->
+    <g stroke="url(#sigil-gold)" stroke-width="1.6" fill="none" stroke-linecap="round">
+      <line x1="60" y1="56" x2="60" y2="84"/>
+      <line x1="60" y1="70" x2="78" y2="56"/>
+      <line x1="60" y1="70" x2="78" y2="84"/>
+    </g>
+    <!-- Top sun-disc + tiny crown notches -->
+    <g fill="url(#sigil-gold)">
+      <circle cx="70" cy="22" r="2"/>
+      <rect x="68" y="6" width="0.8" height="4"/>
+      <rect x="71.2" y="6" width="0.8" height="4"/>
+    </g>
+  </svg>
   <div class="hero-tag">PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
   <p>Team compositions for Top 30 — Rank 1 competitive play. Updated by BnKitsu. Mamonir Lover.</p>
@@ -77,7 +116,7 @@ export async function handleHome(request, env) {
 </div>
 
 <section style="max-width:1100px;margin:0 auto 4rem;padding:0 1.5rem">
-  <h2 style="font-family:'Cormorant Unicase',serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
+  <h2 style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
   <div style="width:40px;height:2px;background:var(--gold);margin-bottom:1.5rem;opacity:0.5"></div>
   ${compRows.length === 0
     ? '<p style="color:var(--text3);font-size:0.9rem">No information yet.</p>'
@@ -91,7 +130,7 @@ export async function handleHome(request, env) {
 
 <div id="egg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
   <div id="egg-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:2rem;max-width:340px;width:90%;text-align:center">
-    <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;color:var(--text);margin-bottom:1rem">Secret Code</div>
+    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;color:var(--text);margin-bottom:1rem">Secret Code</div>
     <input id="egg-input" type="password" placeholder="Enter code..." autocomplete="off"
       style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;font-size:0.95rem;outline:none;margin-bottom:0.75rem">
     <div id="egg-result" style="font-size:0.88rem;min-height:1.2em;margin-bottom:0.75rem"></div>
