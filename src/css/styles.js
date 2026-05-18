@@ -33,10 +33,11 @@ export function getStyles() {
    Editorial dark-theme tier card. Used so far only by the home page's
    compCard(); we'll roll the same direction out to other components if
    this lands well. */
-.codex-card{position:relative;display:block;text-decoration:none;background:#14141e;border-radius:4px;overflow:hidden;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 10px 28px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s ease;}
-.codex-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(220,230,255,0.09) inset,0 0 0 1px rgba(220,230,255,0.07),0 18px 38px rgba(0,0,0,0.65),0 3px 6px rgba(0,0,0,0.7);}
+.codex-card{position:relative;display:block;text-decoration:none;background:#14141e;border-radius:4px;overflow:hidden;isolation:isolate;box-shadow:inset 3px 0 0 var(--codex-accent,#c9a84c),0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 10px 28px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s ease;}
+.codex-card:hover{transform:translateY(-3px);box-shadow:inset 3px 0 0 var(--codex-accent,#c9a84c),0 1px 0 rgba(220,230,255,0.09) inset,0 0 0 1px rgba(220,230,255,0.07),0 18px 38px rgba(0,0,0,0.65),0 3px 6px rgba(0,0,0,0.7),0 0 28px rgba(201,168,76,0.18);}
 .codex-card::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.18;z-index:0;}
-.codex-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--codex-accent,#c9a84c);z-index:2;}
+/* Ornate gold corner brackets — small JRPG-UI flourishes at each corner. */
+.codex-card::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.6' opacity='0.55'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;}
 .codex-card-inner{position:relative;z-index:1;padding:1.15rem 1.25rem 1.15rem 1.45rem;display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;}
 .codex-tier{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:2.4rem;line-height:0.85;color:var(--codex-accent,#c9a84c);letter-spacing:-0.025em;margin-top:0.05em;text-shadow:0 1px 2px rgba(0,0,0,0.4);}
 .codex-body{display:flex;flex-direction:column;gap:0.45rem;min-width:0;}
@@ -68,6 +69,9 @@ export function getStyles() {
 html{scroll-behavior:smooth;}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(201,168,76,0.04),transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(139,0,0,0.06),transparent 60%);pointer-events:none;z-index:0;}
+/* Viewport vignette — darkens the edges so the page reads as a candlelit
+   room. Keeps the centre clear so content isn't dimmed. */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 110% 90% at 50% 50%,transparent 55%,rgba(0,0,0,0.55) 100%);}
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:74px;display:flex;align-items:center;padding:0 1.5rem;gap:0.85rem;}
 .nav-logo{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:var(--gold);letter-spacing:0.1em;text-decoration:none;white-space:nowrap;}
 .nav-spacer{flex:1;}
@@ -124,8 +128,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .hero{padding:5rem 2rem 3rem;text-align:center;position:relative;}
 .hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
 .hero-tag{display:inline-block;background:rgba(201,168,76,0.1);border:1px solid var(--border);color:var(--gold);font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:6px 16px;border-radius:2px;margin-bottom:1.5rem;}
-.hero h1{font-family:'Cinzel',serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:700;line-height:1.1;margin-bottom:1rem;}
-.hero h1 span{color:var(--gold);}
+/* Hero headline — Fraunces at display optical-size for a Renaissance/JRPG
+   title feel. Decorative gold rule sits above the heading. */
+.hero h1{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:clamp(2.1rem,5.2vw,3.8rem);line-height:1.05;letter-spacing:-0.018em;margin:0.4rem 0 1rem;color:#eef0fa;}
+.hero h1::before{content:'';display:block;width:54px;height:2px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:0 auto 1.1rem;}
+.hero h1 span{color:var(--gold);font-style:italic;font-variation-settings:'opsz' 144;}
 .hero p{color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 2rem;line-height:1.7;}
 .hero-disclaimer{display:inline-block;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.8rem;padding:8px 16px;border-radius:4px;}
 .section{padding:4rem 2rem;max-width:1200px;margin:0 auto;}
@@ -182,6 +189,7 @@ main{padding-top:74px;position:relative;z-index:1;}
 }
 .card{position:relative;background:#14141e;border-radius:4px;padding:1.5rem;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 8px 22px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);}
 .card::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.14;z-index:0;border-radius:4px;}
+.card::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
 .card > *{position:relative;z-index:1;}
 .card-title{display:inline-flex;align-items:center;gap:0.7rem;font-family:'Inter',system-ui,sans-serif;font-size:0.66rem;font-weight:600;color:rgba(220,228,245,0.5);letter-spacing:0.24em;text-transform:uppercase;margin:0 0 1.1rem 0;padding:0;border:none;}
 .card-title::before{content:'';width:22px;height:1px;background:#c9a84c;flex-shrink:0;}
