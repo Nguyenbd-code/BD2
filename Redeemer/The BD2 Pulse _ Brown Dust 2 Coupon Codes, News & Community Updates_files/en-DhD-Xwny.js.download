@@ -1,1 +1,0 @@
-import{s,r as o,u as r,A as a,a as u}from"./index-atINBGZw.js";import{B as p,D as i,E as n}from"./vendor-SJdm2fbw.js";import"./vuetify-LyJ4S_6A.js";const g=p({history:i("/en/"),routes:s(u)}),t=n(a);t.use(g);o(t);const e=r();e.setDefaultLanguageFromRoute("en");e.loadSettings();t.mount("#app");
