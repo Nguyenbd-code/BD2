@@ -466,7 +466,7 @@ export async function handleGuide(request, env) {
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
       <div class="hero-tag">Mirror Wars</div>
-      <h1 style="font-size:clamp(1.5rem,3vw,2.5rem)">PvP Composition <span>Guide</span></h1>
+      <h1>PvP Composition <span>Guide</span></h1>
       <p style="margin:0">Top 30 — Rank 1 team compositions curated by BnKitsu</p>
     </div>
     ${compsHtml}
