@@ -79,12 +79,12 @@ function charStrip(chars, compId, bondsData, compGear) {
   <div class="char-card-inner${bond?' tt-parent':''}" id="card-${cid}">
     <div class="char-face">
       <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'Cinzel',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+        <span style="font-family:'Cormorant Unicase',serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
         ${costumeIcon}
       </div>
       <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
-        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
+        <div style="font-family:'Cormorant Unicase',serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
         <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${esc(c.bond||'')}</div>
       </div>
       ${tooltip}
@@ -168,7 +168,7 @@ function renderComp(comp, mediaMap) {
     const u    = unitOrder[i-1];
     const name = u ? (typeof u === 'object' ? u.name : u) : '—';
     return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;flex-shrink:0">${i}</div>
+  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Unicase',serif;flex-shrink:0">${i}</div>
   <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
 </div>`;
   }).join('');
@@ -207,7 +207,7 @@ function renderComp(comp, mediaMap) {
   // the 11-char video id from any watch/youtu.be/embed/short variant.
   const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   const videoInner = !video
-    ? '<div style="text-align:center"><div style="font-family:Cinzel,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+    ? '<div style="text-align:center"><div style="font-family:Cormorant Unicase,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
     : (ytMatch
         ? `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:100%;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
         : `<video controls style="width:100%;height:100%;object-fit:contain" src="${esc(video)}"></video>`);
@@ -254,7 +254,7 @@ function renderComp(comp, mediaMap) {
   </div>
 
   <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
-  <div style="font-family:'Inter',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
+  <div style="font-family:'Cormorant SC',Georgia,serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
   <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
@@ -273,7 +273,7 @@ function renderComp(comp, mediaMap) {
       <div class="comp-howmatch-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;flex-shrink:0;height:240px;">
         <div class="card" style="padding:1.25rem;overflow:hidden;display:flex;flex-direction:column;">
           <div class="card-title" style="margin-bottom:0.75rem;flex-shrink:0">How and When to Play</div>
-          <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:auto">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cinzel,serif">Coming soon</span>'}</div>
+          <div style="color:var(--text3);font-size:0.82rem;flex:1;line-height:1.6;white-space:pre-wrap;overflow:auto">${comp.howToPlay ? esc(comp.howToPlay) : '<span style="color:var(--gold);opacity:0.4;font-family:Cormorant Unicase,serif">Coming soon</span>'}</div>
         </div>
         <div class="card" style="padding:1rem;overflow:hidden;display:flex;flex-direction:column;">
           <div class="card-title" style="flex-shrink:0">Matchups</div>
@@ -359,12 +359,12 @@ export async function handleGuide(request, env) {
   const sidebarLinks = [
     atkComps.length ? `<div style="font-size:0.63rem;font-weight:700;color:#5dade2;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.5rem 0.1rem">Attacking</div>` : '',
     ...atkComps.map(c => `<a href="#${compAnchor(c)}" class="sidebar-link">
-  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cormorant Unicase,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
   <span class="sidebar-name">${esc(c.name)}</span>
 </a>`),
     defComps.length ? `<div style="font-size:0.63rem;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:0.1em;padding:0.5rem 0.5rem 0.1rem;border-top:1px solid var(--border2);margin-top:0.35rem">Defence</div>` : '',
     ...defComps.map(c => `<a href="#${compAnchor(c)}" class="sidebar-link">
-  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cinzel,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
+  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:${c.color||'#c9a84c'};color:#fff;font-family:Cormorant Unicase,serif;font-size:0.6rem;font-weight:700;flex-shrink:0">${esc(c.tier)}</span>
   <span class="sidebar-name">${esc(c.name)}</span>
 </a>`),
   ].filter(Boolean).join('');
@@ -446,7 +446,7 @@ export async function handleGuide(request, env) {
   if (atkComps.length) {
     compsHtml += `
 <div style="display:flex;align-items:center;gap:1rem;margin:2rem 0 1.5rem">
-  <div style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
+  <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
   <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(93,173,226,0.6),transparent)"></div>
 </div>`;
     compsHtml += atkComps.map(buildCompHtml).join('');
@@ -455,7 +455,7 @@ export async function handleGuide(request, env) {
   if (defComps.length) {
     compsHtml += `
 <div style="display:flex;align-items:center;gap:1rem;margin:3rem 0 1.5rem">
-  <div style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
+  <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
   <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(46,204,113,0.6),transparent)"></div>
 </div>`;
     compsHtml += defComps.map(buildCompHtml).join('');
