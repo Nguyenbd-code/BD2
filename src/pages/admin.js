@@ -150,7 +150,7 @@ export async function handleAdmin(request, env) {
   return await layout('Admin Panel', `
 <div class="admin-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-    <h1 style="font-family:'Cinzel',serif;font-size:1.5rem;color:var(--gold2)">Admin Panel</h1>
+    <h1 style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.5rem;color:var(--gold2)">Admin Panel</h1>
     <a href="/admin/logout" style="font-size:0.82rem;color:var(--text3)">Logout</a>
   </div>
 
@@ -260,7 +260,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Comp editor (shown when a tier is selected) -->
       <div id="comp-editor" style="display:none;margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;color:var(--gold);margin-bottom:1rem" id="comp-editor-tier-label"></div>
 
         <!-- Team Name -->
         <div class="form-group">
@@ -359,7 +359,7 @@ export async function handleAdmin(request, env) {
 
         <!-- Skill Rotation (all tiers) -->
         <div style="border-top:1px solid var(--border2);margin:1rem 0;padding-top:1rem" id="skill-rotation-section">
-          <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.4rem">Skill Rotation</h4>
+          <h4 style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.4rem">Skill Rotation</h4>
           <div id="skill-rotation-gated" style="pointer-events:none;opacity:0.35;transition:opacity 0.2s">
             <p style="font-size:0.8rem;color:var(--text3)">Set Character Bonds first to enable skill rotation.</p>
           </div>
@@ -486,7 +486,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Add new comp form -->
       <div id="comp-add-form" style="display:none;margin-top:1rem">
-        <h4 style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
+        <h4 style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">New Composition</h4>
         <div class="form-row">
           <div class="form-group">
             <label>Tier Label <span style="color:var(--text3);font-size:0.7rem">(e.g. T1 for ATK, D1 for DEF)</span></label>
@@ -511,14 +511,14 @@ export async function handleAdmin(request, env) {
     <div id="bonds-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:700px;width:100%;margin:auto;position:relative">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Select Character Bonds</div>
+          <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;color:var(--gold)">Select Character Bonds</div>
           <button id="close-bonds-modal-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
         </div>
         <!-- 5 bond slots at top -->
         <div id="bonds-modal-slots" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
         <!-- Element filter -->
         <div id="bonds-elem-filter" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem">
-          <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'Cinzel',serif"><span style="font-size:0.9rem">✦</span>All</button>
+          <button class="bond-elem-btn active" data-elem="all" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--gold);color:#0a0a0f;font-size:0.78rem;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif"><span style="font-size:0.9rem">✦</span>All</button>
           ${elemOrderServer.map(el =>
             '<button class="bond-elem-btn" data-elem="' + esc(el.toLowerCase()) + '" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:0.78rem;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:14px;height:14px;object-fit:contain">' + esc(el) + '</button>'
           ).join('')}
@@ -542,7 +542,7 @@ export async function handleAdmin(request, env) {
     <div id="unit-order-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:2rem 1rem">
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:420px;width:100%;position:relative">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-          <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Unit Order</div>
+          <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;color:var(--gold)">Unit Order</div>
           <button id="close-unit-order-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
         </div>
         <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Arrange positions 1&#8211;5. Only bonded characters are available.</p>
@@ -560,7 +560,7 @@ export async function handleAdmin(request, env) {
     <div id="rot-edit-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem">
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:100%;margin:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-          <div id="rot-edit-title" style="font-family:'Cinzel',serif;font-size:1rem;color:var(--gold)">Skill Rotation</div>
+          <div id="rot-edit-title" style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;color:var(--gold)">Skill Rotation</div>
           <button id="close-rot-edit-btn" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#x2715; Close</button>
         </div>
         <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Pick a costume for each of the 10 rotation slots. Changes save automatically.</p>
@@ -600,7 +600,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Cover Image -->
       <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Cover Image</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Cover Image</div>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
           <div id="es-cover-preview-img" style="width:120px;height:120px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
             <span style="font-size:0.7rem;color:var(--text3);text-align:center">No cover</span>
@@ -619,7 +619,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Lock Image -->
       <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Page Lock Image</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Page Lock Image</div>
         <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Shown on locked sets. Upload the lock emote image here.</p>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
           <div id="lock-img-preview" style="width:80px;height:80px;border:1px solid var(--border2);border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
@@ -636,7 +636,7 @@ export async function handleAdmin(request, env) {
 
       <!-- Emote Bundle -->
       <div style="border:1px solid var(--border2);border-radius:6px;padding:1rem;background:var(--bg3);margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Emote Bundle</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.75rem">Emote Bundle</div>
         <div class="form-group">
           <label>Upload Images <span style="color:var(--text3);font-weight:400">(select multiple files)</span></label>
           <input type="file" id="es-bulk-files" accept="image/*" multiple style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;width:100%">
@@ -1050,7 +1050,7 @@ export async function handleAdmin(request, env) {
             <input type="text" id="set-cfg-letter" placeholder="S" maxlength="4">
           </div>
         </div>
-        <div style="font-size:0.78rem;color:var(--gold);font-family:'Cinzel',serif;margin-bottom:0.4rem" id="set-cfg-location-display">Location: Characters</div>
+        <div style="font-size:0.78rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;margin-bottom:0.4rem" id="set-cfg-location-display">Location: Characters</div>
         <div class="form-group">
           <label>Hint <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(shown when player clicks a locked set)</span></label>
           <textarea id="set-cfg-hint" rows="4" placeholder="Write a riddle or clue..."></textarea>
@@ -1159,10 +1159,19 @@ export async function handleAdmin(request, env) {
           <label>Character Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-separated character slugs in order)</span></label>
           <input type="text" id="set-cfg-char-seq" placeholder="e.g. dalvi,rou,tyr,yuri,mamonir" autocomplete="off">
           <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, rou, tyr, yuri, mamonir, liatris, zenith.</div>
+          <div style="margin-top:0.6rem;padding-top:0.6rem;border-top:1px dashed var(--border2)">
+            <label style="font-size:0.78rem">Preset Riddle <span style="font-size:0.68rem;font-weight:400;color:var(--text3)">(pick one to fill in both Hint and Sequence — you can still edit after)</span></label>
+            <select id="set-cfg-charseq-preset" style="margin-top:0.25rem">
+              <option value="">— Select a preset to apply —</option>
+              <option value="hidden_hunger">Hidden Hunger — dalvi/rou/tyr/yuri/mamonir</option>
+              <option value="watchers_patience">Watcher's Patience — zenith/dalvi/tyr/liatris/mamonir</option>
+              <option value="warmth_and_depths">Warmth &amp; Depths — rou/yuri/zenith/dalvi/mamonir</option>
+            </select>
+          </div>
         </div>
         <!-- Unlock Reveal (image + message) -->
         <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
-          <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:#2ecc71;letter-spacing:0.08em;margin-bottom:0.6rem">UNLOCK REVEAL</div>
+          <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;color:#2ecc71;letter-spacing:0.08em;margin-bottom:0.6rem">UNLOCK REVEAL</div>
           <p style="font-size:0.72rem;color:var(--text3);margin-bottom:0.75rem">Shown to the player after they unlock this set. Both fields are optional.</p>
           <div class="form-group">
             <label>Unlock Message <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(text displayed in the popup)</span></label>
@@ -1192,7 +1201,7 @@ export async function handleAdmin(request, env) {
       </div>
 
       <div class="card" style="margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
         <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Clears the localStorage flags used by Kitsu's emotes lock flow for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
         <div id="kitsu-reset-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
@@ -1203,7 +1212,7 @@ export async function handleAdmin(request, env) {
       </div>
 
       <div class="card" style="margin-top:1rem">
-        <div style="font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Nav Icon Settings</div>
         <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">The Mamonir icon appears in the navigation bar. Configure how many taps are required before it falls and unlocks Set 3 (K).</p>
         <div class="form-group">
           <label style="font-size:0.78rem">Taps to Fall (default 7)</label>
@@ -2755,6 +2764,37 @@ function setupEmoteSetUI() {
       refreshWAIPortrait(waiCharSel.value);
     });
   }
+  // Preset-riddle picker for char_sequence sets — fills in both the hint
+  // textarea and the sequence input when an option is selected. The admin
+  // can still hand-edit either field after applying a preset.
+  var CHAR_SEQ_PRESETS = {
+    hidden_hunger: {
+      hint: 'The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.',
+      seq: 'dalvi,rou,tyr,yuri,mamonir'
+    },
+    watchers_patience: {
+      hint: 'The first waits silently while the world moves around her.\nThe second smiles warmly while hiding ancient hunger.\nThe third wanders too gently to understand fear.\nThe fourth clings tightly enough to become dangerous.\nThe last commands even those abandoned by death.',
+      seq: 'zenith,dalvi,tyr,liatris,mamonir'
+    },
+    warmth_and_depths: {
+      hint: 'Warmth arrives first, small enough to be overlooked.\nJustice follows after with claws hidden beneath innocence.\nSilence watches next from beyond the trees.\nDesire smiles afterward like a beautiful dream.\nBelow them all waits the ruler of endless depths.',
+      seq: 'rou,yuri,zenith,dalvi,mamonir'
+    }
+  };
+  var presetSel = document.getElementById('set-cfg-charseq-preset');
+  if (presetSel) {
+    presetSel.addEventListener('change', function(){
+      var key = presetSel.value;
+      var preset = CHAR_SEQ_PRESETS[key];
+      if (!preset) return;
+      var hintEl = document.getElementById('set-cfg-hint');
+      var seqEl = document.getElementById('set-cfg-char-seq');
+      if (hintEl) hintEl.value = preset.hint;
+      if (seqEl) seqEl.value = preset.seq;
+      // Reset selector so applying the same preset twice still fires.
+      setTimeout(function(){ presetSel.value = ''; }, 50);
+    });
+  }
   loadEmoteSets();
 
   // Gear override file input — show preview immediately on selection
@@ -3588,7 +3628,7 @@ function renderRotEditModal() {
     var cur = saved[slot] || '';
     var selOpts = costOpts.replace('value="' + escH(cur) + '">', 'value="' + escH(cur) + '" selected>');
     html += '<div style="display:flex;align-items:center;gap:0.5rem">'
-         + '<span style="font-size:0.8rem;color:var(--text3);width:24px;flex-shrink:0;text-align:right;font-family:Cinzel,serif">' + slot + '</span>'
+         + '<span style="font-size:0.8rem;color:var(--text3);width:24px;flex-shrink:0;text-align:right;font-family:Cormorant Unicase,serif">' + slot + '</span>'
          + '<select style="' + selStyle + '"'
          +   ' data-action="rot-slot-change"'
          +   ' data-char="' + escH(charName) + '"'
