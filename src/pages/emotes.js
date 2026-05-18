@@ -40,7 +40,7 @@ async function ensureSchema(env) {
 
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
   if (!r || !r.n) {
-    const setIRiddle = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
+    const setIRiddle = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
     const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
     // Letters keep their original set-num positions so each letter still maps
     // to its native mechanic. KITSU sequence stays solvable across tiers
@@ -113,24 +113,21 @@ async function ensureSchema(env) {
       const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
     }
-    // v7 migration — first gated re-sync.
+    // v7 migration — gated by an `images` marker so it runs once per DB
+    // (previous unconditional re-sync clobbered admin edits on every isolate
+    // cold-start). Applies the latest canonical Set I riddle / sequence, the
+    // Set M sub-puzzle riddle, and force-restores Set T's letter_sequence
+    // riddle if it ever drifted.
     const v7 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v7_migrated'").first().catch(()=>null);
     if (!v7) {
       await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v7_migrated','1')").run().catch(()=>{});
-      const setIRiddleV7 = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
+      const setIRiddle = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
       const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
       await Promise.all([
-        env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV7).run().catch(()=>{}),
+        env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddle).run().catch(()=>{}),
         env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{}),
         env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{}),
       ]);
-    }
-    // v8 migration — refresh Set I riddle text only (sequence kept the same).
-    const v8 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v8_migrated'").first().catch(()=>null);
-    if (!v8) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v8_migrated','1')").run().catch(()=>{});
-      const setIRiddleV8 = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
-      await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV8).run().catch(()=>{});
     }
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
@@ -488,7 +485,7 @@ export async function handleEmotes(request, env) {
 
   document.getElementById('page-unlock-hint').addEventListener('click', function(e) {
     e.stopPropagation();
-    showHintModal('HOW TO UNLOCK', 'Tap the ? on each set for its riddle. Some sets also have a Sub-Riddle (the second ?) that hides an extra clue.');
+    showHintModal('HOW TO UNLOCK', 'Look closely at each set\\'s hint (?) for a clue about where and how to unlock it.');
   });
 
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }
@@ -582,17 +579,17 @@ export async function handleEmotes(request, env) {
       var en = parseInt(extraBtn.dataset.extraSet, 10);
       var es = SETS.find(function(x){ return x.set_num === en; });
       if (es && !isSetAvailable(en)) {
-        showHintModal('LOCKED', 'This Sub-Riddle becomes available once the previous difficulty tier is fully unlocked.');
+        showHintModal('LOCKED', 'This hint becomes available once the previous difficulty tier is fully unlocked.');
         return;
       }
-      var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No Sub-Riddle available yet.');
+      var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No extra hint available yet.');
       // Generic extra-reveal append. Any set whose extra_sequence has been
       // matched in the char-circle gets its extra_reveal appended below the
       // primary extra_hint via an em-dash divider.
       if (es && (es.extra_reveal||'').trim() && localStorage.getItem('kitsu_set_' + es.set_num + '_extra_revealed') === '1') {
         extraBody += '\\n\\n— — —\\n\\n' + es.extra_reveal;
       }
-      showHintModal('SUB-RIDDLE — ' + (es ? (es.name || en) : en), extraBody);
+      showHintModal('EXTRA HINT — ' + (es ? (es.name || en) : en), extraBody);
       return;
     }
 
@@ -609,7 +606,7 @@ export async function handleEmotes(request, env) {
         ? s.display_location
         : ((s && s.unlock_page) ? s.unlock_page.charAt(0).toUpperCase() + s.unlock_page.slice(1) : 'Unknown');
       var hintBody = 'Location: ' + loc + '\\n\\n' + ((s && s.hint) ? s.hint : 'No hint available yet.');
-      showHintModal('RIDDLE — ' + (s ? (s.name || n) : n), hintBody);
+      showHintModal('HINT — ' + (s ? (s.name || n) : n), hintBody);
       return;
     }
 
@@ -647,7 +644,7 @@ export async function handleEmotes(request, env) {
   }, true);
 })();
 </script>
-`, 'emotes', env, request);
+`, 'emotes', env);
 }
 
 // Slim render for locked users — just the lock screen + the layout chrome.
@@ -685,5 +682,5 @@ async function renderLocked(lockHintText, env) {
     });
   }
 })();</script>
-`, 'emotes', env, request);
+`, 'emotes', env);
 }
