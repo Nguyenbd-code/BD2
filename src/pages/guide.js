@@ -75,17 +75,19 @@ function charStrip(chars, compId, bondsData, compGear) {
     const gearSrc = hasCompGear
       ? `/img/comp_gear_${tierKey}_${slug}`
       : `/img/char_${slug}_gear`;
-    return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
+    return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px;--codex-i:${idx}" data-action="card-flip" data-slug="${cid}">
   <div class="char-card-inner${bond?' tt-parent':''}" id="card-${cid}">
     <div class="char-face">
-      <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+      <div style="height:154px;position:relative;background:#0e0c14;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:3.2rem;color:${col};opacity:0.45;letter-spacing:-0.04em">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
         ${costumeIcon}
+        <div style="position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to top,rgba(10,10,15,0.85),transparent);z-index:3;pointer-events:none"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(to right,transparent,${col},transparent);z-index:4;pointer-events:none;opacity:0.85"></div>
       </div>
-      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
-        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
-        <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${esc(c.bond||'')}</div>
+      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0.4rem 0.6rem 0;background:#14141e">
+        <div style="font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:0.95rem;color:#eef0fa;text-align:center;letter-spacing:-0.005em;line-height:1.1">${esc(c.name)}</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.6rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.85);margin-top:4px;text-align:center">${esc(c.bond||'')}</div>
       </div>
       ${tooltip}
     </div>
@@ -265,7 +267,7 @@ function renderComp(comp, mediaMap) {
 
   <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
   <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
-  <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
+  <div data-codex-reveal style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;overflow:hidden;">

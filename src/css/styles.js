@@ -310,8 +310,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .char-card-inner{position:relative;width:100%;height:220px;transform-style:preserve-3d;transition:transform 0.5s ease;}
 .char-card-inner.flipped{transform:rotateY(180deg);}
 .board-card-inner.flipped{transform:rotateY(180deg);}
-.char-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);overflow:hidden;transform:translateZ(0);-webkit-transform:translateZ(0);}
-.char-face-back{transform:rotateY(180deg) translateZ(0);-webkit-transform:rotateY(180deg) translateZ(0);border:2px solid var(--gold);border-radius:8px;}
+.char-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:4px;background:#14141e;border:none;overflow:hidden;transform:translateZ(0);-webkit-transform:translateZ(0);box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.05),0 6px 18px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);transition:box-shadow 0.25s ease;}
+.char-card-wrap:hover .char-face{box-shadow:0 1px 0 rgba(220,230,255,0.08) inset,0 0 0 1px rgba(201,168,76,0.35),0 10px 26px rgba(0,0,0,0.6),0 2px 4px rgba(0,0,0,0.6),0 0 24px rgba(201,168,76,0.18);}
+.char-face-back{transform:rotateY(180deg) translateZ(0);-webkit-transform:rotateY(180deg) translateZ(0);border-radius:4px;}
+/* Bond card corner brackets — same brass flourish used on .codex-card */
+.char-face::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
 .board-face{-webkit-backface-visibility:hidden !important;backface-visibility:hidden !important;}
 .board-face:not(.board-face-back){transform:translateZ(0) !important;-webkit-transform:translateZ(0) !important;}
 .board-face-back{transform:rotateY(180deg) translateZ(0) !important;-webkit-transform:rotateY(180deg) translateZ(0) !important;}
@@ -369,8 +372,14 @@ main{padding-top:74px;position:relative;z-index:1;}
 .counter-tag{display:inline-block;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 .beats-tag{display:inline-block;background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 /* COUPONS */
-.coupon-form{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2rem;max-width:560px;margin:0 auto 3rem;}
-.coupon-form h3{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);margin-bottom:1.5rem;}
+/* Coupon redeem form panel — codex card treatment, same as .codex-card
+   shell. Inline-styled max-width retained via CSS so it doesn't push the
+   page chrome wider on bigger viewports. */
+.coupon-form{position:relative;background:#14141e;border-radius:4px;padding:2rem;max-width:600px;margin:0 auto 3rem;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 10px 28px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);}
+.coupon-form::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.14;z-index:0;border-radius:4px;}
+.coupon-form::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.coupon-form > *{position:relative;z-index:1;}
+.coupon-form h3{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.5rem;color:#eef0fa;margin-bottom:1.5rem;letter-spacing:-0.012em;}
 /* Codex form fields — bottom-rule inputs, IBM Plex Sans body, gold focus */
 .form-group{margin-bottom:1.1rem;}
 .form-group label{display:block;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.55);margin-bottom:0.5rem;}
@@ -424,7 +433,9 @@ main{padding-top:74px;position:relative;z-index:1;}
 .rb-failed{background:rgba(192,57,43,0.2);color:#e74c3c;border:1px solid rgba(192,57,43,0.4);}
 .rb-pending{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid var(--border);}
 .code-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;max-width:1200px;margin:0 auto;padding:0 2rem 4rem;}
-.code-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.25rem;}
+/* Single-code display card — used by the Special Code reveal. Matches the
+   coupon-form panel but quieter (no corner brackets). */
+.code-card{position:relative;background:rgba(220,230,255,0.03);border-radius:3px;padding:1.1rem 1.25rem;border-left:3px solid var(--gold);box-shadow:0 1px 0 rgba(220,230,255,0.05) inset,0 4px 14px rgba(0,0,0,0.45);}
 .code-value{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;color:var(--gold);font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;}
 .copy-btn{background:rgba(201,168,76,0.15);border:1px solid var(--border);color:var(--gold);padding:3px 10px;border-radius:3px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;}
 .code-rewards{font-size:0.83rem;color:var(--text2);margin-bottom:0.5rem;}
