@@ -210,8 +210,23 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 }
 main{padding-top:74px;position:relative;z-index:1;}
 .hero{padding:5rem 2rem 3rem;text-align:center;position:relative;}
+/* Hero load motion — sequence of stagger reveals on hero children so the
+   page entrance reads as an opening sequence rather than an instant snap.
+   Per-element delays so each piece arrives in deliberate order. */
+.hero > .hero-tag,.hero > h1,.hero > p,.hero > .hero-disclaimer{opacity:0;transform:translateY(10px);animation:hero-enter 0.7s cubic-bezier(0.22,1,0.36,1) forwards;}
+.hero > .hero-tag{animation-delay:0.05s;}
+.hero > h1{animation-delay:0.18s;}
+.hero > p{animation-delay:0.32s;}
+.hero > .hero-disclaimer{animation-delay:0.46s;}
+@keyframes hero-enter{to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion:reduce){
+  .hero > .hero-tag,.hero > h1,.hero > p,.hero > .hero-disclaimer{animation:none;opacity:1;transform:none;}
+}
 .hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
-.hero-tag{display:inline-block;background:rgba(201,168,76,0.1);border:1px solid var(--border);color:var(--gold);font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:6px 16px;border-radius:2px;margin-bottom:1.5rem;}
+/* Hero eyebrow tag — codex small-caps strip. Two short gold hairlines
+   flanking the label so it reads as engraved, not a pill button. */
+.hero-tag{display:inline-flex;align-items:center;gap:0.7rem;color:var(--gold2);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;margin-bottom:1.25rem;background:transparent;border:none;padding:0;}
+.hero-tag::before,.hero-tag::after{content:'';display:inline-block;width:24px;height:1px;background:var(--gold);opacity:0.7;}
 /* Hero headline — Fraunces at display optical-size for a Renaissance/JRPG
    title feel. Decorative gold rule sits above the heading. */
 .hero h1{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:clamp(2.1rem,5.2vw,3.8rem);line-height:1.05;letter-spacing:-0.018em;margin:0.4rem 0 1rem;color:#eef0fa;}
