@@ -23,7 +23,7 @@ export async function handleCharacters(request, env) {
   const elements     = ['Water','Fire','Wind','Light','Dark'];
   const atkTypes     = ['Physical','Magic'];
 
-  const cardHtml = chars.map(char => {
+  const cardHtml = chars.map((char, i) => {
     const costumes   = costumesMap[char.slug] || [];
     const slug       = char.slug;
     const elRaw      = (char.element || 'Dark').toString().trim();
@@ -43,7 +43,7 @@ export async function handleCharacters(request, env) {
       ? `/img/char_${esc(slug)}_${esc(baseCostume.costume_slug)}_icon`
       : `/img/char_${esc(slug)}_portrait`;
 
-    return `<div class="char-page-card" data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow}">
+    return `<div class="char-page-card" data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow};--codex-i:${i}">
   <div class="char-img-wrap">
     <span class="char-initial">${esc(char.name.charAt(0))}</span>
     <img src="${defaultImg}" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
@@ -106,7 +106,7 @@ export async function handleCharacters(request, env) {
     </button>`).join('')}
   </div>
 
-  <div id="char-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1.1rem">
+  <div id="char-grid" data-codex-reveal style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1.1rem">
     ${cardHtml}
     <div class="char-page-card char-coming-soon">
       <div class="char-img-wrap">
@@ -174,16 +174,31 @@ export async function handleCharacters(request, env) {
 
 /* Element filter bar */
 .elem-filter-bar {
-  display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.5rem;
+  display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.75rem;padding:0.35rem 0 0.85rem;
+  border-bottom:1px solid rgba(220,230,255,0.05);
 }
+/* Element / atk-type filter button — codex pill style. Bottom-only border
+   on rest state, full edge on hover, gold underline when active. */
 .elem-filter-btn {
-  display:inline-flex;align-items:center;gap:0.4rem;
-  padding:6px 14px;border-radius:20px;border:1px solid var(--border2);
-  background:var(--bg3);color:var(--text2);cursor:pointer;
-  font-size:0.82rem;font-family:inherit;transition:all 0.15s;
+  display:inline-flex;align-items:center;gap:0.45rem;
+  padding:7px 14px;border-radius:2px;
+  background:transparent;border:1px solid transparent;
+  color:rgba(220,228,245,0.55);cursor:pointer;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  font-size:0.7rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;
+  transition:color 0.16s ease,border-color 0.16s ease,background 0.16s ease;
 }
-.elem-filter-btn:hover { border-color:var(--el,var(--gold));color:var(--el,var(--gold)); }
-.elem-filter-btn.active { background:rgba(201,168,76,0.12);border-color:var(--el,var(--gold));color:var(--el,var(--gold));font-weight:600; }
+.elem-filter-btn:hover {
+  color:var(--el,var(--gold2));
+  border-color:rgba(220,230,255,0.08);
+  background:rgba(220,230,255,0.025);
+}
+.elem-filter-btn.active {
+  color:var(--el,var(--gold2));
+  border-color:transparent;
+  background:rgba(220,230,255,0.04);
+  box-shadow:inset 0 -2px 0 0 var(--el,var(--gold));
+}
 .efb-icon-wrap { position:relative;width:18px;height:18px;display:flex;align-items:center;justify-content:center; }
 .efb-icon { width:18px;height:18px;object-fit:contain; }
 .efb-fallback { font-size:0.72rem;font-weight:700;position:absolute; }

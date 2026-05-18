@@ -59,6 +59,22 @@ export function getStyles() {
 .codex-tag-warn{background:var(--crimson-tint);color:#e0907a;border-left-color:var(--crimson);}
 .codex-tag-pos{background:rgba(39,174,96,0.08);color:#7cd9a1;border-left-color:#27ae60;}
 .codex-tag-neg{background:rgba(192,57,43,0.08);color:#e88a7d;border-left-color:#c0392b;}
+
+/* Decorative section divider — small rhombus ornament centered between two
+   gradient hairlines. Use anywhere a horizontal break feels right. */
+.codex-divider{display:flex;align-items:center;justify-content:center;gap:0.85rem;max-width:560px;margin:2.75rem auto;color:var(--gold);opacity:0.8;pointer-events:none;}
+.codex-divider::before,.codex-divider::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(201,168,76,0.55) 50%,transparent);}
+.codex-divider::before{background:linear-gradient(to right,transparent,rgba(201,168,76,0.55));}
+.codex-divider::after{background:linear-gradient(to right,rgba(201,168,76,0.55),transparent);}
+.codex-divider span{display:inline-block;width:8px;height:8px;transform:rotate(45deg);background:linear-gradient(135deg,#e8c76a,#a07830);box-shadow:0 0 8px rgba(201,168,76,0.45);}
+
+/* Page-load stagger reveal — applied to any container with
+   data-codex-reveal. Children fade up in sequence on first paint. */
+[data-codex-reveal] > *{opacity:0;transform:translateY(8px);animation:codex-reveal-up 0.55s cubic-bezier(0.22,1,0.36,1) forwards;animation-delay:calc(var(--codex-i,0) * 60ms);}
+@keyframes codex-reveal-up{to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion:reduce){
+  [data-codex-reveal] > *{animation:none;opacity:1;transform:none;}
+}
 :root {
   --bg:#0a0a0f; --bg2:#0f0f18; --bg3:#13131e; --bg4:#1a1a28;
   --gold:#c9a84c; --gold2:#e8c76a; --gold3:#a07830;
@@ -194,8 +210,23 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 }
 main{padding-top:74px;position:relative;z-index:1;}
 .hero{padding:5rem 2rem 3rem;text-align:center;position:relative;}
+/* Hero load motion — sequence of stagger reveals on hero children so the
+   page entrance reads as an opening sequence rather than an instant snap.
+   Per-element delays so each piece arrives in deliberate order. */
+.hero > .hero-tag,.hero > h1,.hero > p,.hero > .hero-disclaimer{opacity:0;transform:translateY(10px);animation:hero-enter 0.7s cubic-bezier(0.22,1,0.36,1) forwards;}
+.hero > .hero-tag{animation-delay:0.05s;}
+.hero > h1{animation-delay:0.18s;}
+.hero > p{animation-delay:0.32s;}
+.hero > .hero-disclaimer{animation-delay:0.46s;}
+@keyframes hero-enter{to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion:reduce){
+  .hero > .hero-tag,.hero > h1,.hero > p,.hero > .hero-disclaimer{animation:none;opacity:1;transform:none;}
+}
 .hero::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
-.hero-tag{display:inline-block;background:rgba(201,168,76,0.1);border:1px solid var(--border);color:var(--gold);font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:6px 16px;border-radius:2px;margin-bottom:1.5rem;}
+/* Hero eyebrow tag — codex small-caps strip. Two short gold hairlines
+   flanking the label so it reads as engraved, not a pill button. */
+.hero-tag{display:inline-flex;align-items:center;gap:0.7rem;color:var(--gold2);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;margin-bottom:1.25rem;background:transparent;border:none;padding:0;}
+.hero-tag::before,.hero-tag::after{content:'';display:inline-block;width:24px;height:1px;background:var(--gold);opacity:0.7;}
 /* Hero headline — Fraunces at display optical-size for a Renaissance/JRPG
    title feel. Decorative gold rule sits above the heading. */
 .hero h1{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:clamp(2.1rem,5.2vw,3.8rem);line-height:1.05;letter-spacing:-0.018em;margin:0.4rem 0 1rem;color:#eef0fa;}
@@ -204,8 +235,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .hero p{color:var(--text2);font-size:1rem;max-width:600px;margin:0 auto 2rem;line-height:1.7;}
 .hero-disclaimer{display:inline-block;background:var(--crimson-tint);border:1px solid var(--crimson-edge);border-left:3px solid var(--crimson);color:#e0907a;font-size:0.8rem;padding:8px 18px;border-radius:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:500;}
 .section{padding:4rem 2rem;max-width:1200px;margin:0 auto;}
-.section-title{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.4rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;letter-spacing:0.05em;}
-.section-sub{color:var(--text3);font-size:0.85rem;margin-bottom:2rem;}
+/* Section title — Fraunces display heading with a small caps eyebrow rule
+   above. Matches the hero h1 treatment in feel. */
+.section-title{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.65rem;line-height:1.1;color:#eef0fa;letter-spacing:-0.012em;margin:0.35rem 0 0.4rem;display:inline-block;}
+.section-title::before{content:'';display:block;width:32px;height:1px;background:var(--gold);opacity:0.7;margin-bottom:0.7rem;}
+.section-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.68rem;font-weight:500;letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.42);margin-bottom:2rem;}
 .tier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;}
 .tier-card{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1.25rem;cursor:pointer;transition:all 0.2s;text-decoration:none;display:block;}
 .tier-card:hover{border-color:var(--gold);background:var(--bg4);transform:translateY(-2px);}
@@ -291,8 +325,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .char-card-inner{position:relative;width:100%;height:220px;transform-style:preserve-3d;transition:transform 0.5s ease;}
 .char-card-inner.flipped{transform:rotateY(180deg);}
 .board-card-inner.flipped{transform:rotateY(180deg);}
-.char-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);overflow:hidden;transform:translateZ(0);-webkit-transform:translateZ(0);}
-.char-face-back{transform:rotateY(180deg) translateZ(0);-webkit-transform:rotateY(180deg) translateZ(0);border:2px solid var(--gold);border-radius:8px;}
+.char-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:4px;background:#14141e;border:none;overflow:hidden;transform:translateZ(0);-webkit-transform:translateZ(0);box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.05),0 6px 18px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);transition:box-shadow 0.25s ease;}
+.char-card-wrap:hover .char-face{box-shadow:0 1px 0 rgba(220,230,255,0.08) inset,0 0 0 1px rgba(201,168,76,0.35),0 10px 26px rgba(0,0,0,0.6),0 2px 4px rgba(0,0,0,0.6),0 0 24px rgba(201,168,76,0.18);}
+.char-face-back{transform:rotateY(180deg) translateZ(0);-webkit-transform:rotateY(180deg) translateZ(0);border-radius:4px;}
+/* Bond card corner brackets — same brass flourish used on .codex-card */
+.char-face::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
 .board-face{-webkit-backface-visibility:hidden !important;backface-visibility:hidden !important;}
 .board-face:not(.board-face-back){transform:translateZ(0) !important;-webkit-transform:translateZ(0) !important;}
 .board-face-back{transform:rotateY(180deg) translateZ(0) !important;-webkit-transform:rotateY(180deg) translateZ(0) !important;}
@@ -350,8 +387,14 @@ main{padding-top:74px;position:relative;z-index:1;}
 .counter-tag{display:inline-block;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 .beats-tag{display:inline-block;background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 /* COUPONS */
-.coupon-form{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2rem;max-width:560px;margin:0 auto 3rem;}
-.coupon-form h3{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);margin-bottom:1.5rem;}
+/* Coupon redeem form panel — codex card treatment, same as .codex-card
+   shell. Inline-styled max-width retained via CSS so it doesn't push the
+   page chrome wider on bigger viewports. */
+.coupon-form{position:relative;background:#14141e;border-radius:4px;padding:2rem;max-width:600px;margin:0 auto 3rem;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 10px 28px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);}
+.coupon-form::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.14;z-index:0;border-radius:4px;}
+.coupon-form::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.coupon-form > *{position:relative;z-index:1;}
+.coupon-form h3{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.5rem;color:#eef0fa;margin-bottom:1.5rem;letter-spacing:-0.012em;}
 /* Codex form fields — bottom-rule inputs, IBM Plex Sans body, gold focus */
 .form-group{margin-bottom:1.1rem;}
 .form-group label{display:block;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.55);margin-bottom:0.5rem;}
@@ -405,7 +448,9 @@ main{padding-top:74px;position:relative;z-index:1;}
 .rb-failed{background:rgba(192,57,43,0.2);color:#e74c3c;border:1px solid rgba(192,57,43,0.4);}
 .rb-pending{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid var(--border);}
 .code-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;max-width:1200px;margin:0 auto;padding:0 2rem 4rem;}
-.code-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.25rem;}
+/* Single-code display card — used by the Special Code reveal. Matches the
+   coupon-form panel but quieter (no corner brackets). */
+.code-card{position:relative;background:rgba(220,230,255,0.03);border-radius:3px;padding:1.1rem 1.25rem;border-left:3px solid var(--gold);box-shadow:0 1px 0 rgba(220,230,255,0.05) inset,0 4px 14px rgba(0,0,0,0.45);}
 .code-value{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;color:var(--gold);font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;}
 .copy-btn{background:rgba(201,168,76,0.15);border:1px solid var(--border);color:var(--gold);padding:3px 10px;border-radius:3px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;}
 .code-rewards{font-size:0.83rem;color:var(--text2);margin-bottom:0.5rem;}
@@ -480,9 +525,18 @@ main{padding-top:74px;position:relative;z-index:1;}
 }
 .comp-edit-trio .cet-preview img{max-width:100%;max-height:160px;display:block;border-radius:3px;}
 @media(max-width:600px){.form-row{grid-template-columns:1fr;}}
-.form-group select,.form-group textarea{width:100%;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.12);color:#eef0fa;padding:9px 12px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
+.form-group select,.form-group textarea{width:100%;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.12);color:#eef0fa;padding:9px 12px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;color-scheme:dark;}
 .form-group select:focus,.form-group textarea:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.045);box-shadow:0 1px 0 0 var(--gold);}
 .form-group textarea{resize:vertical;min-height:90px;line-height:1.55;}
+/* Native <option> elements don't inherit container CSS in Firefox/Safari and
+   are partially-styleable in Chrome/Edge — the OS draws the open panel. The
+   most reliable cross-browser cure is color-scheme:dark on the <select>
+   (tells the engine to use its dark UI variant for the dropdown). The
+   option-element rules layer on top for Chrome/Edge where they take. */
+select,.form-group select{color-scheme:dark;}
+.form-group select option,select option{background-color:#14141e;color:#eef0fa;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.form-group select option:checked,.form-group select option:hover,select option:checked,select option:hover{background-color:#1f1d28;color:#eef0fa;}
+select{background:rgba(220,230,255,0.025);color:#eef0fa;border:1px solid rgba(220,230,255,0.12);border-radius:3px;padding:8px 12px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;outline:none;}
 .admin-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;}
 /* Codex admin list rows — flush rows separated by hairlines instead of
    floating panels. Hover gives a faint gold wash. */
@@ -533,10 +587,13 @@ footer span{color:var(--gold);}
 /* IMAGE ERROR HIDE */
 .img-err-hide.errored{display:none;}
 .img-err-dim.errored{opacity:0.2;}
-/* SCROLLBAR */
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px;}
+/* Codex scrollbar — thin gradient brass thumb on a faint warm-cool track */
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:rgba(10,10,15,0.6);border-left:1px solid rgba(220,230,255,0.04);}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#a07830 0%,#7a5a24 60%,#5c4520 100%);border-radius:2px;border:2px solid rgba(10,10,15,0.6);}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#c9a84c 0%,#a07830 60%,#7a5a24 100%);}
+::-webkit-scrollbar-corner{background:transparent;}
+*{scrollbar-width:thin;scrollbar-color:#7a5a24 rgba(10,10,15,0.6);}
 `;
   return _cssBody;
 }
