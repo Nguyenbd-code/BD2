@@ -286,19 +286,19 @@ export async function handleEmotes(request, env) {
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
-    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cormorant Unicase',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
+    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
     <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
       <span style="font-size:3.5rem">&#128274;</span>
     </div>
-    <div style="font-family:'Cormorant Unicase',serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
-    <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cormorant Unicase',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
+    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
+    <div style="font-size:0.75rem;color:var(--gold2);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
     <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
-      <div style="font-size:0.72rem;color:var(--gold);font-family:'Cormorant Unicase',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
+      <div style="font-size:0.72rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
-    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cormorant Unicase',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
+    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'Cormorant Unicase',serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
@@ -320,7 +320,7 @@ export async function handleEmotes(request, env) {
   <div class="hero-tag">Secret Sets</div>
   <h1>Kitsu's <span>Emotes</span></h1>
   <p>Six locked sets. Each one hides behind a small secret somewhere on the site.</p>
-  <button id="page-unlock-hint" style="margin-top:0.75rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:7px 14px;cursor:pointer;font-family:'Cormorant Unicase',serif;color:var(--gold);font-size:0.88rem;letter-spacing:0.04em">
+  <button id="page-unlock-hint" style="margin-top:0.75rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;padding:7px 14px;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:0.88rem;letter-spacing:0.04em">
     Find the Secret to Unlock
     <span class="set-hint-icon" style="flex-shrink:0;pointer-events:none">?</span>
   </button>
@@ -328,9 +328,9 @@ export async function handleEmotes(request, env) {
 
 <div id="hint-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.5);border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative">
-    <div style="font-family:'Cormorant Unicase',serif;color:var(--gold);font-size:0.82rem;letter-spacing:0.08em;margin-bottom:0.5rem" id="hint-modal-title">HINT</div>
+    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:0.82rem;letter-spacing:0.08em;margin-bottom:0.5rem" id="hint-modal-title">HINT</div>
     <div id="hint-modal-body" style="color:var(--text);font-size:0.9rem;line-height:1.65;margin-bottom:1rem;white-space:pre-line"></div>
-    <button id="hint-modal-close" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 20px;border-radius:5px;cursor:pointer;font-family:'Cormorant Unicase',serif;font-size:0.78rem;letter-spacing:0.05em">Dismiss</button>
+    <button id="hint-modal-close" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 20px;border-radius:5px;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;letter-spacing:0.05em">Dismiss</button>
   </div>
 </div>
 
@@ -354,7 +354,7 @@ export async function handleEmotes(request, env) {
 .diff-tier-label-easy   { color:#7cd9a1; }
 .diff-tier-label-medium { color:#e8c76a; }
 .diff-tier-label-hard   { color:#e88a7d; }
-.diff-tier-sub { font-family:'Cormorant SC',Georgia,serif;font-size:0.7rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
+.diff-tier-sub { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.7rem;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
 .diff-tier.tier-locked .diff-tier-sub { color:rgba(232,138,125,0.6); }
 .sets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
 .set-card.tier-locked { filter:grayscale(0.7);opacity:0.55;cursor:default; }
@@ -363,7 +363,7 @@ export async function handleEmotes(request, env) {
 /* Letter buttons stay clickable on tier-locked cards so the letter_sequence
    puzzle (Set T) can still receive K-I-T-S-U input — U + M live on Hard. */
 .set-card.tier-locked .set-letter-btn { pointer-events:auto;filter:none;opacity:1;cursor:pointer; }
-.set-card.tier-locked .set-tier-overlay { display:flex !important;position:absolute;inset:0;background:rgba(8,8,14,0.78);align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;color:#e88a7d;font-family:'Cormorant SC',Georgia,serif;font-size:0.7rem;text-align:center;padding:1rem;letter-spacing:0.05em;z-index:5; }
+.set-card.tier-locked .set-tier-overlay { display:flex !important;position:absolute;inset:0;background:rgba(8,8,14,0.78);align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;color:#e88a7d;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.7rem;text-align:center;padding:1rem;letter-spacing:0.05em;z-index:5; }
 .set-card.tier-locked .set-tier-icon { font-size:1.6rem;line-height:1; }
 .set-card.tier-locked .set-cover { position:relative; }
 .set-card.tier-locked .set-lock-overlay { display:none !important; }
@@ -374,13 +374,13 @@ export async function handleEmotes(request, env) {
 .set-card.open .set-emotes { display:grid !important; }
 .set-cover { position:relative;height:180px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center; }
 .set-cover img { width:100%;height:100%;object-fit:cover; }
-.set-cover-placeholder { font-family:'Cormorant Unicase',serif;color:var(--bg3);font-size:3rem;font-weight:700; }
+.set-cover-placeholder { font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--bg3);font-size:3rem;font-weight:700; }
 .set-lock-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.78);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text2);transition:opacity 0.2s; }
 .set-card.unlocked .set-lock-overlay { display:none; }
 .set-lock-icon { font-size:2rem;margin-bottom:0.3rem; }
-.set-lock-text { font-family:'Cormorant Unicase',serif;font-size:0.82rem;letter-spacing:0.08em; }
+.set-lock-text { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.08em; }
 .set-info { padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem; }
-.set-title { font-family:'Cormorant Unicase',serif;font-weight:700;font-size:0.95rem;color:var(--gold);display:flex;align-items:center;gap:0.5rem; }
+.set-title { font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.95rem;color:var(--gold);display:flex;align-items:center;gap:0.5rem; }
 .set-letter-btn { display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:5px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);color:var(--gold);cursor:pointer;user-select:none;transition:transform 0.08s ease,background 0.15s ease,box-shadow 0.15s ease;box-shadow:0 1px 0 rgba(201,168,76,0.25),0 2px 6px rgba(0,0,0,0.4); }
 .set-letter-btn:hover { background:rgba(201,168,76,0.18); }
 .set-letter-btn:active, .set-letter-btn.pressed { transform:translateY(1px) scale(0.96);background:rgba(201,168,76,0.32);box-shadow:inset 0 2px 4px rgba(0,0,0,0.5); }
@@ -400,7 +400,7 @@ export async function handleEmotes(request, env) {
 .emote-modal-overlay.open { display:flex; }
 .emote-modal { background:var(--bg2);border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:1.5rem;max-width:800px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative; }
 .emote-modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem; }
-.emote-modal-title { font-family:'Cormorant Unicase',serif;color:var(--gold);font-size:1.1rem; }
+.emote-modal-title { font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:1.1rem; }
 .emote-modal-close { background:none;border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center; }
 .emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;margin-top:1rem; }
 .emote-dl-all { font-size:0.7rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:3px 10px;border-radius:4px;cursor:pointer;white-space:nowrap; }
@@ -651,19 +651,19 @@ async function renderLocked(lockHintText, env) {
   return await layout("Kitsu's Emotes", `
 <div id="emote-lock-screen" style="display:flex;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
-    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'Cormorant Unicase',serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
+    <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
     <div id="emote-lock-img-wrap" style="width:130px;height:130px;margin:0 auto 1.5rem;border-radius:12px;overflow:hidden;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center">
       <span style="font-size:3.5rem">&#128274;</span>
     </div>
-    <div style="font-family:'Cormorant Unicase',serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
-    <div style="font-size:0.75rem;color:var(--gold2);font-family:'Cormorant Unicase',serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
+    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.3rem;color:var(--gold);margin-bottom:0.35rem;letter-spacing:0.04em">Kitsu's Emotes</div>
+    <div style="font-size:0.75rem;color:var(--gold2);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem">Secret Sets</div>
     <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;text-align:left">
-      <div style="font-size:0.72rem;color:var(--gold);font-family:'Cormorant Unicase',serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
+      <div style="font-size:0.72rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem">LOCATION: HOME</div>
       <div style="font-size:0.85rem;color:var(--text2);line-height:1.6;white-space:pre-line">${esc(lockHintText)}</div>
     </div>
-    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'Cormorant Unicase',serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
+    <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'Cormorant Unicase',serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
