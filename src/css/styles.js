@@ -76,22 +76,56 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
    room. Keeps the centre clear so content isn't dimmed. */
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 110% 90% at 50% 50%,transparent 55%,rgba(0,0,0,0.55) 100%);}
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:74px;display:flex;align-items:center;padding:0 1.5rem;gap:0.85rem;}
-/* Nav logo — Mamonir portrait in a gold-ringed medallion + BnKitsu wordmark.
-   Weapon glyph sits inline between "Brown Dust 2" and "Guide" in the subline. */
-.nav-logo{display:inline-flex;align-items:center;gap:0.7rem;text-decoration:none;white-space:nowrap;height:100%;padding:0.25rem 0;color:inherit;}
-.nav-logo-portrait{position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#0e0c14;box-shadow:0 0 0 1px var(--gold3),0 0 0 3px rgba(10,10,15,0.95),0 0 0 4px var(--gold),0 0 0 5px rgba(0,0,0,0.7),0 4px 14px rgba(0,0,0,0.55),0 0 16px rgba(201,168,76,0.18);transition:box-shadow 0.3s ease,transform 0.3s ease;}
-.nav-logo-portrait::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at top,rgba(255,235,200,0.18),transparent 60%);pointer-events:none;}
-.nav-logo-portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;}
-.nav-logo:hover .nav-logo-portrait{transform:translateY(-1px);box-shadow:0 0 0 1px var(--gold3),0 0 0 3px rgba(10,10,15,0.95),0 0 0 4px var(--gold2),0 0 0 5px rgba(0,0,0,0.7),0 5px 18px rgba(0,0,0,0.6),0 0 26px rgba(232,199,106,0.35);}
-.nav-logo-text{display:flex;flex-direction:column;line-height:1;gap:3px;}
-.nav-logo-name{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.18rem;color:var(--gold2);letter-spacing:-0.01em;text-shadow:0 1px 0 rgba(0,0,0,0.6);}
-.nav-logo-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.58rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:rgba(220,228,245,0.42);display:inline-flex;align-items:center;gap:0.4rem;}
-.nav-logo-weapon{width:14px;height:14px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 4px rgba(201,168,76,0.45));opacity:0.85;transition:transform 0.4s cubic-bezier(0.22,1,0.36,1),opacity 0.3s ease;}
-.nav-logo:hover .nav-logo-weapon{transform:rotate(-12deg) scale(1.15);opacity:1;}
+/* BnKitsu wordmark — custom designed signature. Layered composition:
+   - Weapon (the spear) sits behind the wordmark, angled -22deg, anchored
+     at the left so it reads as "raised behind the name".
+   - "BnKitsu" rendered in Fraunces display, gold gradient text-fill so
+     each letter has a subtle top-light highlight to base-shadow taper.
+   - Thin gold rule under the name, fading off both ends, acts as the
+     engraved baseline of a forge-stamped plate. */
+.nav-logo{display:inline-flex;align-items:center;text-decoration:none;height:100%;padding:0.25rem 0;color:inherit;}
+.nav-logo-mark{position:relative;display:inline-flex;align-items:center;padding:0.4rem 0.2rem 0.5rem 2.3rem;isolation:isolate;}
+.nav-logo-weapon{
+  position:absolute;left:-2px;top:50%;
+  width:58px;height:58px;
+  transform:translateY(-50%) rotate(-22deg);
+  filter:drop-shadow(0 0 14px rgba(201,168,76,0.55)) drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+  pointer-events:none;z-index:1;opacity:0.92;
+  transition:transform 0.45s cubic-bezier(0.22,1,0.36,1),filter 0.35s ease;
+}
+.nav-logo-name{
+  position:relative;z-index:2;
+  font-family:'Fraunces',Georgia,serif;
+  font-weight:600;
+  font-variation-settings:'opsz' 144;
+  font-size:1.6rem;
+  line-height:1;
+  letter-spacing:-0.012em;
+  /* Gold gradient text fill so each letter reads as polished brass with a
+     top highlight tapering to a darker base. */
+  background:linear-gradient(180deg,#f5dba0 0%,#e8c76a 35%,#c9a84c 65%,#8a6a2a 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  /* A thin layered shadow under the gradient text gives the wordmark
+     physical weight without breaking the metal-fill effect. */
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,0.55)) drop-shadow(0 0 10px rgba(201,168,76,0.18));
+}
+.nav-logo-rule{
+  position:absolute;left:2.3rem;right:0.2rem;bottom:0.05rem;
+  height:1px;z-index:2;
+  background:linear-gradient(to right,transparent,var(--gold) 25%,var(--gold) 75%,transparent);
+  opacity:0.55;
+  transition:opacity 0.3s ease;
+}
+/* Hover: spear tips forward and brightens; the rule strengthens. */
+.nav-logo:hover .nav-logo-weapon{transform:translateY(-50%) rotate(-30deg) scale(1.04);filter:drop-shadow(0 0 18px rgba(232,199,106,0.75)) drop-shadow(0 2px 5px rgba(0,0,0,0.75));opacity:1;}
+.nav-logo:hover .nav-logo-rule{opacity:0.9;}
 @media (max-width:640px){
-  .nav-logo-sub{display:none;}
-  .nav-logo-name{font-size:1.05rem;}
-  .nav-logo-portrait{width:38px;height:38px;}
+  .nav-logo-mark{padding-left:1.85rem;}
+  .nav-logo-name{font-size:1.35rem;}
+  .nav-logo-weapon{width:48px;height:48px;}
 }
 .nav-spacer{flex:1;}
 .nav-admin{display:flex;align-items:center;gap:4px;}
