@@ -181,7 +181,7 @@ export async function handleEmotes(request, env) {
   if (!isUnlocked) {
     const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
     const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
-    return await renderLocked(lockHintText, env);
+    return await renderLocked(lockHintText, env, request);
   }
 
   // Run the four read queries in parallel instead of awaiting them one at a
@@ -655,7 +655,7 @@ export async function handleEmotes(request, env) {
 // /styles.css link in <head> still loads cached, and the side-nav circle
 // (where the rabbit-tap shortcut lives) comes from layout.js so it's still
 // fully functional for the player.
-async function renderLocked(lockHintText, env) {
+async function renderLocked(lockHintText, env, request) {
   return await layout("Kitsu's Emotes", `
 <div id="emote-lock-screen" style="display:flex;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">

@@ -483,6 +483,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .form-group select,.form-group textarea{width:100%;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.12);color:#eef0fa;padding:9px 12px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
 .form-group select:focus,.form-group textarea:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.045);box-shadow:0 1px 0 0 var(--gold);}
 .form-group textarea{resize:vertical;min-height:90px;line-height:1.55;}
+/* Native <option> elements don't inherit container styles in most browsers
+   — the OS draws them. Force the dark codex palette so the open dropdown
+   doesn't flash white. */
+.form-group select option,select option{background:#14141e;color:#eef0fa;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+select{background:rgba(220,230,255,0.025);color:#eef0fa;border:1px solid rgba(220,230,255,0.12);border-radius:3px;padding:8px 12px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;outline:none;}
 .admin-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;}
 /* Codex admin list rows — flush rows separated by hairlines instead of
    floating panels. Hover gives a faint gold wash. */
