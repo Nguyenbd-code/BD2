@@ -1,31 +1,16 @@
 import { getStyles, getCssVersion } from '../css/styles.js';
 
-export async function layout(title, content, activePage = '', env = null, request = null) {
+export async function layout(title, content, activePage = '', env = null) {
   let tapTarget = 7;
   let hasMamonir = false;
-  // Skip the two Mamonir D1 lookups entirely if the visitor isn't
-  // kitsu_unlocked yet — the falling-Mamonir feature is gated behind that
-  // anyway, so the markup never renders and we'd be paying for nothing.
-  // Saves two D1 round-trips on the critical path of every public page for
-  // every locked visitor (which is most of them).
-  let isUnlocked = false;
-  if (request) {
-    const cookie = request.headers ? (request.headers.get('Cookie') || '') : '';
-    isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
-  } else {
-    // Caller didn't pass request (back-compat) — assume unlocked so we don't
-    // silently hide a working feature.
-    isUnlocked = true;
-  }
-  if (env && isUnlocked) {
-    // Two independent lookups; fire in parallel.
+  if (env) {
     try {
-      const [navRow, tapRow] = await Promise.all([
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first(),
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first(),
-      ]);
-      if (navRow && navRow.data) hasMamonir = true;
-      if (tapRow && tapRow.data) tapTarget = Math.max(1, parseInt(tapRow.data, 10) || 7);
+      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first();
+      if (row && row.data) hasMamonir = true;
+    } catch {}
+    try {
+      const row = await env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first();
+      if (row && row.data) tapTarget = Math.max(1, parseInt(row.data, 10) || 7);
     } catch {}
   }
 
@@ -113,18 +98,7 @@ export async function layout(title, content, activePage = '', env = null, reques
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"></noscript>
 <link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
-<script>try{
-  // Hide the falling-Mamonir nav button unless the visitor has already solved
-  // the Home-page secret code AND hasn't yet finished Set K (the click-to-fall
-  // puzzle). Locked visitors never see it — keeps the easter egg from
-  // existing before its prerequisite, and once Set K is solved it disappears
-  // for everyone as before.
-  if (localStorage.getItem('kitsu_unlocked') !== 'true' || localStorage.getItem('kitsu_set_3') === '1') {
-    var s = document.createElement('style');
-    s.textContent = '#mam-wrap{display:none!important}';
-    document.head.appendChild(s);
-  }
-}catch(e){}</script>
+<script>try{if(localStorage.getItem('kitsu_set_3')==='1'){var s=document.createElement('style');s.textContent='#mam-wrap{display:none!important}';document.head.appendChild(s);}}catch(e){}</script>
 <script>try{
   // One-time migration: if the player solved the /emotes secret on an old
   // build (localStorage only), mirror the unlock into a cookie so the server
@@ -243,13 +217,13 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   // in the .char-voice-line caption below the circle. Adds personality to
   // the otherwise-silent unlock widget.
   var VOICE_LINES = {
-    dalvi:   ['Charm hides intent.','A beautiful deception.','Warmth conceals fangs.'],
-    rou:     ['Never leaves your side.','Faithful without question.','A heart that stays.'],
-    tyr:     ['Just a large dog.','Too trusting to fear.','An innocent heart.'],
-    yuri:    ['Justice never bends.','Conviction without doubt.','Right remains right.'],
-    mamonir: ['Even death kneels.','The abyss obeys.','Depths conceal power.'],
-    zenith:  ['Stillness hides precision.','The hunt never misses.','Calm before the arrow.'],
-    liatris: ['Love turns possessive.','Nothing comes between.','Jealousy smiles sweetly.']
+    dalvi:   ['A dangerous smile.','Foxfire temptation.','Desire dressed warmly.','Too sincere to trust.'],
+    rou:     ['Faithful little shadow.','Never leaves your side.','Warmth without question.','Quiet loyal paws.'],
+    tyr:     ['Just a large dog.','Gentle wandering wolf.','Too soft for fear.','Silence asks for touch.'],
+    yuri:    ['Justice never sleeps.','Small claws, sharp heart.','Lightning hides nearby.','An innocent predator.'],
+    mamonir: ['Depths conceal power.','The dead still kneel.','The abyss remembers.','Undying strategist.'],
+    liatris: ['Love turns possessive.','Jealousy smiles sweetly.','Nothing comes between.','A rabbit with fangs.'],
+    zenith:  ['Stillness hides precision.','The hunt never misses.','Watching without moving.','A calm green shadow.']
   };
   var voiceEl = document.getElementById('char-voice-line');
   var voiceTimer = null;
@@ -376,7 +350,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
             try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
             var toast = document.createElement('div');
             toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
-            toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s Sub-Riddle.';
+            toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s extra hint.';
             document.body.appendChild(toast);
             setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
           }

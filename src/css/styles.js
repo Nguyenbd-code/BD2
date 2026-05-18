@@ -231,31 +231,6 @@ main{padding-top:74px;position:relative;z-index:1;}
 .guide-content{flex:1;min-width:0;}
 @media(max-width:900px){.guide-sidebar{display:none;}}
 .comp-section{padding:2.5rem 1.5rem 2rem;max-width:1200px;margin:0 auto;scroll-margin-top:80px;}
-
-/* Board video thumbnail — replaces the unusable inline iframe. Tap opens a
-   real fullscreen-capable player in a modal. */
-.board-video-box{flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;position:relative;}
-.video-thumb{position:relative;width:100%;height:100%;background:transparent;border:none;padding:0;cursor:pointer;display:block;overflow:hidden;-webkit-tap-highlight-color:transparent;}
-.video-thumb-img{width:100%;height:100%;object-fit:cover;display:block;}
-.video-thumb-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,0.7) 100%),radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.45) 100%);}
-.video-thumb-play{position:absolute;top:50%;left:50%;width:64px;height:64px;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 14px rgba(0,0,0,0.7));transition:transform 0.28s cubic-bezier(0.22,1,0.36,1);}
-.video-thumb:hover .video-thumb-play{transform:translate(-50%,-50%) scale(1.08);}
-.video-thumb-play svg{width:100%;height:100%;display:block;}
-.video-thumb-label{position:absolute;left:0;right:0;bottom:0.5rem;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:var(--gold2);text-shadow:0 1px 2px rgba(0,0,0,0.8);}
-.video-thumb-file{background:linear-gradient(180deg,#1a1a28 0%,#0e0e16 100%);}
-
-/* Modal-style fullscreen video player. Lazy-mounted on .video-thumb click. */
-.video-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:2rem;animation:vm-fade 0.18s ease-out;cursor:pointer;}
-.video-modal-stage{position:relative;width:min(90vw,1200px);aspect-ratio:16/9;max-height:85vh;cursor:default;box-shadow:0 30px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(201,168,76,0.35),0 0 40px rgba(201,168,76,0.18);border-radius:6px;overflow:hidden;background:#000;}
-.video-modal-stage iframe,.video-modal-stage video{width:100%;height:100%;display:block;border:0;}
-.video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
-.video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
-@keyframes vm-fade{from{opacity:0;}to{opacity:1;}}
-@media(max-width:680px){
-  .video-modal{padding:1rem;}
-  .video-modal-stage{width:100%;}
-  .video-modal-close{top:-2.4rem;right:0.25rem;}
-}
 .comp-meta{color:var(--text3);font-size:0.85rem;margin-top:0.25rem;}
 .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}
 @media(max-width:768px){.comp-grid{grid-template-columns:1fr;}}
@@ -352,12 +327,10 @@ main{padding-top:74px;position:relative;z-index:1;}
 /* COUPONS */
 .coupon-form{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2rem;max-width:560px;margin:0 auto 3rem;}
 .coupon-form h3{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);margin-bottom:1.5rem;}
-/* Codex form fields — bottom-rule inputs, IBM Plex Sans body, gold focus */
-.form-group{margin-bottom:1.1rem;}
-.form-group label{display:block;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.55);margin-bottom:0.5rem;}
-.form-group input{width:100%;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.12);color:#eef0fa;padding:9px 12px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
-.form-group input:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.045);box-shadow:0 1px 0 0 var(--gold);}
-.form-group input::placeholder,.form-group textarea::placeholder{color:rgba(232,224,200,0.28);font-style:italic;}
+.form-group{margin-bottom:1rem;}
+.form-group label{display:block;font-size:0.82rem;font-weight:600;color:var(--text2);margin-bottom:0.4rem;letter-spacing:0.05em;text-transform:uppercase;}
+.form-group input{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;}
+.form-group input:focus{border-color:var(--gold);}
 /* Gilded button — polished brass plate look with depth.
    Gradient + inset highlights give it the feel of stamped metal.
    Cormorant Unicase typeface so labels read as carved/engraved. */
@@ -417,51 +390,16 @@ main{padding-top:74px;position:relative;z-index:1;}
 .emote-name{font-size:0.83rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;}
 .emote-dl{display:inline-block;background:rgba(201,168,76,0.15);border:1px solid var(--border);color:var(--gold);padding:5px 14px;border-radius:3px;font-size:0.78rem;text-decoration:none;}
 /* ADMIN */
-/* ═══════════════════════════════════════════════════════════════════════
-   Admin Codex shell — applies the public-site Codex direction (Fraunces
-   display, IBM Plex Sans body, cool-ink panels with gold corner brackets
-   and paper-grain noise) to every surface inside /admin. No behavioral
-   changes; pure visual.
-   ═══════════════════════════════════════════════════════════════════════ */
-.admin-wrap{max-width:1200px;margin:0 auto;padding:1.75rem 1.5rem 4rem;}
-
-/* Login screen */
-.admin-login{max-width:420px;margin:6rem auto;position:relative;background:#14141e;border-radius:4px;padding:2.25rem 2rem;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 12px 30px rgba(0,0,0,0.55),0 2px 4px rgba(0,0,0,0.6);}
-.admin-login::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;}
-.admin-login h2{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.75rem;color:#eef0fa;margin-bottom:1.5rem;letter-spacing:-0.015em;}
-
-/* Codex header bar (top of admin) */
-.admin-header{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;padding-bottom:1.5rem;margin-bottom:1.75rem;position:relative;flex-wrap:wrap;}
-.admin-header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(to right,var(--gold) 0,var(--gold) 56px,rgba(220,230,255,0.07) 56px,rgba(220,230,255,0.07) 100%);}
-.admin-header-text{display:flex;flex-direction:column;gap:0.25rem;min-width:0;}
-.admin-header-eyebrow{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.32em;text-transform:uppercase;color:rgba(220,228,245,0.42);}
-.admin-header-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:2rem;line-height:1;letter-spacing:-0.018em;color:#eef0fa;}
-.admin-header-title em{font-style:italic;color:var(--gold);font-variation-settings:'opsz' 144;}
-.admin-header-actions{display:flex;align-items:center;gap:0.75rem;}
-.admin-logout{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.55);text-decoration:none;padding:9px 18px;border:1px solid rgba(220,230,255,0.12);border-radius:3px;transition:all 0.2s ease;}
-.admin-logout:hover{color:var(--gold2);border-color:var(--gold);background:rgba(201,168,76,0.06);}
-
-/* Engraved tab strip — gold underline on active, no fill backgrounds */
-.admin-tabs{display:flex;gap:0;margin-bottom:1.75rem;flex-wrap:wrap;padding:0;border-bottom:1px solid rgba(220,230,255,0.06);position:relative;}
-.tab-btn{background:transparent;border:none;color:rgba(220,228,245,0.48);padding:0.85rem 1.15rem;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.18s ease,border-color 0.18s ease;}
-.tab-btn:hover{color:rgba(232,199,106,0.85);}
-.tab-btn.active{color:var(--gold2);border-bottom-color:var(--gold);}
-
+.admin-wrap{max-width:900px;margin:0 auto;padding:2rem;}
+.admin-login{max-width:400px;margin:6rem auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2rem;}
+.admin-login h2{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);margin-bottom:1.5rem;}
+.admin-tabs{display:flex;gap:0.5rem;margin-bottom:2rem;flex-wrap:wrap;}
+.tab-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:5px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.83rem;font-weight:600;cursor:pointer;}
+.tab-btn.active{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);}
 .admin-section{display:none;}
-.admin-section.active{display:block;animation:admin-section-in 0.28s cubic-bezier(0.22,1,0.36,1);}
-@keyframes admin-section-in{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-
-/* Codex panel — the canonical container for any admin form / list block */
-.admin-panel,.admin-form{position:relative;background:#14141e;border-radius:4px;padding:1.5rem;margin-bottom:1.25rem;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 8px 22px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);}
-.admin-panel::before,.admin-form::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");mix-blend-mode:overlay;opacity:0.10;z-index:0;border-radius:4px;}
-.admin-panel::after,.admin-form::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.4' opacity='0.42'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
-.admin-panel > *,.admin-form > *{position:relative;z-index:1;}
-.admin-panel-title,.admin-form h3{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 48;font-size:1.2rem;color:#eef0fa;letter-spacing:-0.005em;margin-bottom:0.3rem;}
-.admin-panel-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.4);margin-bottom:1.25rem;}
-
-/* Sub-panel (nested block inside an .admin-panel) */
-.admin-subpanel{position:relative;background:rgba(220,230,255,0.02);border-radius:3px;padding:1.1rem 1.2rem;margin-bottom:1rem;border-top:1px solid rgba(201,168,76,0.18);}
-.admin-subpanel-title{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:0.95rem;color:var(--gold2);margin-bottom:0.85rem;letter-spacing:-0.002em;}
+.admin-section.active{display:block;}
+.admin-form{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1.5rem;margin-bottom:1.5rem;}
+.admin-form h3{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);margin-bottom:1.25rem;font-size:1rem;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 @media(max-width:900px){.comp-edit-trio{grid-template-columns:1fr !important;}}
 /* Uniform preview pane across all three columns of .comp-edit-trio. Each
@@ -480,50 +418,26 @@ main{padding-top:74px;position:relative;z-index:1;}
 }
 .comp-edit-trio .cet-preview img{max-width:100%;max-height:160px;display:block;border-radius:3px;}
 @media(max-width:600px){.form-row{grid-template-columns:1fr;}}
-.form-group select,.form-group textarea{width:100%;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.12);color:#eef0fa;padding:9px 12px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;}
-.form-group select:focus,.form-group textarea:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.045);box-shadow:0 1px 0 0 var(--gold);}
-.form-group textarea{resize:vertical;min-height:90px;line-height:1.55;}
-/* Native <option> elements don't inherit container styles in most browsers
-   — the OS draws them. Force the dark codex palette so the open dropdown
-   doesn't flash white. */
-.form-group select option,select option{background:#14141e;color:#eef0fa;font-family:'IBM Plex Sans',system-ui,sans-serif;}
-select{background:rgba(220,230,255,0.025);color:#eef0fa;border:1px solid rgba(220,230,255,0.12);border-radius:3px;padding:8px 12px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;outline:none;}
+.form-group select,.form-group textarea{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;outline:none;}
+.form-group textarea{resize:vertical;min-height:80px;}
 .admin-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;}
-/* Codex admin list rows — flush rows separated by hairlines instead of
-   floating panels. Hover gives a faint gold wash. */
-.admin-item{background:transparent;border:none;border-bottom:1px solid rgba(220,230,255,0.05);border-radius:0;padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between;transition:background 0.15s ease;}
-.admin-item:hover{background:rgba(201,168,76,0.04);}
-.admin-item:last-child{border-bottom:none;}
-.admin-item-info{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.86rem;color:rgba(220,228,245,0.85);}
-.admin-item-info strong{color:var(--gold2);font-weight:600;letter-spacing:0.01em;}
+.admin-item{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;}
+.admin-item-info{font-size:0.85rem;}
+.admin-item-info strong{color:var(--gold);}
 /* While a /comp/reorder request is in flight, dim the up/down arrows and
    block further clicks. Stops racing reorders from corrupting the list. */
 .comp-list-busy [data-action="comp-move-up"],
 .comp-list-busy [data-action="comp-move-down"]{opacity:0.35;pointer-events:none;cursor:wait;}
 .comp-list-busy{cursor:wait;}
-/* Crimson companion to the gilded .btn — same stamped-metal look, in the
-   2nd-accent crimson. Used for destructive actions. */
-.btn-danger{position:relative;display:inline-block;background:linear-gradient(180deg,#b1543c 0%,#8e3a2d 45%,#5c1f1f 100%);color:#f5dba0;border:1px solid #4a1818;padding:7px 16px;border-radius:3px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:600;font-size:0.74rem;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;text-shadow:0 1px 0 rgba(0,0,0,0.55);box-shadow:inset 0 1px 0 rgba(255,160,140,0.32),inset 0 -1px 0 rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.55),0 4px 10px rgba(0,0,0,0.35);transition:filter 0.18s ease,box-shadow 0.18s ease,transform 0.12s ease;}
-.btn-danger:hover{filter:brightness(1.1);box-shadow:inset 0 1px 0 rgba(255,160,140,0.45),inset 0 -1px 0 rgba(0,0,0,0.45),0 1px 2px rgba(0,0,0,0.6),0 6px 16px rgba(0,0,0,0.4),0 0 18px rgba(177,84,60,0.4);}
-.btn-danger:active{transform:translateY(1px);box-shadow:inset 0 2px 4px rgba(0,0,0,0.45),inset 0 -1px 0 rgba(255,160,140,0.18),0 1px 0 rgba(0,0,0,0.4);}
-/* Ghost / secondary action button — flat, gold-edged, for inline actions
-   (e.g. Move up, secondary toolbar). */
-.btn-ghost{background:transparent;border:1px solid rgba(201,168,76,0.28);color:var(--gold2);padding:5px 12px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;border-radius:3px;cursor:pointer;transition:all 0.18s ease;}
-.btn-ghost:hover{border-color:var(--gold);background:rgba(201,168,76,0.08);color:var(--gold2);transform:translateY(-1px);}
-/* Codex alerts — left-rule pill with crimson/green accent. Matches the
-   public-side .codex-tag-warn / -pos pattern so success/error reads the
-   same across the site. */
-.alert{padding:9px 14px 9px 16px;border-radius:2px;font-size:0.82rem;margin-bottom:1rem;font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.01em;background:rgba(220,230,255,0.04);color:rgba(220,228,245,0.78);border-left:3px solid rgba(220,228,245,0.18);}
-.alert-success{background:rgba(39,174,96,0.08);border-left-color:#27ae60;color:#7cd9a1;}
-.alert-error{background:var(--crimson-tint);border-left-color:var(--crimson);color:#e0907a;}
+.btn-danger{background:rgba(192,57,43,0.2);border:1px solid rgba(192,57,43,0.4);color:#e74c3c;padding:5px 12px;border-radius:4px;font-size:0.78rem;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.alert{padding:10px 14px;border-radius:5px;font-size:0.85rem;margin-bottom:1rem;}
+.alert-success{background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;}
+.alert-error{background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;}
 /* IMAGE GRID */
-/* Admin image grid — gold-bracketed tiles with mono key labels */
-.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.85rem;margin-top:1rem;}
-.img-slot{position:relative;background:#14141e;border-radius:3px;padding:0.45rem 0.45rem 0.55rem;text-align:center;font-size:0.7rem;color:rgba(220,228,245,0.55);transition:transform 0.18s ease;}
-.img-slot::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.7' opacity='0.45'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:3px;}
-.img-slot:hover{transform:translateY(-2px);}
-.img-slot img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#0e0c14;border-radius:2px;margin-bottom:0.4rem;cursor:pointer;}
-.img-slot-key{font-family:'JetBrains Mono','Consolas',monospace;font-size:0.6rem;letter-spacing:0.02em;color:var(--gold);word-break:break-all;line-height:1.35;}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.75rem;margin-top:1rem;}
+.img-slot{background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;text-align:center;font-size:0.7rem;color:var(--text3);}
+.img-slot img{width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--bg2);border-radius:4px;margin-bottom:0.25rem;cursor:pointer;}
+.img-slot-key{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;color:var(--gold3);word-break:break-all;}
 /* HOME COMP CARDS */
 .comp-card:hover{border-color:var(--comp-card-hover-color,var(--gold)) !important;}
 /* EASTER EGG */
