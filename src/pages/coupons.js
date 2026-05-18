@@ -493,5 +493,5 @@ if (manualInput) manualInput.addEventListener('keydown', function(e) { if (e.key
 var specialInput = document.getElementById('special-passcode');
 if (specialInput) specialInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkSpecialPasscode(); });
 </script>
-`, 'coupons', env);
+`, 'coupons', env, request);
 }

@@ -75,17 +75,19 @@ function charStrip(chars, compId, bondsData, compGear) {
     const gearSrc = hasCompGear
       ? `/img/comp_gear_${tierKey}_${slug}`
       : `/img/char_${slug}_gear`;
-    return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px" data-action="card-flip" data-slug="${cid}">
+    return `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px;--codex-i:${idx}" data-action="card-flip" data-slug="${cid}">
   <div class="char-card-inner${bond?' tt-parent':''}" id="card-${cid}">
     <div class="char-face">
-      <div style="height:154px;position:relative;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <span style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:2.5rem;color:${col};font-weight:700">${esc(c.name.charAt(0))}</span>
+      <div style="height:154px;position:relative;background:#0e0c14;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;font-size:3.2rem;color:${col};opacity:0.45;letter-spacing:-0.04em">${esc(c.name.charAt(0))}</span>
         <img src="/img/char_${slug}_portrait" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
         ${costumeIcon}
+        <div style="position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to top,rgba(10,10,15,0.85),transparent);z-index:3;pointer-events:none"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(to right,transparent,${col},transparent);z-index:4;pointer-events:none;opacity:0.85"></div>
       </div>
-      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0.6rem;padding-top:0.5rem">
-        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.83rem;color:var(--text);text-align:center">${esc(c.name)}</div>
-        <div style="font-size:0.68rem;color:var(--gold);margin-top:3px;text-align:center">${esc(c.bond||'')}</div>
+      <div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0.4rem 0.6rem 0;background:#14141e">
+        <div style="font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:0.95rem;color:#eef0fa;text-align:center;letter-spacing:-0.005em;line-height:1.1">${esc(c.name)}</div>
+        <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.6rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,76,0.85);margin-top:4px;text-align:center">${esc(c.bond||'')}</div>
       </div>
       ${tooltip}
     </div>
@@ -202,16 +204,26 @@ function renderComp(comp, mediaMap) {
     ? '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟶</div>'
     : '<div style="font-size:1.8rem;color:var(--gold);display:flex;align-items:center;padding:0 0.5rem;flex-shrink:0">⟵</div>';
   const imageBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;position:relative;background:var(--bg4);">${boardHtml}</div>`;
-  // YouTube URLs need an <iframe> embed; raw <video src> would silently fail
-  // because YouTube serves the HTML watch page, not a video stream. Extract
-  // the 11-char video id from any watch/youtu.be/embed/short variant.
+  // YouTube videos are rendered as a thumbnail with a play overlay; tapping
+  // opens a fullscreen modal where the player controls (fullscreen, sound,
+  // progress bar) are actually usable. The inline iframe at 220px tall was
+  // useless — YouTube's control bar overflows and fullscreen is unreachable.
   const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const playSvg = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="rgba(10,10,15,0.78)" stroke="#c9a84c" stroke-width="1.5"/><path d="M26 20 L46 32 L26 44 Z" fill="#c9a84c"/></svg>';
   const videoInner = !video
-    ? '<div style="text-align:center"><div style="font-family:Cormorant Unicase,serif;color:var(--gold);opacity:0.5;font-size:0.85rem;margin-bottom:0.25rem">Video</div><div style="font-size:0.75rem;color:var(--text3)">N/A</div></div>'
+    ? '<div style="text-align:center;padding:1rem"><div style="font-family:Fraunces,Georgia,serif;color:var(--gold);opacity:0.55;font-size:1rem;font-style:italic;margin-bottom:0.3rem">Video</div><div style="font-size:0.7rem;color:var(--text3);font-family:IBM Plex Sans,system-ui,sans-serif;letter-spacing:0.22em;text-transform:uppercase">No replay yet</div></div>'
     : (ytMatch
-        ? `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:100%;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
-        : `<video controls style="width:100%;height:100%;object-fit:contain" src="${esc(video)}"></video>`);
-  const videoBox = `<div style="flex:1;border:2px solid var(--gold);border-radius:8px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center">${videoInner}</div>`;
+        ? `<button type="button" class="video-thumb" data-action="open-video" data-video-id="${esc(ytMatch[1])}" data-video-kind="yt" aria-label="Play video">
+             <img src="https://img.youtube.com/vi/${esc(ytMatch[1])}/hqdefault.jpg" alt="" class="video-thumb-img" loading="lazy">
+             <span class="video-thumb-shade" aria-hidden="true"></span>
+             <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
+             <span class="video-thumb-label">Watch Replay</span>
+           </button>`
+        : `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-src="${esc(video)}" data-video-kind="file" aria-label="Play video">
+             <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
+             <span class="video-thumb-label">Watch Replay</span>
+           </button>`);
+  const videoBox = `<div class="board-video-box">${videoInner}</div>`;
   const boardSectionHtml = `<div style="display:flex;align-items:stretch;gap:0.5rem;height:220px">${isAtk ? imageBox + arrow + videoBox : videoBox + arrow + imageBox}</div>`;
 
 
@@ -255,7 +267,7 @@ function renderComp(comp, mediaMap) {
 
   <div class="card-title" style="border:none;padding:0;margin-bottom:0.25rem">Character Bonds</div>
   <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.74rem;color:rgba(220,228,245,0.5);font-style:italic;margin-bottom:0.85rem;letter-spacing:0.01em">Flip the bond portraits for gearing examples.</div>
-  <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
+  <div data-codex-reveal style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">${stripHtml}</div>
 
   <div class="comp-expand-grid" style="display:grid;grid-template-columns:0.75fr 1.5fr 0.75fr;gap:1rem;align-items:stretch;min-width:0;">
     <div style="display:flex;flex-direction:column;gap:0.75rem;min-width:0;overflow:hidden;">
@@ -443,22 +455,27 @@ export async function handleGuide(request, env) {
 
   let compsHtml = '';
 
-  if (atkComps.length) {
-    compsHtml += `
-<div style="display:flex;align-items:center;gap:1rem;margin:2rem 0 1.5rem">
-  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#5dade2;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#9876; Attacking</div>
-  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(93,173,226,0.6),transparent)"></div>
+  // Comp sections get a codex-divider between each so the page reads as
+  // a sequence of chapters instead of a single endless scroll. Type-section
+  // headers (Attacking / Defence) get the same eyebrow rule treatment as
+  // section-title across the rest of the codex direction.
+  const sectionHeader = (label, color, hairlineRgba) => `
+<div class="guide-type-head" style="margin:2.5rem 0 1.75rem;">
+  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;color:${color};letter-spacing:0.28em;text-transform:uppercase;display:inline-flex;align-items:center;gap:0.85rem;">
+    <span style="display:inline-block;width:28px;height:1px;background:${color};opacity:0.75"></span>
+    ${label}
+  </div>
+  <div style="font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;font-size:1.4rem;color:#eef0fa;letter-spacing:-0.01em;margin-top:0.35rem;">${label === 'Attacking' ? 'Attack Compositions' : 'Defence Compositions'}</div>
 </div>`;
-    compsHtml += atkComps.map(buildCompHtml).join('');
+
+  if (atkComps.length) {
+    compsHtml += sectionHeader('Attacking', '#5dade2');
+    compsHtml += atkComps.map((c, i) => buildCompHtml(c) + (i < atkComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
   if (defComps.length) {
-    compsHtml += `
-<div style="display:flex;align-items:center;gap:1rem;margin:3rem 0 1.5rem">
-  <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;font-weight:700;color:#2ecc71;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">&#128737; Defence</div>
-  <div style="flex:1;height:2px;background:linear-gradient(to right,rgba(46,204,113,0.6),transparent)"></div>
-</div>`;
-    compsHtml += defComps.map(buildCompHtml).join('');
+    compsHtml += sectionHeader('Defence', '#2ecc71');
+    compsHtml += defComps.map((c, i) => buildCompHtml(c) + (i < defComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
   return await layout('PvP Guide', `
@@ -575,6 +592,34 @@ function openLightbox(src) {
   }, { once: true });
   document.body.appendChild(ov);
 }
+
+// Video modal — opens a centered 16:9 iframe (YouTube) or <video> (file)
+// on click of any .video-thumb. The iframe is created lazily so we never
+// load a YouTube player until the user actually wants to watch.
+(function(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-action="open-video"]');
+    if (!btn) return;
+    e.preventDefault();
+    var kind = btn.dataset.videoKind;
+    var id = btn.dataset.videoId;
+    var src = btn.dataset.videoSrc;
+    var ov = document.createElement('div');
+    ov.className = 'video-modal';
+    var inner = '';
+    if (kind === 'yt' && id) {
+      inner = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+    } else if (kind === 'file' && src) {
+      inner = '<video controls autoplay playsinline src="' + src.replace(/"/g,'&quot;') + '"></video>';
+    }
+    ov.innerHTML = '<div class="video-modal-stage">' + inner + '<button type="button" class="video-modal-close" aria-label="Close">&#10005;</button></div>';
+    function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
+    function onKey(ev){ if (ev.key === 'Escape') close(); }
+    ov.addEventListener('click', function(ev){ if (ev.target === ov || ev.target.classList.contains('video-modal-close')) close(); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+  });
+})();
 </script>
-`, 'guide', env);
+`, 'guide', env, request);
 }
