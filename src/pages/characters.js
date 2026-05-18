@@ -78,10 +78,11 @@ export async function handleCharacters(request, env) {
   }).join('');
 
   return await layout('Characters', `
-<div style="max-width:1400px;margin:0 auto;padding:2rem 1.5rem">
-  <h1 style="font-family:'Cinzel',serif;color:var(--gold);font-size:1.8rem;margin-bottom:0.25rem">Characters</h1>
-  <div style="width:40px;height:2px;background:var(--gold);margin-bottom:0.5rem;opacity:0.5"></div>
-  <p style="color:var(--text3);font-size:0.85rem;margin-bottom:1.5rem">PvP characters and costumes. Select a costume from the dropdown to preview its portrait.</p>
+<div class="hero" style="padding:3rem 1.5rem 1.5rem;text-align:center">
+  <h1>Characters</h1>
+  <p>PvP characters and costumes. Select a costume from the dropdown to preview its portrait.</p>
+</div>
+<div style="max-width:1400px;margin:0 auto;padding:0 1.5rem 2rem">
 
   <div class="elem-filter-bar" id="elem-filter">
     <button class="elem-filter-btn active" data-element="all">
