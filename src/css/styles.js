@@ -424,6 +424,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .admin-item{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;}
 .admin-item-info{font-size:0.85rem;}
 .admin-item-info strong{color:var(--gold);}
+/* While a /comp/reorder request is in flight, dim the up/down arrows and
+   block further clicks. Stops racing reorders from corrupting the list. */
+.comp-list-busy [data-action="comp-move-up"],
+.comp-list-busy [data-action="comp-move-down"]{opacity:0.35;pointer-events:none;cursor:wait;}
+.comp-list-busy{cursor:wait;}
 .btn-danger{background:rgba(192,57,43,0.2);border:1px solid rgba(192,57,43,0.4);color:#e74c3c;padding:5px 12px;border-radius:4px;font-size:0.78rem;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;}
 .alert{padding:10px 14px;border-radius:5px;font-size:0.85rem;margin-bottom:1rem;}
 .alert-success{background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;}

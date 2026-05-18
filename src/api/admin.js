@@ -97,11 +97,19 @@ export async function handleAdminApi(request, env) {
       if (swapIdx < 0 || swapIdx >= list.length) {
         return json({ success:true, message:'Already at edge.', comps: list.map(c=>({...c,type:comp.type})) });
       }
-      const a = list[idx], b = list[swapIdx];
-      const aOrder = a.sort_order || (idx + 1) * 10;
-      const bOrder = b.sort_order || (swapIdx + 1) * 10;
-      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(bOrder, a.id).run().catch(() => {});
-      await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind(aOrder, b.id).run().catch(() => {});
+      // Swap positions in the working array, then full-renumber every comp of
+      // this type with clean 10/20/30/... sort_orders. The previous "swap two
+      // values" approach broke when a row's existing sort_order happened to
+      // collide with the other row's fallback value (idx+1)*10 — both rows
+      // ended up with the same final number, so the visible order didn't
+      // change. Full renumbering guarantees the swap actually takes effect.
+      const reordered = list.slice();
+      const tmp = reordered[idx];
+      reordered[idx] = reordered[swapIdx];
+      reordered[swapIdx] = tmp;
+      for (let i = 0; i < reordered.length; i++) {
+        await env.DB.prepare('UPDATE compositions SET sort_order=? WHERE id=?').bind((i + 1) * 10, reordered[i].id).run().catch(() => {});
+      }
       // Re-read in new order and renumber tiers
       const newOrder = await env.DB.prepare(
         'SELECT id, tier, name, color FROM compositions WHERE type=? ORDER BY COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC'

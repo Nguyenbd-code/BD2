@@ -2767,17 +2767,19 @@ function setupEmoteSetUI() {
   // Preset-riddle picker for char_sequence sets — fills in both the hint
   // textarea and the sequence input when an option is selected. The admin
   // can still hand-edit either field after applying a preset.
+  // (Backslashes are doubled because this whole script body is inside a
+  // server-side template literal; we want literal \\n to reach the browser.)
   var CHAR_SEQ_PRESETS = {
     hidden_hunger: {
-      hint: 'The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.',
+      hint: 'The first hides hunger beneath affection.\\nThe second remains where others would flee.\\nThe third knows too little to distrust the world.\\nThe fourth walks softly enough to disappear.\\nThe last waits below, where even death obeys.',
       seq: 'dalvi,rou,tyr,yuri,mamonir'
     },
     watchers_patience: {
-      hint: 'The first waits silently while the world moves around her.\nThe second smiles warmly while hiding ancient hunger.\nThe third wanders too gently to understand fear.\nThe fourth clings tightly enough to become dangerous.\nThe last commands even those abandoned by death.',
+      hint: 'The first waits silently while the world moves around her.\\nThe second smiles warmly while hiding ancient hunger.\\nThe third wanders too gently to understand fear.\\nThe fourth clings tightly enough to become dangerous.\\nThe last commands even those abandoned by death.',
       seq: 'zenith,dalvi,tyr,liatris,mamonir'
     },
     warmth_and_depths: {
-      hint: 'Warmth arrives first, small enough to be overlooked.\nJustice follows after with claws hidden beneath innocence.\nSilence watches next from beyond the trees.\nDesire smiles afterward like a beautiful dream.\nBelow them all waits the ruler of endless depths.',
+      hint: 'Warmth arrives first, small enough to be overlooked.\\nJustice follows after with claws hidden beneath innocence.\\nSilence watches next from beyond the trees.\\nDesire smiles afterward like a beautiful dream.\\nBelow them all waits the ruler of endless depths.',
       seq: 'rou,yuri,zenith,dalvi,mamonir'
     }
   };
@@ -3050,10 +3052,25 @@ async function addChar() {
   }
 }
 
+var _compMoveBusy = false;
+
 async function moveComp(id, direction) {
-  var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
-  if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
-  if (r.comps) updateCompListInPlace(r.comps);
+  // Single-flight: ignore subsequent clicks until the in-flight reorder
+  // finishes. Two concurrent /comp/reorder calls were racing on the server
+  // and the list-rebuild was painting whichever response landed last, which
+  // looked like the buttons "lagged" or "duplicated" rows.
+  if (_compMoveBusy) return;
+  _compMoveBusy = true;
+  var list = document.getElementById('comp-list');
+  if (list) list.classList.add('comp-list-busy');
+  try {
+    var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
+    if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
+    if (r.comps) updateCompListInPlace(r.comps);
+  } finally {
+    _compMoveBusy = false;
+    if (list) list.classList.remove('comp-list-busy');
+  }
 }
 
 function compRowHtmlJs(c) {
