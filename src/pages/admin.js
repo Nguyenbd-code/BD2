@@ -3052,10 +3052,25 @@ async function addChar() {
   }
 }
 
+var _compMoveBusy = false;
+
 async function moveComp(id, direction) {
-  var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
-  if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
-  if (r.comps) updateCompListInPlace(r.comps);
+  // Single-flight: ignore subsequent clicks until the in-flight reorder
+  // finishes. Two concurrent /comp/reorder calls were racing on the server
+  // and the list-rebuild was painting whichever response landed last, which
+  // looked like the buttons "lagged" or "duplicated" rows.
+  if (_compMoveBusy) return;
+  _compMoveBusy = true;
+  var list = document.getElementById('comp-list');
+  if (list) list.classList.add('comp-list-busy');
+  try {
+    var r = await apiPost('/api/admin/comp/reorder', { id: parseInt(id, 10), direction: direction });
+    if (!r.success) { showAlert('comp-add-alert', false, r.message || 'Reorder failed'); return; }
+    if (r.comps) updateCompListInPlace(r.comps);
+  } finally {
+    _compMoveBusy = false;
+    if (list) list.classList.remove('comp-list-busy');
+  }
 }
 
 function compRowHtmlJs(c) {
