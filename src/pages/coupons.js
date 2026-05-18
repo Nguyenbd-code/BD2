@@ -56,13 +56,13 @@ export async function handleCoupons(request, env) {
   <div id="redeem-status" style="font-size:0.8rem;color:var(--text3);margin-top:0.5rem;min-height:1.2em"></div>
 
   <div id="redeem-results" style="display:none;margin-top:1.5rem">
-    <div style="font-family:'Cinzel',serif;font-size:0.88rem;color:var(--gold);margin-bottom:0.75rem">Results</div>
+    <div style="font-family:'Cormorant Unicase',serif;font-size:0.88rem;color:var(--gold);margin-bottom:0.75rem">Results</div>
     <div id="results-list"></div>
     <div id="redeem-summary" style="margin-top:0.75rem;font-size:0.82rem;color:var(--text3)"></div>
   </div>
 
   <div style="margin-top:1.25rem;border-top:1px solid var(--border2);padding-top:1.25rem">
-    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-family:'Cinzel',serif;letter-spacing:0.04em">MANUAL CODE REDEEM</div>
+    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-family:'Cormorant Unicase',serif;letter-spacing:0.04em">MANUAL CODE REDEEM</div>
     <div style="display:flex;gap:0.5rem;align-items:stretch;flex-wrap:wrap">
       <input type="text" id="manual-code" placeholder="Enter code manually..." autocomplete="off"
         style="flex:1;min-width:160px;font-size:0.95rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;outline:none">
@@ -135,7 +135,7 @@ ${specialConfig.enabled ? `
 .rb-error    { background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.3); }
 .result-badge {
   display:inline-block;font-size:0.72rem;padding:3px 10px;border-radius:3px;
-  font-family:'Cinzel',serif;white-space:nowrap;
+  font-family:'Cormorant Unicase',serif;white-space:nowrap;
 }
 .result-row {
   display:flex;align-items:center;gap:0.75rem;padding:0.55rem 0.75rem;
@@ -164,7 +164,7 @@ ${specialConfig.enabled ? `
 .toast.t-warn    { background:rgba(243,156,18,0.95); color:#fff; border:1px solid rgba(243,156,18,1); }
 .toast.t-error   { background:rgba(231,76,60,0.95);  color:#fff; border:1px solid rgba(231,76,60,1); }
 .toast.t-info    { background:rgba(52,73,94,0.95);   color:#fff; border:1px solid rgba(52,73,94,1); }
-.toast b { font-family:'Cinzel',serif;display:block;margin-bottom:0.15rem;font-size:0.78rem;letter-spacing:0.04em; }
+.toast b { font-family:'Cormorant Unicase',serif;display:block;margin-bottom:0.15rem;font-size:0.78rem;letter-spacing:0.04em; }
 @keyframes toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
 /* Coupon-codes table — read-only view of all active codes with a per-device
@@ -173,7 +173,7 @@ ${specialConfig.enabled ? `
 .coupon-table-head { margin-bottom:0.85rem; }
 .coupon-table-title { font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1.35rem;color:#eef0fa;letter-spacing:-0.01em; }
 .coupon-table-scroll { overflow-x:auto;border-radius:6px;background:#14141e;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.04),0 8px 22px rgba(0,0,0,0.5); }
-.coupon-table { width:100%;border-collapse:collapse;min-width:480px;font-family:'Inter',system-ui,sans-serif; }
+.coupon-table { width:100%;border-collapse:collapse;min-width:480px;font-family:'Cormorant SC',Georgia,serif; }
 .coupon-table thead th { font-size:0.66rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(220,228,245,0.5);padding:0.85rem 1rem;text-align:left;border-bottom:1px solid rgba(220,230,255,0.06); }
 .coupon-table tbody td { padding:0.75rem 1rem;font-size:0.85rem;color:#eef0fa;border-bottom:1px solid rgba(220,230,255,0.05);vertical-align:middle; }
 .coupon-table tbody tr:last-child td { border-bottom:none; }

@@ -77,7 +77,7 @@ export async function handleHome(request, env) {
 </div>
 
 <section style="max-width:1100px;margin:0 auto 4rem;padding:0 1.5rem">
-  <h2 style="font-family:'Cinzel',serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
+  <h2 style="font-family:'Cormorant Unicase',serif;color:var(--gold);font-size:1.4rem;margin-bottom:0.5rem;letter-spacing:0.05em">Overview</h2>
   <div style="width:40px;height:2px;background:var(--gold);margin-bottom:1.5rem;opacity:0.5"></div>
   ${compRows.length === 0
     ? '<p style="color:var(--text3);font-size:0.9rem">No information yet.</p>'
@@ -91,7 +91,7 @@ export async function handleHome(request, env) {
 
 <div id="egg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
   <div id="egg-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:2rem;max-width:340px;width:90%;text-align:center">
-    <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--text);margin-bottom:1rem">Secret Code</div>
+    <div style="font-family:'Cormorant Unicase',serif;font-size:1.1rem;color:var(--text);margin-bottom:1rem">Secret Code</div>
     <input id="egg-input" type="password" placeholder="Enter code..." autocomplete="off"
       style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;font-size:0.95rem;outline:none;margin-bottom:0.75rem">
     <div id="egg-result" style="font-size:0.88rem;min-height:1.2em;margin-bottom:0.75rem"></div>

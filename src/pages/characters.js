@@ -142,7 +142,7 @@ export async function handleCharacters(request, env) {
 }
 .char-initial {
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:'Cinzel',serif;font-size:3.5rem;color:var(--bg3);font-weight:700;z-index:0;pointer-events:none;
+  font-family:'Cormorant Unicase',serif;font-size:3.5rem;color:var(--bg3);font-weight:700;z-index:0;pointer-events:none;
 }
 .char-elem-grad {
   position:absolute;bottom:0;left:0;right:0;height:60px;z-index:3;pointer-events:none;
@@ -153,7 +153,7 @@ export async function handleCharacters(request, env) {
   display:flex;align-items:center;justify-content:center;
 }
 .char-elem-fallback {
-  font-size:0.75rem;font-weight:700;font-family:'Cinzel',serif;position:absolute;
+  font-size:0.75rem;font-weight:700;font-family:'Cormorant Unicase',serif;position:absolute;
 }
 .char-elem-badge img.errored + .char-elem-fallback { display:block; }
 .char-elem-badge img:not(.errored) + .char-elem-fallback { display:none; }
@@ -165,11 +165,11 @@ export async function handleCharacters(request, env) {
 .char-upcoming-badge {
   position:absolute;top:8px;left:8px;z-index:4;background:rgba(201,168,76,0.85);
   color:#000;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:3px;
-  font-family:'Cinzel',serif;letter-spacing:0.05em;
+  font-family:'Cormorant Unicase',serif;letter-spacing:0.05em;
 }
 .char-card-body { padding:0.75rem; }
 .char-card-name-row { display:flex;align-items:center;gap:0.4rem;margin-bottom:0.1rem; }
-.char-card-name { font-family:'Cinzel',serif;font-weight:700;font-size:0.93rem;color:var(--text); }
+.char-card-name { font-family:'Cormorant Unicase',serif;font-weight:700;font-size:0.93rem;color:var(--text); }
 .char-card-elem { font-size:0.68rem;font-weight:600;margin-bottom:0.55rem;letter-spacing:0.04em; }
 
 /* Element filter bar */
@@ -240,7 +240,7 @@ function setupWhoAmI() {
     var answer = (s.unlock_sequence || '').trim();
     var setNum = s.set_num;
     inputDiv.innerHTML = '<input type="text" placeholder="Enter name..." autocomplete="off" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-size:0.82rem;font-family:inherit">'
-      + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cinzel,serif;letter-spacing:0.04em">Submit</button>'
+      + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cormorant Unicase,serif;letter-spacing:0.04em">Submit</button>'
       + '<div style="font-size:0.7rem;color:#e74c3c;margin-top:0.2rem;min-height:1rem" class="wai-err"></div>';
     picker.parentNode.insertBefore(inputDiv, picker.nextSibling);
     picker.addEventListener('change', function() {
@@ -373,7 +373,7 @@ function showUnlockToast(n) {
     window.showSetUnlockModal(n, name, msg);
   } else {
     var t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.4rem;border-radius:8px;font-family:Cinzel,serif;font-size:0.88rem;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap';
+    t.style.cssText = 'position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(46,204,113,0.95);color:#fff;padding:0.9rem 1.4rem;border-radius:8px;font-family:Cormorant Unicase,serif;font-size:0.88rem;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap';
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(function() { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 4000);
