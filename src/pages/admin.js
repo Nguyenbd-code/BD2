@@ -403,18 +403,18 @@ export async function handleAdmin(request, env) {
             <input type="file" id="comp-board-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
             <canvas id="comp-canvas" style="display:none"></canvas>
             <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-front">Upload Front</button>
-            <div id="comp-board-preview" style="margin-top:0.4rem"></div>
+            <div id="comp-board-preview" class="cet-preview"></div>
           </div>
           <div class="form-group" style="margin-bottom:0">
             <label>Board Image — Back</label>
             <input type="file" id="comp-board-back-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%">
             <canvas id="comp-canvas-back" style="display:none"></canvas>
             <button class="btn" style="width:auto;padding:6px 14px;margin-top:0.4rem;font-size:0.78rem" data-action="upload-board-back">Upload Back</button>
-            <div id="comp-board-back-preview" style="margin-top:0.4rem"></div>
+            <div id="comp-board-back-preview" class="cet-preview"></div>
           </div>
           <div class="form-group" style="margin-bottom:0">
             <label>Preemptive Skills</label>
-            <div id="preemptive-list" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.4rem;min-height:42px"></div>
+            <div id="preemptive-list" class="cet-preview"></div>
             <input type="file" id="preemptive-file" accept="image/*" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:5px;width:100%;margin-bottom:0.4rem">
             <canvas id="preemptive-canvas" style="display:none"></canvas>
             <button class="btn" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="add-preemptive">Add Image</button>
@@ -808,16 +808,36 @@ export async function handleAdmin(request, env) {
           <div class="form-group"><label>Slug <span style="color:var(--text3);font-size:0.7rem">(auto-generated)</span></label><input id="new-char-slug" placeholder="rou" readonly style="background:var(--bg4);color:var(--text3);cursor:not-allowed"></div>
           <div class="form-row">
             <div class="form-group"><label>Element</label>
-              <select id="new-char-element">
-                ${elemOrderServer.map(el =>
-                  '<option value="' + esc(el) + '"' + (el === 'Dark' ? ' selected' : '') + '>' + esc(el) + '</option>'
-                ).join('')}
-              </select>
+              <div class="elem-picker" style="position:relative">
+                <input type="hidden" id="new-char-element" value="Dark">
+                <button type="button" id="new-char-element-btn" data-action="new-char-elem-toggle" style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;cursor:pointer;text-align:left;font-family:inherit">
+                  <span id="new-char-element-display" style="display:flex;align-items:center;gap:8px;flex:1">
+                    <img src="/img/element_dark" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Dark
+                  </span>
+                  <span style="color:var(--text3)">▾</span>
+                </button>
+                <div id="new-char-element-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
+                  ${elemOrderServer.map(el =>
+                    '<div class="elem-opt new-char-elem-opt" data-elem="' + esc(el) + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/element_' + esc(el.toLowerCase()) + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + esc(el) + '</div>'
+                  ).join('')}
+                </div>
+              </div>
             </div>
             <div class="form-group"><label>Atk Type</label>
-              <select id="new-char-atk-type">
-                ${atkTypesServer.map(t => '<option value="' + esc(t) + '">' + esc(t) + '</option>').join('')}
-              </select>
+              <div class="elem-picker" style="position:relative">
+                <input type="hidden" id="new-char-atk-type" value="Physical">
+                <button type="button" id="new-char-atk-btn" data-action="new-char-atk-toggle" style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:5px;cursor:pointer;text-align:left;font-family:inherit">
+                  <span id="new-char-atk-display" style="display:flex;align-items:center;gap:8px;flex:1">
+                    <img src="/img/atk_physical" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">Physical
+                  </span>
+                  <span style="color:var(--text3)">▾</span>
+                </button>
+                <div id="new-char-atk-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
+                  ${atkTypesServer.map(t =>
+                    '<div class="elem-opt new-char-atk-opt" data-atk="' + esc(t) + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer"><img src="/img/atk_' + esc(t.toLowerCase()) + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + esc(t) + '</div>'
+                  ).join('')}
+                </div>
+              </div>
             </div>
           </div>
           <div class="form-group"><label>Status</label>
@@ -3645,9 +3665,14 @@ window.onerror = function(msg, src, line) {
 /* ══════════════════════════════════════ DELEGATED CLICK LISTENER ══ */
 document.addEventListener('click', function(e) {
   // Close the element picker when clicking outside it
-  var pickerMenu = document.getElementById('set-cfg-target-menu');
-  if (pickerMenu && pickerMenu.style.display === 'block' && !e.target.closest('.elem-picker')) {
-    pickerMenu.style.display = 'none';
+  // Close any open elem-picker menu when clicking outside of it. Covers the
+  // set-cfg-target picker and the new-char Element/Atk pickers in the
+  // Add Character form.
+  if (!e.target.closest('.elem-picker')) {
+    ['set-cfg-target-menu','new-char-element-menu','new-char-atk-menu'].forEach(function(id){
+      var m = document.getElementById(id);
+      if (m && m.style.display === 'block') m.style.display = 'none';
+    });
   }
   var b = e.target.closest('[data-action]');
   if (!b) return;
@@ -3681,6 +3706,40 @@ document.addEventListener('click', function(e) {
     updateElemPickerDisplay(v);
     var menu2 = document.getElementById('set-cfg-target-menu');
     if (menu2) menu2.style.display = 'none';
+  }
+  // New-character Element picker
+  if (action === 'new-char-elem-toggle') {
+    e.stopPropagation();
+    var ncem = document.getElementById('new-char-element-menu');
+    if (ncem) ncem.style.display = ncem.style.display === 'block' ? 'none' : 'block';
+  }
+  var newCharElemOpt = e.target.closest('#new-char-element-menu .new-char-elem-opt');
+  if (newCharElemOpt) {
+    e.stopPropagation();
+    var elV = newCharElemOpt.dataset.elem || 'Dark';
+    var hidEl = document.getElementById('new-char-element');
+    if (hidEl) hidEl.value = elV;
+    var dispEl = document.getElementById('new-char-element-display');
+    if (dispEl) dispEl.innerHTML = '<img src="/img/element_' + elV.toLowerCase() + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + escH(elV);
+    var ncem2 = document.getElementById('new-char-element-menu');
+    if (ncem2) ncem2.style.display = 'none';
+  }
+  // New-character Atk-type picker
+  if (action === 'new-char-atk-toggle') {
+    e.stopPropagation();
+    var ncam = document.getElementById('new-char-atk-menu');
+    if (ncam) ncam.style.display = ncam.style.display === 'block' ? 'none' : 'block';
+  }
+  var newCharAtkOpt = e.target.closest('#new-char-atk-menu .new-char-atk-opt');
+  if (newCharAtkOpt) {
+    e.stopPropagation();
+    var atV = newCharAtkOpt.dataset.atk || 'Physical';
+    var hidAt = document.getElementById('new-char-atk-type');
+    if (hidAt) hidAt.value = atV;
+    var dispAt = document.getElementById('new-char-atk-display');
+    if (dispAt) dispAt.innerHTML = '<img src="/img/atk_' + atV.toLowerCase() + '" class="img-err-hide" style="width:18px;height:18px;object-fit:contain">' + escH(atV);
+    var ncam2 = document.getElementById('new-char-atk-menu');
+    if (ncam2) ncam2.style.display = 'none';
   }
   if (action === 'upload-trigger')  triggerCharUpload(b.dataset.slot);
   if (action === 'char-tab')        showCharSubtab(b.dataset.subtab);

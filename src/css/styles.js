@@ -229,12 +229,11 @@ main{padding-top:74px;position:relative;z-index:1;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
 .rot-table{display:flex;flex-direction:column;}
-.rot-table{display:flex;flex-direction:column;align-items:center;gap:0.45rem;padding:0.25rem 0;flex:1;overflow:visible;}
-.rot-row{display:flex;justify-content:center;padding:0.35rem 0;border-bottom:1px solid var(--border2);width:100%;}
+.rot-table{display:flex;flex-direction:column;align-items:flex-start;gap:0.45rem;padding:0.25rem 0;flex:1;overflow:visible;}
+.rot-row{display:flex;justify-content:flex-start;padding:0.35rem 0;border-bottom:1px solid var(--border2);width:100%;}
 .rot-row:last-child{border-bottom:none;}
-/* 5 icons per visual row, filling left-to-right. flex-wrap kicks in past
-   the 5th; later rows align with the first one's left edge instead of
-   spreading out from the middle. */
+/* 5 icons per visual row, all rows sharing the same left edge so short
+   rows don't appear centered out from the middle of the card. */
 .rot-skills{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0.45rem 0.35rem;max-width:225px;}
 .skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
 .skill-icon-box:hover{border-color:var(--gold);}
@@ -294,6 +293,21 @@ main{padding-top:74px;position:relative;z-index:1;}
 .admin-form h3{font-family:'Cinzel',serif;color:var(--gold);margin-bottom:1.25rem;font-size:1rem;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 @media(max-width:900px){.comp-edit-trio{grid-template-columns:1fr !important;}}
+/* Uniform preview pane across all three columns of .comp-edit-trio. Each
+   column reserves the same height regardless of whether content is loaded,
+   so the panel doesn't look ragged when only the front board has an image
+   uploaded. */
+.comp-edit-trio .cet-preview{
+  width:100%;min-height:140px;max-height:200px;overflow:auto;
+  margin-top:0.5rem;border:1px dashed rgba(220,230,255,0.08);
+  border-radius:4px;padding:0.4rem;box-sizing:border-box;
+  display:flex;align-items:flex-start;flex-wrap:wrap;gap:0.4rem;
+}
+.comp-edit-trio .cet-preview:empty::before{
+  content:'No image yet.';font-size:0.74rem;color:rgba(220,228,245,0.32);
+  font-family:'Inter',system-ui,sans-serif;letter-spacing:0.02em;font-style:italic;
+}
+.comp-edit-trio .cet-preview img{max-width:100%;max-height:160px;display:block;border-radius:3px;}
 @media(max-width:600px){.form-row{grid-template-columns:1fr;}}
 .form-group select,.form-group textarea{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:5px;font-family:'Nunito',sans-serif;font-size:0.9rem;outline:none;}
 .form-group textarea{resize:vertical;min-height:80px;}
