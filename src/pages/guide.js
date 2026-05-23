@@ -208,8 +208,14 @@ function renderComp(comp, mediaMap) {
   // opens a fullscreen modal where the player controls (fullscreen, sound,
   // progress bar) are actually usable. The inline iframe at 220px tall was
   // useless — YouTube's control bar overflows and fullscreen is unreachable.
+  // Detect YouTube and X/Twitter URLs separately. Both open in the same
+  // fullscreen modal but each shows a different thumbnail/embed.
   const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const xMatch = video.match(/(?:x\.com|twitter\.com)\/(?:i\/status|[A-Za-z0-9_]+\/status)\/(\d+)/i);
   const playSvg = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="rgba(10,10,15,0.78)" stroke="#c9a84c" stroke-width="1.5"/><path d="M26 20 L46 32 L26 44 Z" fill="#c9a84c"/></svg>';
+  // X/Twitter doesn't expose a public thumbnail URL, so we render a styled
+  // placeholder with the X logo glyph.
+  const xLogoSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#c9a84c" style="width:48px;height:48px;opacity:0.32"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
   const videoInner = !video
     ? '<div style="text-align:center;padding:1rem"><div style="font-family:Fraunces,Georgia,serif;color:var(--gold);opacity:0.55;font-size:1rem;font-style:italic;margin-bottom:0.3rem">Video</div><div style="font-size:0.7rem;color:var(--text3);font-family:IBM Plex Sans,system-ui,sans-serif;letter-spacing:0.22em;text-transform:uppercase">No replay yet</div></div>'
     : (ytMatch
@@ -218,6 +224,12 @@ function renderComp(comp, mediaMap) {
              <span class="video-thumb-shade" aria-hidden="true"></span>
              <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
              <span class="video-thumb-label">Watch Replay</span>
+           </button>`
+        : xMatch
+        ? `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-id="${esc(xMatch[1])}" data-video-kind="tweet" aria-label="Play tweet">
+             <span class="video-thumb-xlogo" aria-hidden="true">${xLogoSvg}</span>
+             <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
+             <span class="video-thumb-label">View Post on X</span>
            </button>`
         : `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-src="${esc(video)}" data-video-kind="file" aria-label="Play video">
              <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
@@ -616,12 +628,20 @@ function openLightbox(src) {
     var ov = document.createElement('div');
     ov.className = 'video-modal';
     var inner = '';
+    var stageClass = 'video-modal-stage';
     if (kind === 'yt' && id) {
       inner = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+    } else if (kind === 'tweet' && id) {
+      // X/Twitter embeds use platform.twitter.com's Tweet.html viewer. The
+      // iframe is sized by the embed itself; we just give it a portrait-
+      // friendly stage. theme=dark + dnt=true to match the codex palette
+      // and disable cross-site tracking handshake.
+      stageClass = 'video-modal-stage video-modal-stage-tweet';
+      inner = '<iframe src="https://platform.twitter.com/embed/Tweet.html?id=' + encodeURIComponent(id) + '&theme=dark&dnt=true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation" scrolling="no"></iframe>';
     } else if (kind === 'file' && src) {
       inner = '<video controls autoplay playsinline src="' + src.replace(/"/g,'&quot;') + '"></video>';
     }
-    ov.innerHTML = '<div class="video-modal-stage">' + inner + '<button type="button" class="video-modal-close" aria-label="Close">&#10005;</button></div>';
+    ov.innerHTML = '<div class="' + stageClass + '">' + inner + '<button type="button" class="video-modal-close" aria-label="Close">&#10005;</button></div>';
     function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
     function onKey(ev){ if (ev.key === 'Escape') close(); }
     ov.addEventListener('click', function(ev){ if (ev.target === ov || ev.target.classList.contains('video-modal-close')) close(); });

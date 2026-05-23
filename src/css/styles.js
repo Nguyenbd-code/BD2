@@ -311,11 +311,18 @@ main{padding-top:74px;position:relative;z-index:1;}
 .video-thumb-play svg{width:100%;height:100%;display:block;}
 .video-thumb-label{position:absolute;left:0;right:0;bottom:0.5rem;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:var(--gold2);text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .video-thumb-file{background:linear-gradient(180deg,#1a1a28 0%,#0e0e16 100%);}
+.video-thumb-xlogo{position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% - 18px));pointer-events:none;}
+.video-thumb-xlogo svg{display:block;}
 
 /* Modal-style fullscreen video player. Lazy-mounted on .video-thumb click. */
 .video-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:2rem;animation:vm-fade 0.18s ease-out;cursor:pointer;}
 .video-modal-stage{position:relative;width:min(90vw,1200px);aspect-ratio:16/9;max-height:85vh;cursor:default;box-shadow:0 30px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(201,168,76,0.35),0 0 40px rgba(201,168,76,0.18);border-radius:6px;overflow:hidden;background:#000;}
 .video-modal-stage iframe,.video-modal-stage video{width:100%;height:100%;display:block;border:0;}
+/* Tweet variant — portrait-friendly fixed width, scrolls vertically inside.
+   Twitter's iframe doesn't have a clean 16:9 aspect since tweets vary in
+   height. We give it a usable column and let the embed handle the rest. */
+.video-modal-stage-tweet{aspect-ratio:auto;width:min(96vw,540px);height:min(85vh,720px);background:#15131d;overflow:auto;}
+.video-modal-stage-tweet iframe{height:100%;}
 .video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
 .video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
 @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}
