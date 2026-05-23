@@ -408,6 +408,14 @@ main{padding-top:74px;position:relative;z-index:1;}
 .order-list{display:flex;flex-direction:column;gap:0.4rem;}
 .order-row{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;background:var(--bg4);border-radius:5px;}
 .order-num{width:22px;height:22px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.75rem;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;flex-shrink:0;}
+/* Unit order rows on /guide — engraved number plate + name on a flush
+   row so the list reads as a numbered list, not a list of pill chips. */
+.unit-order-row{display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.55rem;border-bottom:1px solid rgba(220,230,255,0.04);}
+.unit-order-row:last-child{border-bottom:none;}
+.unit-order-num{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:transparent;border:1px solid var(--gold);color:var(--gold2);font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 18;font-size:0.66rem;flex-shrink:0;line-height:1;}
+.unit-order-name{font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:500;font-size:0.78rem;letter-spacing:0.04em;color:#eef0fa;}
+.unit-order-row-empty .unit-order-num{border-color:rgba(220,230,255,0.12);color:rgba(220,228,245,0.3);}
+.unit-order-row-empty .unit-order-name{color:rgba(220,228,245,0.3);font-style:italic;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
@@ -418,10 +426,12 @@ main{padding-top:74px;position:relative;z-index:1;}
 /* 5 icons per visual row, all rows sharing the same left edge so short
    rows don't appear centered out from the middle of the card. */
 .rot-skills{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0.45rem 0.35rem;max-width:225px;}
-.skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
-.skill-icon-box:hover{border-color:var(--gold);}
-.skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}
-.skill-abbr{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+/* Skill rotation icon — small ink card with a brass edge on hover. The
+   number badge floats above each portrait as a small caps tracker. */
+.skill-icon-box{position:relative;width:38px;flex-shrink:0;background:#0e0c14;border:1px solid rgba(220,230,255,0.05);border-radius:3px;padding:3px;cursor:pointer;text-align:center;transition:border-color 0.18s ease,transform 0.15s ease,box-shadow 0.18s ease;}
+.skill-icon-box:hover{border-color:rgba(201,168,76,0.55);transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.45),0 0 12px rgba(201,168,76,0.18);}
+.skill-num{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.54rem;font-weight:600;letter-spacing:0.14em;color:rgba(220,228,245,0.55);margin-bottom:2px;}
+.skill-abbr{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 24;font-size:0.78rem;color:#eef0fa;margin-bottom:3px;letter-spacing:-0.005em;}
 .skill-tile-mini{display:inline-flex;align-items:center;justify-content:center;font-size:0.55rem;padding:1px 5px;border-radius:2px;height:auto;width:auto;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}

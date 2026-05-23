@@ -169,14 +169,15 @@ function renderComp(comp, mediaMap) {
   const orderPills = [1,2,3,4,5].map(i => {
     const u    = unitOrder[i-1];
     const name = u ? (typeof u === 'object' ? u.name : u) : '—';
-    return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.2rem 0.4rem;background:var(--bg4);border-radius:4px">
-  <div style="width:15px;height:15px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.58rem;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;flex-shrink:0">${i}</div>
-  <div style="font-weight:700;font-size:0.72rem;color:var(--text)">${esc(String(name))}</div>
+    const empty = !u;
+    return `<div class="unit-order-row${empty ? ' unit-order-row-empty' : ''}">
+  <div class="unit-order-num">${i}</div>
+  <div class="unit-order-name">${esc(String(name))}</div>
 </div>`;
   }).join('');
   const orderHtml = `<div class="card">
   <div class="card-title">Unit Order</div>
-  <div style="display:flex;flex-direction:column;gap:0.15rem;margin-top:0.25rem">${orderPills}</div>
+  <div style="margin-top:0.25rem">${orderPills}</div>
 </div>`;
 
   // Board positioning — flip card (front + back)
