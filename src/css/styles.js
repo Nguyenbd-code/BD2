@@ -81,6 +81,11 @@ export function getStyles() {
 @keyframes hint-modal-fade{from{opacity:0;}to{opacity:1;}}
 @keyframes hint-modal-in{from{opacity:0;transform:translateY(12px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 
+/* Codex toast — small ephemeral notification that slides up from the bottom
+   center. Used for sub-puzzle reveals + similar lightweight surfaces. */
+.codex-toast{position:fixed;bottom:2.25rem;left:50%;transform:translateX(-50%) translateY(0);background:#14141e;color:var(--gold2);padding:0.85rem 1.5rem;border-radius:3px;font-family:'Fraunces',Georgia,serif;font-style:italic;font-variation-settings:'opsz' 24;font-size:0.92rem;letter-spacing:0.005em;z-index:11000;transition:opacity 0.4s ease,transform 0.4s ease;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.06),0 0 0 1px rgba(201,168,76,0.42),0 16px 40px rgba(0,0,0,0.6),0 0 26px rgba(201,168,76,0.2);animation:codex-toast-in 0.5s cubic-bezier(0.22,1,0.36,1);}
+@keyframes codex-toast-in{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
 /* Egg modal (the secret-code prompt at the bottom of /home) — same codex
    modal pattern as hint-modal + set-unlock. Inputs styled inline since
    this is a one-off field; matches form-group bottom-rule treatment. */
@@ -207,17 +212,22 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
    in/out around 2.4s. Reserved minimum line height so the layout doesn't
    jump when a line appears. */
 .char-voice-line{
-  display:block;margin:0.4rem 1.5rem 1.25rem;
-  min-height:2.4em;text-align:center;
+  position:relative;display:block;margin:0.5rem 1.25rem 1.4rem;
+  min-height:2.6em;text-align:center;
   font-family:'Fraunces',Georgia,serif;font-style:italic;
-  font-variation-settings:'opsz' 24;font-size:0.86rem;
-  line-height:1.4;letter-spacing:0.005em;
+  font-variation-settings:'opsz' 24;font-size:0.9rem;
+  line-height:1.45;letter-spacing:0.005em;
   color:rgba(232,199,106,0);
-  transition:color 0.4s ease,transform 0.4s ease;
-  transform:translateY(2px);
+  transition:color 0.42s ease,transform 0.42s cubic-bezier(0.22,1,0.36,1);
+  transform:translateY(4px);
   pointer-events:none;
 }
-.char-voice-line.show{color:var(--gold2);transform:translateY(0);}
+.char-voice-line.show{color:var(--gold2);transform:translateY(0);text-shadow:0 0 12px rgba(201,168,76,0.25);}
+/* Decorative quotation marks when active — engraved opener + closer in a
+   dim gold so the line reads as a quote, not just a caption. */
+.char-voice-line.show::before,.char-voice-line.show::after{position:absolute;font-family:'Fraunces',Georgia,serif;font-style:normal;font-variation-settings:'opsz' 96;color:rgba(201,168,76,0.32);font-size:1.6rem;line-height:1;}
+.char-voice-line.show::before{content:'“';left:0.4rem;top:-0.1em;}
+.char-voice-line.show::after{content:'”';right:0.4rem;bottom:-0.25em;}
 
 /* Mamonir nav icon — the source image has transparent padding around the
    character, so we render the img larger than the wrap and clip the wrap
@@ -311,11 +321,18 @@ main{padding-top:74px;position:relative;z-index:1;}
 .video-thumb-play svg{width:100%;height:100%;display:block;}
 .video-thumb-label{position:absolute;left:0;right:0;bottom:0.5rem;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:var(--gold2);text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .video-thumb-file{background:linear-gradient(180deg,#1a1a28 0%,#0e0e16 100%);}
+.video-thumb-xlogo{position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% - 18px));pointer-events:none;}
+.video-thumb-xlogo svg{display:block;}
 
 /* Modal-style fullscreen video player. Lazy-mounted on .video-thumb click. */
 .video-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:2rem;animation:vm-fade 0.18s ease-out;cursor:pointer;}
 .video-modal-stage{position:relative;width:min(90vw,1200px);aspect-ratio:16/9;max-height:85vh;cursor:default;box-shadow:0 30px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(201,168,76,0.35),0 0 40px rgba(201,168,76,0.18);border-radius:6px;overflow:hidden;background:#000;}
 .video-modal-stage iframe,.video-modal-stage video{width:100%;height:100%;display:block;border:0;}
+/* Tweet variant — portrait-friendly fixed width, scrolls vertically inside.
+   Twitter's iframe doesn't have a clean 16:9 aspect since tweets vary in
+   height. We give it a usable column and let the embed handle the rest. */
+.video-modal-stage-tweet{aspect-ratio:auto;width:min(96vw,540px);height:min(85vh,720px);background:#15131d;overflow:auto;}
+.video-modal-stage-tweet iframe{height:100%;}
 .video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
 .video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
 @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}
@@ -401,6 +418,14 @@ main{padding-top:74px;position:relative;z-index:1;}
 .order-list{display:flex;flex-direction:column;gap:0.4rem;}
 .order-row{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;background:var(--bg4);border-radius:5px;}
 .order-num{width:22px;height:22px;border-radius:50%;background:#c9a84c;color:#000;font-weight:700;font-size:0.75rem;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;flex-shrink:0;}
+/* Unit order rows on /guide — engraved number plate + name on a flush
+   row so the list reads as a numbered list, not a list of pill chips. */
+.unit-order-row{display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.55rem;border-bottom:1px solid rgba(220,230,255,0.04);}
+.unit-order-row:last-child{border-bottom:none;}
+.unit-order-num{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:transparent;border:1px solid var(--gold);color:var(--gold2);font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 18;font-size:0.66rem;flex-shrink:0;line-height:1;}
+.unit-order-name{font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:500;font-size:0.78rem;letter-spacing:0.04em;color:#eef0fa;}
+.unit-order-row-empty .unit-order-num{border-color:rgba(220,230,255,0.12);color:rgba(220,228,245,0.3);}
+.unit-order-row-empty .unit-order-name{color:rgba(220,228,245,0.3);font-style:italic;}
 .order-char{flex:1;font-weight:700;font-size:0.85rem;}
 .order-stat{font-size:0.75rem;color:var(--gold);}
 /* ROTATION */
@@ -411,10 +436,12 @@ main{padding-top:74px;position:relative;z-index:1;}
 /* 5 icons per visual row, all rows sharing the same left edge so short
    rows don't appear centered out from the middle of the card. */
 .rot-skills{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0.45rem 0.35rem;max-width:225px;}
-.skill-icon-box{width:38px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:3px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
-.skill-icon-box:hover{border-color:var(--gold);}
-.skill-num{font-size:0.55rem;color:var(--text3);margin-bottom:2px;}
-.skill-abbr{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+/* Skill rotation icon — small ink card with a brass edge on hover. The
+   number badge floats above each portrait as a small caps tracker. */
+.skill-icon-box{position:relative;width:38px;flex-shrink:0;background:#0e0c14;border:1px solid rgba(220,230,255,0.05);border-radius:3px;padding:3px;cursor:pointer;text-align:center;transition:border-color 0.18s ease,transform 0.15s ease,box-shadow 0.18s ease;}
+.skill-icon-box:hover{border-color:rgba(201,168,76,0.55);transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.45),0 0 12px rgba(201,168,76,0.18);}
+.skill-num{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.54rem;font-weight:600;letter-spacing:0.14em;color:rgba(220,228,245,0.55);margin-bottom:2px;}
+.skill-abbr{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 24;font-size:0.78rem;color:#eef0fa;margin-bottom:3px;letter-spacing:-0.005em;}
 .skill-tile-mini{display:inline-flex;align-items:center;justify-content:center;font-size:0.55rem;padding:1px 5px;border-radius:2px;height:auto;width:auto;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
