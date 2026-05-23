@@ -68,6 +68,38 @@ export function getStyles() {
 .codex-divider::after{background:linear-gradient(to right,rgba(201,168,76,0.55),transparent);}
 .codex-divider span{display:inline-block;width:8px;height:8px;transform:rotate(45deg);background:linear-gradient(135deg,#e8c76a,#a07830);box-shadow:0 0 8px rgba(201,168,76,0.45);}
 
+/* Codex hint / riddle modal — used on /emotes for the ? button. Same
+   ink-blue + brass corner-bracket aesthetic as the set-unlock modal. */
+.hint-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.78);align-items:center;justify-content:center;padding:1.25rem;animation:hint-modal-fade 0.22s ease-out;}
+.hint-modal.show,.hint-modal[style*="flex"]{display:flex;}
+.hint-modal-card{position:relative;background:#14141e;border-radius:4px;padding:2rem 2.25rem 1.5rem;max-width:460px;width:100%;text-align:center;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.05),0 22px 56px rgba(0,0,0,0.7),0 0 32px rgba(201,168,76,0.15);animation:hint-modal-in 0.32s cubic-bezier(0.22,1,0.36,1);}
+.hint-modal-card::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.hint-modal-eyebrow{display:flex;align-items:center;justify-content:center;gap:0.65rem;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.32em;text-transform:uppercase;color:var(--gold2);margin-bottom:1rem;}
+.hint-modal-rule{display:inline-block;width:24px;height:1px;background:var(--gold);opacity:0.75;}
+.hint-modal-body{font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 24;font-size:1rem;font-style:italic;line-height:1.65;color:#eef0fa;margin-bottom:1.5rem;white-space:pre-line;text-align:left;}
+.hint-modal-close{display:inline-block;}
+@keyframes hint-modal-fade{from{opacity:0;}to{opacity:1;}}
+@keyframes hint-modal-in{from{opacity:0;transform:translateY(12px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+/* Egg modal (the secret-code prompt at the bottom of /home) — same codex
+   modal pattern as hint-modal + set-unlock. Inputs styled inline since
+   this is a one-off field; matches form-group bottom-rule treatment. */
+.egg-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;align-items:center;justify-content:center;padding:1.25rem;animation:hint-modal-fade 0.22s ease-out;}
+.egg-modal[style*="flex"]{display:flex;}
+.egg-modal-card{position:relative;background:#14141e;border-radius:4px;padding:2rem 2.25rem 1.6rem;max-width:380px;width:100%;text-align:center;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.05),0 22px 56px rgba(0,0,0,0.7),0 0 32px rgba(201,168,76,0.15);animation:hint-modal-in 0.32s cubic-bezier(0.22,1,0.36,1);}
+.egg-modal-card::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.egg-modal-eyebrow{display:flex;align-items:center;justify-content:center;gap:0.65rem;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.32em;text-transform:uppercase;color:var(--gold2);margin-bottom:1rem;}
+.egg-modal-rule{display:inline-block;width:22px;height:1px;background:var(--gold);opacity:0.75;}
+.egg-modal-input{width:100%;box-sizing:border-box;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.18);color:#eef0fa;padding:10px 14px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.95rem;letter-spacing:0.06em;outline:none;text-align:center;margin-bottom:0.85rem;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;color-scheme:dark;}
+.egg-modal-input:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.04);box-shadow:0 1px 0 0 var(--gold);}
+.egg-modal-input::placeholder{color:rgba(232,224,200,0.3);font-style:italic;letter-spacing:0.04em;}
+.egg-modal-result{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.84rem;min-height:1.3em;margin-bottom:1rem;color:rgba(220,228,245,0.75);}
+.egg-modal-submit{width:auto;display:inline-block;}
+
+/* Lightbox (image zoom on /guide) — soft codex frame around the zoomed
+   image instead of the flat gold border. */
+#guide-lightbox-overlay{cursor:zoom-out;}
+
 /* Page-load stagger reveal — applied to any container with
    data-codex-reveal. Children fade up in sequence on first paint. */
 [data-codex-reveal] > *{opacity:0;transform:translateY(8px);animation:codex-reveal-up 0.55s cubic-bezier(0.22,1,0.36,1) forwards;animation-delay:calc(var(--codex-i,0) * 60ms);}
@@ -195,8 +227,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .mam-clip{position:absolute;inset:0;overflow:hidden;}
 .mam-wrap img{height:160px;width:auto;display:block;position:absolute;bottom:-44px;left:50%;transform:translateX(-50%);image-rendering:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));-webkit-user-drag:none;pointer-events:none;}
 .mam-wrap img.mam-press{transform:translateX(-50%) scale(0.85);transition:transform 0.08s ease;}
-.mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#13131a;border:1px solid rgba(201,168,76,0.45);color:var(--gold2);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;letter-spacing:0.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:102;}
-.mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.45);}
+/* Mamonir's dialogue bubble — italic Fraunces line so her voice reads as
+   character speech rather than UI text. Brass-edged ink-blue card. */
+.mam-bubble{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-4px);background:#14141e;color:#eef0fa;font-family:'Fraunces',Georgia,serif;font-style:italic;font-variation-settings:'opsz' 24;font-size:0.85rem;letter-spacing:0.005em;padding:7px 14px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;z-index:102;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.06),0 0 0 1px rgba(201,168,76,0.4),0 8px 22px rgba(0,0,0,0.65),0 0 18px rgba(201,168,76,0.18);}
+.mam-bubble::after{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(201,168,76,0.5);}
 .mam-bubble-show{animation:mam-bubble-pop 1.4s ease-out forwards;}
 @keyframes mam-bubble-pop{0%{opacity:0;transform:translateX(-50%) translateY(-6px) scale(0.85);}15%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}80%{opacity:1;transform:translateX(-50%) translateY(2px) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(8px) scale(0.95);}}
 
@@ -352,12 +386,16 @@ main{padding-top:74px;position:relative;z-index:1;}
 .tile-tbd{background:rgba(112,104,96,0.2);border-color:rgba(112,104,96,0.4);color:var(--text3);}
 /* TOOLTIPS */
 .tt-parent{position:relative;}
-.tt-popup{display:none;position:absolute;z-index:9999;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.8);pointer-events:none;white-space:normal;}
+/* Bond hover popup — codex card-style tooltip with the same brass corner
+   brackets as every other surface. */
+.tt-popup{display:none;position:absolute;z-index:9999;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:#14141e;border-radius:4px;padding:0.95rem 1.05rem;width:270px;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.05),0 14px 38px rgba(0,0,0,0.7),0 0 18px rgba(201,168,76,0.12);pointer-events:none;white-space:normal;isolation:isolate;}
+.tt-popup::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.45'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.tt-popup > *{position:relative;z-index:1;}
 .skill-wrap{position:relative;cursor:pointer;overflow:visible;}
-.tt-name{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;}
-.tt-stats{display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;}
-.tt-stat{background:var(--bg3);border:1px solid var(--border2);padding:2px 8px;border-radius:3px;font-size:0.72rem;color:var(--text2);}
-.tt-desc{font-size:0.78rem;color:var(--text2);line-height:1.5;}
+.tt-name{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:0.95rem;color:#eef0fa;letter-spacing:-0.005em;margin-bottom:0.6rem;line-height:1.2;}
+.tt-stats{display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.6rem;}
+.tt-stat{background:rgba(201,168,76,0.08);padding:3px 9px;border-radius:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold2);border-left:2px solid var(--gold3);}
+.tt-desc{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;color:rgba(220,228,245,0.75);line-height:1.55;}
 .tt-tile-placeholder{margin-top:0.5rem;padding:6px;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px;font-size:0.7rem;color:var(--text3);text-align:center;}
 /* UNIT ORDER */
 .order-list{display:flex;flex-direction:column;gap:0.4rem;}
@@ -381,9 +419,9 @@ main{padding-top:74px;position:relative;z-index:1;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
 .t1-char:hover{border-color:var(--border);}
-.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.35rem;margin:0;padding:0;}
-.notes-list li{font-size:0.82rem;color:var(--text2);padding-left:1rem;position:relative;line-height:1.5;word-break:break-word;}
-.notes-list li::before{content:'—';position:absolute;left:0;color:var(--gold3);}
+.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.45rem;margin:0;padding:0;}
+.notes-list li{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.82rem;color:rgba(220,228,245,0.78);padding-left:1.1rem;position:relative;line-height:1.55;word-break:break-word;}
+.notes-list li::before{content:'';position:absolute;left:0;top:0.65em;width:5px;height:1px;background:var(--gold);opacity:0.7;}
 .counter-tag{display:inline-block;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 .beats-tag{display:inline-block;background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 /* COUPONS */
@@ -579,11 +617,16 @@ select{background:rgba(220,230,255,0.025);color:#eef0fa;border:1px solid rgba(22
 @keyframes egg-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .egg-shake{animation:egg-shake 0.35s ease;}
 /* FOOTER */
-footer{border-top:1px solid var(--border2);padding:2rem 1.5rem;text-align:center;color:var(--text3);font-size:0.78rem;margin-top:4rem;line-height:1.7;}
+/* Codex footer — gradient hairline + small brass rhombus before the
+   disclaimer block. Type weights match the rest of the eyebrow / body
+   pairing across the site. */
+footer{position:relative;padding:3.5rem 1.5rem 2.5rem;text-align:center;margin-top:5rem;}
+footer::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(560px,80%);height:1px;background:linear-gradient(to right,transparent,rgba(201,168,76,0.4) 50%,transparent);}
+footer::after{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;background:linear-gradient(135deg,#e8c76a,#a07830);box-shadow:0 0 8px rgba(201,168,76,0.4);}
 footer span{color:var(--gold);}
-.footer-brand{color:var(--text2);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;font-size:0.82rem;margin-bottom:0.5rem;}
-.footer-disclaimer{max-width:680px;margin:0 auto 0.6rem;color:var(--text3);font-size:0.74rem;line-height:1.65;}
-.footer-copyright{color:var(--text3);font-size:0.74rem;letter-spacing:0.04em;}
+.footer-brand{color:var(--gold2);font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 48;font-size:1rem;letter-spacing:-0.005em;margin-bottom:0.85rem;}
+.footer-disclaimer{max-width:680px;margin:0 auto 0.85rem;color:rgba(220,228,245,0.45);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.72rem;line-height:1.7;}
+.footer-copyright{color:rgba(220,228,245,0.35);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:500;letter-spacing:0.24em;text-transform:uppercase;}
 /* IMAGE ERROR HIDE */
 .img-err-hide.errored{display:none;}
 .img-err-dim.errored{opacity:0.2;}
