@@ -378,31 +378,34 @@ export async function handleEmotes(request, env) {
 .set-card.tier-locked .set-tier-icon { font-size:1.6rem;line-height:1; }
 .set-card.tier-locked .set-cover { position:relative; }
 .set-card.tier-locked .set-lock-overlay { display:none !important; }
-.set-card { background:var(--bg2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;transition:border-color 0.2s,transform 0.15s;cursor:pointer; }
-.set-card:hover { border-color:rgba(201,168,76,0.5);transform:translateY(-2px); }
-.set-card.unlocked { border-color:rgba(46,204,113,0.4); }
-.set-card.unlocked:hover { border-color:rgba(46,204,113,0.7); }
+/* Emote set card — codex-aligned. Ink-blue surface, no border, layered
+   drop shadow + 1px gold edge ring that brightens on hover. Unlocked
+   variant swaps to a green edge to signal completion at a glance. */
+.set-card { position:relative;background:#14141e;border-radius:4px;overflow:hidden;cursor:pointer;box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(220,230,255,0.05),0 8px 22px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1),box-shadow 0.28s ease;isolation:isolate; }
+.set-card:hover { transform:translateY(-3px);box-shadow:0 1px 0 rgba(220,230,255,0.08) inset,0 0 0 1px rgba(201,168,76,0.5),0 16px 36px rgba(0,0,0,0.6),0 0 28px rgba(201,168,76,0.18); }
+.set-card.unlocked { box-shadow:0 1px 0 rgba(220,230,255,0.06) inset,0 0 0 1px rgba(46,204,113,0.4),0 8px 22px rgba(0,0,0,0.5),0 2px 4px rgba(0,0,0,0.55); }
+.set-card.unlocked:hover { box-shadow:0 1px 0 rgba(220,230,255,0.08) inset,0 0 0 1px rgba(46,204,113,0.7),0 16px 36px rgba(0,0,0,0.6),0 0 28px rgba(46,204,113,0.22); }
 .set-card.open .set-emotes { display:grid !important; }
-.set-cover { position:relative;height:180px;background:var(--bg4);overflow:hidden;display:flex;align-items:center;justify-content:center; }
-.set-cover img { width:100%;height:100%;object-fit:cover; }
-.set-cover-placeholder { font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--bg3);font-size:3rem;font-weight:700; }
-.set-lock-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.78);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text2);transition:opacity 0.2s; }
+.set-cover { position:relative;height:180px;background:#0e0c14;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer; }
+.set-cover img { width:100%;height:100%;object-fit:cover;transition:transform 0.6s cubic-bezier(0.22,1,0.36,1); }
+.set-card:hover .set-cover img { transform:scale(1.04); }
+.set-cover-placeholder { font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 144;color:rgba(201,168,76,0.18);font-size:4rem;letter-spacing:-0.04em; }
+.set-lock-overlay { position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,rgba(8,8,14,0.85) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(220,228,245,0.65);transition:opacity 0.25s ease;gap:0.4rem; }
 .set-card.unlocked .set-lock-overlay { display:none; }
-.set-lock-icon { font-size:2rem;margin-bottom:0.3rem; }
-.set-lock-text { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.08em; }
-.set-info { padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem; }
-.set-title { font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.95rem;color:var(--gold);display:flex;align-items:center;gap:0.5rem; }
-.set-letter-btn { display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:2px 8px;border-radius:5px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);color:var(--gold);cursor:pointer;user-select:none;transition:transform 0.08s ease,background 0.15s ease,box-shadow 0.15s ease;box-shadow:0 1px 0 rgba(201,168,76,0.25),0 2px 6px rgba(0,0,0,0.4); }
-.set-letter-btn:hover { background:rgba(201,168,76,0.18); }
-.set-letter-btn:active, .set-letter-btn.pressed { transform:translateY(1px) scale(0.96);background:rgba(201,168,76,0.32);box-shadow:inset 0 2px 4px rgba(0,0,0,0.5); }
-.set-cover { cursor:pointer; }
-.set-hint-icon { display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:0.7rem;font-weight:700;cursor:help;flex-shrink:0; }
-.set-hint-icon:hover { background:rgba(201,168,76,0.32); }
-.set-meta { font-size:0.72rem;color:var(--text3); }
-.set-emotes { display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.6rem;padding:0.6rem 1rem 1rem;border-top:1px solid var(--border2); }
-.emote-card { background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.5rem;text-align:center; }
+.set-lock-icon { font-size:1.8rem;line-height:1;opacity:0.85; }
+.set-lock-text { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.32em;text-transform:uppercase;color:var(--gold2); }
+.set-info { padding:0.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;border-top:1px solid rgba(220,230,255,0.05); }
+.set-title { font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 96;font-size:1rem;color:var(--gold2);display:flex;align-items:center;gap:0.55rem;letter-spacing:-0.005em; }
+.set-letter-btn { display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:3px;background:linear-gradient(180deg,rgba(232,199,106,0.18) 0%,rgba(160,120,48,0.14) 100%);border:1px solid rgba(201,168,76,0.4);color:var(--gold2);cursor:pointer;user-select:none;font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 36;font-size:0.95rem;line-height:1;transition:transform 0.1s ease,filter 0.18s ease,box-shadow 0.18s ease;box-shadow:inset 0 1px 0 rgba(255,235,200,0.3),0 1px 2px rgba(0,0,0,0.4); }
+.set-letter-btn:hover { filter:brightness(1.1);box-shadow:inset 0 1px 0 rgba(255,235,200,0.4),0 1px 2px rgba(0,0,0,0.5),0 0 12px rgba(201,168,76,0.3); }
+.set-letter-btn:active, .set-letter-btn.pressed { transform:translateY(1px) scale(0.96);box-shadow:inset 0 2px 4px rgba(0,0,0,0.5); }
+.set-hint-icon { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold2);font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:0.78rem;font-weight:500;cursor:help;flex-shrink:0;transition:background 0.18s ease,border-color 0.18s ease; }
+.set-hint-icon:hover { background:rgba(201,168,76,0.12);border-color:var(--gold); }
+.set-meta { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:500;letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.42); }
+.set-emotes { display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.6rem;padding:0.75rem 1rem 1rem;border-top:1px solid rgba(220,230,255,0.05); }
+.emote-card { background:#0e0c14;border-radius:3px;padding:0.5rem;text-align:center;box-shadow:0 0 0 1px rgba(220,230,255,0.05); }
 .emote-card img { width:100%;height:80px;object-fit:contain; }
-.emote-name { font-size:0.7rem;color:var(--text2);margin-top:0.25rem;word-break:break-word; }
+.emote-name { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.7rem;color:rgba(220,228,245,0.7);margin-top:0.3rem;word-break:break-word; }
 .emote-dl { display:inline-block;font-size:0.65rem;color:var(--gold);margin-top:0.25rem;text-decoration:none; }
 .emote-dl:hover { text-decoration:underline; }
 .set-lock-img-wrap { width:80px;height:80px;margin-bottom:0.5rem;display:none; }
