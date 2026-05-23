@@ -81,6 +81,11 @@ export function getStyles() {
 @keyframes hint-modal-fade{from{opacity:0;}to{opacity:1;}}
 @keyframes hint-modal-in{from{opacity:0;transform:translateY(12px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 
+/* Codex toast — small ephemeral notification that slides up from the bottom
+   center. Used for sub-puzzle reveals + similar lightweight surfaces. */
+.codex-toast{position:fixed;bottom:2.25rem;left:50%;transform:translateX(-50%) translateY(0);background:#14141e;color:var(--gold2);padding:0.85rem 1.5rem;border-radius:3px;font-family:'Fraunces',Georgia,serif;font-style:italic;font-variation-settings:'opsz' 24;font-size:0.92rem;letter-spacing:0.005em;z-index:11000;transition:opacity 0.4s ease,transform 0.4s ease;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.06),0 0 0 1px rgba(201,168,76,0.42),0 16px 40px rgba(0,0,0,0.6),0 0 26px rgba(201,168,76,0.2);animation:codex-toast-in 0.5s cubic-bezier(0.22,1,0.36,1);}
+@keyframes codex-toast-in{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
 /* Egg modal (the secret-code prompt at the bottom of /home) — same codex
    modal pattern as hint-modal + set-unlock. Inputs styled inline since
    this is a one-off field; matches form-group bottom-rule treatment. */
@@ -207,17 +212,22 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
    in/out around 2.4s. Reserved minimum line height so the layout doesn't
    jump when a line appears. */
 .char-voice-line{
-  display:block;margin:0.4rem 1.5rem 1.25rem;
-  min-height:2.4em;text-align:center;
+  position:relative;display:block;margin:0.5rem 1.25rem 1.4rem;
+  min-height:2.6em;text-align:center;
   font-family:'Fraunces',Georgia,serif;font-style:italic;
-  font-variation-settings:'opsz' 24;font-size:0.86rem;
-  line-height:1.4;letter-spacing:0.005em;
+  font-variation-settings:'opsz' 24;font-size:0.9rem;
+  line-height:1.45;letter-spacing:0.005em;
   color:rgba(232,199,106,0);
-  transition:color 0.4s ease,transform 0.4s ease;
-  transform:translateY(2px);
+  transition:color 0.42s ease,transform 0.42s cubic-bezier(0.22,1,0.36,1);
+  transform:translateY(4px);
   pointer-events:none;
 }
-.char-voice-line.show{color:var(--gold2);transform:translateY(0);}
+.char-voice-line.show{color:var(--gold2);transform:translateY(0);text-shadow:0 0 12px rgba(201,168,76,0.25);}
+/* Decorative quotation marks when active — engraved opener + closer in a
+   dim gold so the line reads as a quote, not just a caption. */
+.char-voice-line.show::before,.char-voice-line.show::after{position:absolute;font-family:'Fraunces',Georgia,serif;font-style:normal;font-variation-settings:'opsz' 96;color:rgba(201,168,76,0.32);font-size:1.6rem;line-height:1;}
+.char-voice-line.show::before{content:'“';left:0.4rem;top:-0.1em;}
+.char-voice-line.show::after{content:'”';right:0.4rem;bottom:-0.25em;}
 
 /* Mamonir nav icon — the source image has transparent padding around the
    character, so we render the img larger than the wrap and clip the wrap

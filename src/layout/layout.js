@@ -313,16 +313,22 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     if (existing) existing.remove();
     var m = document.createElement('div');
     m.id = 'rabbit-hint-modal';
-    m.style.cssText = 'position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;padding:1.5rem;cursor:pointer;';
-    m.innerHTML = '<div style="background:#14141e;border:1px solid rgba(201,168,76,0.45);border-radius:8px;padding:2rem 2.25rem;max-width:420px;width:100%;text-align:center;font-family:\\'Inter\\',system-ui,sans-serif;cursor:default;box-shadow:0 20px 60px rgba(0,0,0,0.6)" onclick="event.stopPropagation()">'
-      + '<div style="font-family:\\'Fraunces\\',Georgia,serif;font-weight:600;font-size:1.4rem;color:#c9a84c;margin-bottom:0.85rem;letter-spacing:-0.01em">A whisper reaches you</div>'
-      + '<div style="font-size:0.9rem;color:#eef0fa;line-height:1.6;margin-bottom:1.25rem;font-style:italic">The answer lies at the bottom of the Home page.</div>'
-      + '<button id="rabbit-hint-close" style="background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:7px 22px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase">Close</button>'
+    m.className = 'hint-modal';
+    m.style.display = 'flex';
+    m.style.zIndex = '11000';
+    m.innerHTML =
+      '<div class="hint-modal-card" onclick="event.stopPropagation()">'
+      +   '<div class="hint-modal-eyebrow"><span class="hint-modal-rule"></span>A whisper reaches you<span class="hint-modal-rule"></span></div>'
+      +   '<div class="hint-modal-body" style="text-align:center">The answer lies at the bottom of the Home page.</div>'
+      +   '<button id="rabbit-hint-close" class="btn-ghost">Close</button>'
       + '</div>';
     document.body.appendChild(m);
-    m.addEventListener('click', function(){ m.remove(); });
+    m.addEventListener('click', function(e){ if (e.target === m) m.remove(); });
     var cb = document.getElementById('rabbit-hint-close');
     if (cb) cb.addEventListener('click', function(){ m.remove(); });
+    document.addEventListener('keydown', function escFn(ev){
+      if (ev.key === 'Escape' && document.body.contains(m)) { m.remove(); document.removeEventListener('keydown', escFn); }
+    }, { once: true });
   }
 
   circle.addEventListener('click', function(e){
@@ -396,7 +402,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
           if (!alreadyToasted) {
             try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
             var toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#14141e;border:1px solid rgba(201,168,76,0.45);color:#c9a84c;padding:0.8rem 1.4rem;border-radius:6px;font-family:Inter,system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.04em;box-shadow:0 12px 36px rgba(0,0,0,0.55);z-index:11000;transition:opacity 0.4s;';
+            toast.className = 'codex-toast';
             toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s Sub-Riddle.';
             document.body.appendChild(toast);
             setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
