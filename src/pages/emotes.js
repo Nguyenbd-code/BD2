@@ -337,11 +337,11 @@ export async function handleEmotes(request, env) {
   </button>
 </div>
 
-<div id="hint-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
-  <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.5);border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative">
-    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:0.82rem;letter-spacing:0.08em;margin-bottom:0.5rem" id="hint-modal-title">HINT</div>
-    <div id="hint-modal-body" style="color:var(--text);font-size:0.9rem;line-height:1.65;margin-bottom:1rem;white-space:pre-line"></div>
-    <button id="hint-modal-close" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 20px;border-radius:5px;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;letter-spacing:0.05em">Dismiss</button>
+<div id="hint-modal" class="hint-modal">
+  <div class="hint-modal-card">
+    <div class="hint-modal-eyebrow"><span class="hint-modal-rule"></span><span id="hint-modal-title">Riddle</span><span class="hint-modal-rule"></span></div>
+    <div id="hint-modal-body" class="hint-modal-body"></div>
+    <button id="hint-modal-close" class="btn-ghost hint-modal-close">Dismiss</button>
   </div>
 </div>
 
