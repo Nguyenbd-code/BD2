@@ -1,13 +1,16 @@
 import { layout, esc } from '../layout/layout.js';
 
-function compCard(comp) {
+function compCard(comp, idx) {
   const color = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
   const rawDesc = (comp.short_description || comp.description || '').replace(/^(green|red):/, '');
   const tier = comp.tier || '';
   const type = (comp.type || 'ATK').toUpperCase();
   const typeLabel = type === 'ATK' ? 'Attack' : 'Defense';
-  const anchor = tier.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `<a class="codex-card" style="--codex-accent:${color}" href="/guide#${anchor}">
+  // Match the /guide page's compAnchor formula: tier-lower + "-" + type-lower
+  // (e.g. "a1-atk"). The previous formula dropped the type suffix and the
+  // resulting #a1 anchor didn't exist on /guide so links snapped to the top.
+  const anchor = tier.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + type.toLowerCase();
+  return `<a class="codex-card" style="--codex-accent:${color};${idx != null ? '--codex-i:' + idx + ';' : ''}" href="/guide#${anchor}">
     <div class="codex-card-inner">
       <div class="codex-tier">${esc(tier)}</div>
       <div class="codex-body">
@@ -29,10 +32,11 @@ const DEFAULT_HOME_NOTES = {
   4: { title: 'Building PvP Characters', content: 'Tanks: target 105% Magic Resist, Defence at 90%\nDamage carries: 50% Crit Rate with buffer, 100% without\nJustia & Alec: HP ring with ATK substats + Magic Resist Armor\nAll compositions can swap lanes' },
 };
 
-function strategyCard(note) {
+function strategyCard(note, idx) {
   const lines = (note.content || '').split('\n').map(l => l.trim()).filter(Boolean);
   const items = lines.map(l => `<li>${esc(l)}</li>`).join('') || '<li style="list-style:none;color:var(--text3);font-size:0.85rem">No content.</li>';
-  return `<div class="card" style="height:100%;display:flex;flex-direction:column;min-height:160px">
+  const iStyle = idx != null ? '--codex-i:' + idx + ';' : '';
+  return `<div class="card" style="${iStyle}height:100%;display:flex;flex-direction:column;min-height:200px">
       <div class="card-title" style="flex-shrink:0">${esc(note.title || '')}</div>
       <ul class="notes-list" style="flex:1">${items}</ul>
     </div>`;
@@ -68,11 +72,11 @@ export async function handleHome(request, env) {
 <div class="section" style="padding-top:0">
   <div class="section-title">Strategy Notes</div>
   <div class="section-sub">Key rules for GrandMasters ranked play</div>
-  <div class="comp-grid" data-codex-reveal>
-    <div style="--codex-i:0">${strategyCard(homeNotes[1])}</div>
-    <div style="--codex-i:1">${strategyCard(homeNotes[2])}</div>
-    <div style="--codex-i:2">${strategyCard(homeNotes[3])}</div>
-    <div style="--codex-i:3">${strategyCard(homeNotes[4])}</div>
+  <div class="comp-grid" data-codex-reveal style="align-items:stretch">
+    ${strategyCard(homeNotes[1], 0)}
+    ${strategyCard(homeNotes[2], 1)}
+    ${strategyCard(homeNotes[3], 2)}
+    ${strategyCard(homeNotes[4], 3)}
   </div>
 </div>
 
@@ -83,7 +87,7 @@ export async function handleHome(request, env) {
   <div class="section-sub">Every active composition at a glance</div>
   ${compRows.length === 0
     ? '<p style="color:var(--text3);font-size:0.9rem">No information yet.</p>'
-    : '<div data-codex-reveal style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">' + compRows.map((c, i) => '<div style="--codex-i:' + i + '">' + compCard(c) + '</div>').join('') + '</div>'
+    : '<div data-codex-reveal style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;align-items:stretch">' + compRows.map((c, i) => compCard(c, i)).join('') + '</div>'
   }
 </section>
 
@@ -91,13 +95,12 @@ export async function handleHome(request, env) {
   <span id="egg-trigger" title="" style="cursor:default;font-size:0.75rem;user-select:none" onmouseover="document.getElementById('egg-wrap').style.opacity='0.15'" onmouseout="document.getElementById('egg-wrap').style.opacity='0.05'">⚔</span>
 </div>
 
-<div id="egg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
-  <div id="egg-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:2rem;max-width:340px;width:90%;text-align:center">
-    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1.1rem;color:var(--text);margin-bottom:1rem">Secret Code</div>
-    <input id="egg-input" type="password" placeholder="Enter code..." autocomplete="off"
-      style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;font-size:0.95rem;outline:none;margin-bottom:0.75rem">
-    <div id="egg-result" style="font-size:0.88rem;min-height:1.2em;margin-bottom:0.75rem"></div>
-    <button onclick="checkEgg()" style="background:var(--gold);color:#0a0a0f;border:none;padding:0.55rem 1.5rem;border-radius:4px;font-weight:700;cursor:pointer;font-size:0.9rem">Submit</button>
+<div id="egg-modal" class="egg-modal">
+  <div id="egg-box" class="egg-modal-card">
+    <div class="egg-modal-eyebrow"><span class="egg-modal-rule"></span>Secret Code<span class="egg-modal-rule"></span></div>
+    <input id="egg-input" type="password" placeholder="Enter passphrase…" autocomplete="off" class="egg-modal-input">
+    <div id="egg-result" class="egg-modal-result"></div>
+    <button onclick="checkEgg()" class="btn egg-modal-submit">Submit</button>
   </div>
 </div>
 

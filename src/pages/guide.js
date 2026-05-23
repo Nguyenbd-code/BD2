@@ -581,11 +581,20 @@ document.addEventListener('error', function(e) {
 function openLightbox(src) {
   if (!src || src.indexOf('undefined') !== -1) return;
   var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:99999;display:flex;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out;animation:vm-fade 0.2s ease-out';
+  // Frame the image with the codex pattern: brass corner brackets via
+  // pseudo-element on a relatively-positioned wrap, soft amber ambient glow.
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;max-width:92vw;max-height:90vh;cursor:default;filter:drop-shadow(0 12px 32px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(201,168,76,0.18))';
   var img = document.createElement('img');
   img.src = src;
-  img.style.cssText = 'max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;border:2px solid #c9a84c';
-  ov.appendChild(img);
+  img.style.cssText = 'display:block;max-width:92vw;max-height:90vh;object-fit:contain;border-radius:3px;box-shadow:0 0 0 1px rgba(201,168,76,0.4)';
+  wrap.appendChild(img);
+  var corners = document.createElement('div');
+  corners.style.cssText = 'position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27 preserveAspectRatio=%27none%27%3E%3Cg fill=%27none%27 stroke=%27%23c9a84c%27 stroke-width=%270.3%27 opacity=%270.7%27%3E%3Cpath d=%27M0 5 L0 0 L5 0%27/%3E%3Cpath d=%2795 0 L100 0 L100 5%27/%3E%3Cpath d=%27M100 95 L100 100 L95 100%27/%3E%3Cpath d=%27M5 100 L0 100 L0 95%27/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%';
+  wrap.appendChild(corners);
+  ov.appendChild(wrap);
+  wrap.addEventListener('click', function(e){ e.stopPropagation(); });
   ov.onclick = function() { if (document.body.contains(ov)) document.body.removeChild(ov); };
   document.addEventListener('keydown', function escFn(ev) {
     if (ev.key === 'Escape' && document.body.contains(ov)) { document.body.removeChild(ov); document.removeEventListener('keydown', escFn); }
