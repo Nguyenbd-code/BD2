@@ -81,6 +81,25 @@ export function getStyles() {
 @keyframes hint-modal-fade{from{opacity:0;}to{opacity:1;}}
 @keyframes hint-modal-in{from{opacity:0;transform:translateY(12px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 
+/* Egg modal (the secret-code prompt at the bottom of /home) — same codex
+   modal pattern as hint-modal + set-unlock. Inputs styled inline since
+   this is a one-off field; matches form-group bottom-rule treatment. */
+.egg-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;align-items:center;justify-content:center;padding:1.25rem;animation:hint-modal-fade 0.22s ease-out;}
+.egg-modal[style*="flex"]{display:flex;}
+.egg-modal-card{position:relative;background:#14141e;border-radius:4px;padding:2rem 2.25rem 1.6rem;max-width:380px;width:100%;text-align:center;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.05),0 22px 56px rgba(0,0,0,0.7),0 0 32px rgba(201,168,76,0.15);animation:hint-modal-in 0.32s cubic-bezier(0.22,1,0.36,1);}
+.egg-modal-card::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.5'%3E%3Cpath d='M0 8 L0 0 L8 0'/%3E%3Cpath d='M92 0 L100 0 L100 8'/%3E%3Cpath d='M100 92 L100 100 L92 100'/%3E%3Cpath d='M8 100 L0 100 L0 92'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
+.egg-modal-eyebrow{display:flex;align-items:center;justify-content:center;gap:0.65rem;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.32em;text-transform:uppercase;color:var(--gold2);margin-bottom:1rem;}
+.egg-modal-rule{display:inline-block;width:22px;height:1px;background:var(--gold);opacity:0.75;}
+.egg-modal-input{width:100%;box-sizing:border-box;background:rgba(220,230,255,0.025);border:none;border-bottom:1px solid rgba(220,230,255,0.18);color:#eef0fa;padding:10px 14px;border-radius:3px 3px 0 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.95rem;letter-spacing:0.06em;outline:none;text-align:center;margin-bottom:0.85rem;transition:border-color 0.18s ease,background 0.18s ease,box-shadow 0.18s ease;color-scheme:dark;}
+.egg-modal-input:focus{border-bottom-color:var(--gold);background:rgba(220,230,255,0.04);box-shadow:0 1px 0 0 var(--gold);}
+.egg-modal-input::placeholder{color:rgba(232,224,200,0.3);font-style:italic;letter-spacing:0.04em;}
+.egg-modal-result{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.84rem;min-height:1.3em;margin-bottom:1rem;color:rgba(220,228,245,0.75);}
+.egg-modal-submit{width:auto;display:inline-block;}
+
+/* Lightbox (image zoom on /guide) — soft codex frame around the zoomed
+   image instead of the flat gold border. */
+#guide-lightbox-overlay{cursor:zoom-out;}
+
 /* Page-load stagger reveal — applied to any container with
    data-codex-reveal. Children fade up in sequence on first paint. */
 [data-codex-reveal] > *{opacity:0;transform:translateY(8px);animation:codex-reveal-up 0.55s cubic-bezier(0.22,1,0.36,1) forwards;animation-delay:calc(var(--codex-i,0) * 60ms);}
@@ -400,9 +419,9 @@ main{padding-top:74px;position:relative;z-index:1;}
 /* T1 character strip */
 .t1-char{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:0.85rem;position:relative;cursor:default;transition:border-color 0.2s;}
 .t1-char:hover{border-color:var(--border);}
-.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.35rem;margin:0;padding:0;}
-.notes-list li{font-size:0.82rem;color:var(--text2);padding-left:1rem;position:relative;line-height:1.5;word-break:break-word;}
-.notes-list li::before{content:'—';position:absolute;left:0;color:var(--gold3);}
+.notes-list{list-style:none;display:flex;flex-direction:column;gap:0.45rem;margin:0;padding:0;}
+.notes-list li{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.82rem;color:rgba(220,228,245,0.78);padding-left:1.1rem;position:relative;line-height:1.55;word-break:break-word;}
+.notes-list li::before{content:'';position:absolute;left:0;top:0.65em;width:5px;height:1px;background:var(--gold);opacity:0.7;}
 .counter-tag{display:inline-block;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 .beats-tag{display:inline-block;background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71;font-size:0.78rem;padding:3px 10px;border-radius:3px;margin:3px;}
 /* COUPONS */
