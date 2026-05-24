@@ -410,14 +410,20 @@ export async function handleEmotes(request, env) {
 .emote-dl:hover { text-decoration:underline; }
 .set-lock-img-wrap { width:80px;height:80px;margin-bottom:0.5rem;display:none; }
 .set-lock-img-wrap img { width:100%;height:100%;object-fit:contain; }
-.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:none;align-items:center;justify-content:center;padding:2rem 1rem;overflow-y:auto; }
+/* Emote-gallery modal — opens when an unlocked set cover is tapped. Same
+   codex card pattern as the unlock / hint modals. */
+.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.86);display:none;align-items:center;justify-content:center;padding:2rem 1rem;overflow-y:auto;animation:hint-modal-fade 0.22s ease-out; }
 .emote-modal-overlay.open { display:flex; }
-.emote-modal { background:var(--bg2);border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:1.5rem;max-width:800px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative; }
-.emote-modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem; }
-.emote-modal-title { font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:1.1rem; }
-.emote-modal-close { background:none;border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center; }
-.emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;margin-top:1rem; }
-.emote-dl-all { font-size:0.7rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:3px 10px;border-radius:4px;cursor:pointer;white-space:nowrap; }
+.emote-modal { position:relative;background:#14141e;border-radius:4px;padding:1.75rem 1.85rem;max-width:840px;width:100%;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.05),0 24px 60px rgba(0,0,0,0.75),0 0 36px rgba(201,168,76,0.16);animation:hint-modal-in 0.32s cubic-bezier(0.22,1,0.36,1); }
+.emote-modal::after { content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.4' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px; }
+.emote-modal > * { position:relative;z-index:1; }
+.emote-modal-header { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(220,230,255,0.06); }
+.emote-modal-title { font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;color:#eef0fa;font-size:1.4rem;letter-spacing:-0.012em; }
+.emote-modal-close { background:transparent;border:1px solid rgba(220,230,255,0.12);color:rgba(220,228,245,0.6);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.18s ease; }
+.emote-modal-close:hover { border-color:var(--gold);color:var(--gold2);background:rgba(201,168,76,0.08);transform:scale(1.06); }
+.emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.7rem;margin-top:0.75rem; }
+.emote-dl-all { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold2);padding:6px 14px;border-radius:3px;cursor:pointer;white-space:nowrap;transition:all 0.18s ease; }
+.emote-dl-all:hover { background:rgba(201,168,76,0.1);border-color:var(--gold);transform:translateY(-1px); }
 </style>
 
 <script>
