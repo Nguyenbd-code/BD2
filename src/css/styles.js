@@ -183,20 +183,30 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.9
 .nav-spacer{flex:1;}
 .nav-admin{display:flex;align-items:center;gap:4px;}
 .nav-admin>a{background:var(--gold3);color:var(--bg);padding:6px 14px;border-radius:4px;text-decoration:none;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;}
-.nav-toggle{display:inline-flex;background:transparent;border:1px solid var(--border);border-radius:5px;width:38px;height:34px;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;}
-.nav-toggle:hover{border-color:var(--gold);background:rgba(201,168,76,0.06);}
-.nav-toggle span{display:block;width:18px;height:2px;background:var(--gold);border-radius:1px;transition:transform 0.2s,opacity 0.2s;}
-.nav-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
-.nav-toggle.open span:nth-child(2){opacity:0;}
-.nav-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+.nav-toggle{display:inline-flex;background:transparent;border:1px solid rgba(220,230,255,0.12);border-radius:3px;width:40px;height:36px;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;transition:border-color 0.2s ease,background 0.2s ease,box-shadow 0.2s ease;}
+.nav-toggle:hover{border-color:var(--gold);background:rgba(201,168,76,0.06);box-shadow:0 0 12px rgba(201,168,76,0.18);}
+.nav-toggle span{display:block;width:20px;height:1.5px;background:var(--gold2);border-radius:1px;transition:transform 0.32s cubic-bezier(0.22,1,0.36,1),opacity 0.18s ease,background 0.18s ease;}
+.nav-toggle.open{border-color:var(--gold);background:rgba(201,168,76,0.08);}
+.nav-toggle.open span{background:var(--gold);}
+.nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.nav-toggle.open span:nth-child(2){opacity:0;transform:translateX(-8px);}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
 .nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .nav-backdrop.open{display:block;}
-.nav-side{position:fixed;top:74px;bottom:0;left:0;width:280px;max-width:85vw;background:rgba(10,10,15,0.98);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:stretch;padding:1rem 0;overflow-y:auto;z-index:110;transform:translateX(-100%);transition:transform 0.22s ease;}
-.nav-side.open{transform:translateX(0);}
-.nav-side>a{display:block;color:var(--text2);text-decoration:none;font-size:0.92rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:0.85rem 1.5rem;border-left:3px solid transparent;transition:color 0.15s,background 0.15s,border-color 0.15s;white-space:nowrap;}
-.nav-side>a:hover{color:var(--gold);background:rgba(201,168,76,0.06);}
-.nav-side>a.nav-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.08);}
-.nav-side-header{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.72rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;padding:0.4rem 1.5rem 0.85rem;border-bottom:1px solid var(--border2);margin-bottom:0.4rem;flex-shrink:0;}
+/* Side-nav drawer — codex-aligned. Slides in with a soft cubic ease, gets a
+   right-edge gold hairline gradient and a gentle drop shadow so it reads as
+   a sliding panel rather than a flat sheet. */
+.nav-side{position:fixed;top:74px;bottom:0;left:0;width:300px;max-width:85vw;background:rgba(10,10,15,0.98);display:flex;flex-direction:column;align-items:stretch;padding:1.25rem 0 1rem;overflow-y:auto;z-index:110;transform:translateX(-100%);transition:transform 0.32s cubic-bezier(0.22,1,0.36,1),box-shadow 0.32s ease;box-shadow:0 0 0 transparent;}
+.nav-side::after{content:'';position:absolute;top:0;bottom:0;right:0;width:1px;background:linear-gradient(180deg,transparent,rgba(201,168,76,0.4) 18%,rgba(201,168,76,0.4) 82%,transparent);pointer-events:none;}
+.nav-side.open{transform:translateX(0);box-shadow:24px 0 60px rgba(0,0,0,0.55),0 0 80px rgba(201,168,76,0.06);}
+.nav-side>a{position:relative;display:block;color:rgba(220,228,245,0.65);text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.72rem;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;padding:0.95rem 1.6rem;transition:color 0.18s ease,background 0.18s ease,padding 0.22s ease;white-space:nowrap;}
+.nav-side>a::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%) scaleY(0);transform-origin:center;width:3px;height:60%;background:var(--gold);transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);}
+.nav-side>a:hover{color:var(--gold2);background:rgba(201,168,76,0.04);padding-left:1.85rem;}
+.nav-side>a:hover::before{transform:translateY(-50%) scaleY(1);}
+.nav-side>a.nav-active{color:var(--gold2);background:rgba(201,168,76,0.08);}
+.nav-side>a.nav-active::before{transform:translateY(-50%) scaleY(1);}
+.nav-side-header{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;color:rgba(220,228,245,0.42);letter-spacing:0.32em;text-transform:uppercase;padding:0.4rem 1.6rem 1.1rem;position:relative;margin-bottom:0.4rem;flex-shrink:0;}
+.nav-side-header::after{content:'';position:absolute;left:1.6rem;right:1.6rem;bottom:0.4rem;height:1px;background:linear-gradient(to right,var(--gold) 0,var(--gold) 24px,rgba(220,230,255,0.06) 24px,rgba(220,230,255,0.06) 100%);}
 
 /* Character circle — Set 4 unlock widget at the bottom of the side nav.
    Same approach as the Mamonir nav-icon: a small clip box with a much larger
