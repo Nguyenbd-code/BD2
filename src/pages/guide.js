@@ -52,12 +52,14 @@ function cSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function charStrip(chars, compId, bondsData, compGear) {
-  const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+function charStrip(chars, compId, bondsData, compGear, elementBySlug) {
+  const fallback = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+  const elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD' };
   const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return chars.map((c, idx) => {
     const slug = c.slug || cSlug(c.name);
-    const col  = colors[idx % colors.length];
+    const elem = elementBySlug ? (elementBySlug[slug] || elementBySlug[cSlug(c.name)] || '') : '';
+    const col  = elemColors[elem] || fallback[idx % fallback.length];
     const cid  = `${slug}-${compId}`;
     const bond = bondsData && bondsData[c.name];
     const cosSlug = costumeSlug(c.costume_name || (bond && bond.costume) || '');
@@ -103,7 +105,7 @@ function charStrip(chars, compId, bondsData, compGear) {
   }).join('');
 }
 
-function renderComp(comp, mediaMap) {
+function renderComp(comp, mediaMap, elementBySlug) {
   const tier    = comp.tier;
   const color   = comp.color || '#c9a84c';
   const video   = (mediaMap[tier] && mediaMap[tier].video) ? mediaMap[tier].video : '';
@@ -114,7 +116,7 @@ function renderComp(comp, mediaMap) {
 
   // Character strip
   const stripHtml = (comp.chars||[]).length
-    ? charStrip(comp.chars, anchorId, comp.bondsData||null, comp.compGear||{})
+    ? charStrip(comp.chars, anchorId, comp.bondsData||null, comp.compGear||{}, elementBySlug)
     : [1,2,3,4,5].map(() => `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px">
   <div class="char-card-inner">
     <div class="char-face">
@@ -183,21 +185,21 @@ function renderComp(comp, mediaMap) {
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
-  const boardHtml = `<div class="board-flip-wrap" style="position:absolute;inset:0;" data-action="board-flip" data-tier="${esc(tier)}">
-  <div class="board-card-inner" id="board-card-${esc(tier)}" style="width:100%;height:100%;position:relative;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
-      <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+  const boardHtml = `<div class="board-flip-wrap" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}">
+    <div class="board-face">
+      <div class="board-face-empty">No image yet</div>
+      <img src="/img/${esc(frontKey)}" class="img-err-hide board-face-img">
+      <button class="board-face-zoom" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" aria-label="Zoom front">&#x2922;</button>
     </div>
-    <div class="board-face board-face-back" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
-      <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+    <div class="board-face board-face-back">
+      <div class="board-face-empty">No back image yet</div>
+      <img src="/img/${esc(backKey)}" class="img-err-hide board-face-img">
+      <button class="board-face-zoom board-face-zoom-left" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" aria-label="Zoom back">&#x2922;</button>
     </div>
   </div>
 </div>
-<div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.65rem;color:var(--text3);pointer-events:none">Click to flip</div>`;
+<div class="board-flip-hint">Tap to flip</div>`;
 
   // Board section — ATK/DEF dual-box with arrow
   const isAtk = comp.type === 'ATK';
@@ -329,10 +331,10 @@ function renderComp(comp, mediaMap) {
 }
 
 export async function handleGuide(request, env) {
-  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {};
+  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {}, elementBySlug = {};
   try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
-    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes] = await Promise.all([
+    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes, regRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
@@ -340,7 +342,14 @@ export async function handleGuide(request, env) {
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%' OR key LIKE 'counters_%'").all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key FROM images WHERE key LIKE 'comp_gear_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT slug, name, element FROM char_registry").all().catch(() => ({results:[]})),
     ]);
+    for (const r of (regRes.results||[])) {
+      const el = (r.element || '').toString().trim();
+      const norm = el ? el.charAt(0).toUpperCase() + el.slice(1).toLowerCase() : '';
+      if (r.slug) elementBySlug[r.slug] = norm;
+      if (r.name) elementBySlug[cSlug(r.name)] = norm;
+    }
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
       if (!mediaMap[m.tier]) mediaMap[m.tier] = {};
@@ -463,7 +472,7 @@ export async function handleGuide(request, env) {
       howToPlay,
       guide_label: dbComp.guide_label || '',
       compGear: compGearMap[tier.toLowerCase()] || {},
-    }, mediaMap);
+    }, mediaMap, elementBySlug);
   };
 
   let compsHtml = '';
@@ -633,12 +642,10 @@ function openLightbox(src) {
     if (kind === 'yt' && id) {
       inner = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
     } else if (kind === 'tweet' && id) {
-      // X/Twitter embeds use platform.twitter.com's Tweet.html viewer. The
-      // iframe is sized by the embed itself; we just give it a portrait-
-      // friendly stage. theme=dark + dnt=true to match the codex palette
-      // and disable cross-site tracking handshake.
       stageClass = 'video-modal-stage video-modal-stage-tweet';
-      inner = '<iframe src="https://platform.twitter.com/embed/Tweet.html?id=' + encodeURIComponent(id) + '&theme=dark&dnt=true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation" scrolling="no"></iframe>';
+      inner = '<div class="tweet-host" id="tweet-host-' + id + '"></div>'
+        + '<div class="tweet-loading" id="tweet-loading-' + id + '"><span class="loading-spinner"></span>Loading post</div>'
+        + '<a class="tweet-fallback" href="https://x.com/i/status/' + encodeURIComponent(id) + '" target="_blank" rel="noopener">Open on X &#8599;</a>';
     } else if (kind === 'file' && src) {
       inner = '<video controls autoplay playsinline src="' + src.replace(/"/g,'&quot;') + '"></video>';
     }
@@ -648,6 +655,73 @@ function openLightbox(src) {
     ov.addEventListener('click', function(ev){ if (ev.target === ov || ev.target.classList.contains('video-modal-close')) close(); });
     document.addEventListener('keydown', onKey);
     document.body.appendChild(ov);
+
+    if (kind === 'tweet' && id) {
+      var escA = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      var pickMp4 = function(video){
+        var variants = (video && video.variants) || [];
+        var mp4s = variants.filter(function(v){
+          var ct = (v.content_type || '').toLowerCase();
+          var u = (v.url || '').toLowerCase();
+          return ct === 'video/mp4' || /\\.mp4(?:$|\\?)/.test(u);
+        });
+        if (mp4s.length) {
+          mp4s.sort(function(a, b){ return (b.bitrate || 0) - (a.bitrate || 0); });
+          return mp4s[0].url;
+        }
+        var url = (video && video.url) || '';
+        if (/\\.m3u8(?:$|\\?)/i.test(url)) return '';
+        return url;
+      };
+      fetch('https://api.fxtwitter.com/i/status/' + encodeURIComponent(id))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var host = document.getElementById('tweet-host-' + id);
+          var loading = document.getElementById('tweet-loading-' + id);
+          if (loading) loading.remove();
+          if (!host) return;
+          var tw = data && data.tweet;
+          if (!tw || data.code !== 200) {
+            host.innerHTML = '<div class="tweet-unavailable">This post is unavailable, private, or has been removed.</div>';
+            return;
+          }
+          var video = tw.media && tw.media.videos && tw.media.videos[0];
+          var photo = tw.media && tw.media.photos && tw.media.photos[0];
+          var author = (tw.author && tw.author.name) || '';
+          var handle = (tw.author && tw.author.screen_name) || '';
+          var text = tw.text || '';
+          var videoUrl = video ? pickMp4(video) : '';
+          var mediaHtml = '';
+          if (videoUrl) {
+            mediaHtml = '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
+              + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
+              + ' src="' + escA(videoUrl) + '"></video>';
+          } else if (photo && photo.url) {
+            mediaHtml = '<img class="tweet-image" src="' + escA(photo.url) + '" alt="">';
+          }
+          var header = author
+            ? '<div class="tweet-author">' + escA(author)
+              + (handle ? ' <span class="tweet-handle">@' + escA(handle) + '</span>' : '')
+              + '</div>'
+            : '';
+          var body = text ? '<div class="tweet-text">' + escA(text).replace(/\\n/g,'<br>') + '</div>' : '';
+          host.innerHTML = '<div class="tweet-card">' + header + (mediaHtml ? '<div class="tweet-media">' + mediaHtml + '</div>' : '') + body + '</div>';
+          var vEl = host.querySelector('video.tweet-video');
+          if (vEl) {
+            vEl.addEventListener('error', function(){
+              var box = vEl.parentNode;
+              if (!box) return;
+              box.innerHTML = '<div class="tweet-unavailable">This video can\\'t play here. Use the Open on X link below.</div>';
+            });
+          }
+        })
+        .catch(function(){
+          var host = document.getElementById('tweet-host-' + id);
+          var loading = document.getElementById('tweet-loading-' + id);
+          if (loading) loading.remove();
+          if (host) host.innerHTML = '<div class="tweet-unavailable">Couldn\\'t reach the post proxy — try the Open on X link below.</div>';
+        });
+    }
   });
 })();
 </script>

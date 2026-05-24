@@ -8,6 +8,7 @@ import { handleRedeem }                            from './api/redeem.js';
 import { handleAdminApi }                          from './api/admin.js';
 import { handleImage }                             from './api/images.js';
 import { handleStylesheet }                        from './css/styles.js';
+import { handleNotFound }                          from './pages/notfound.js';
 
 export default {
   async fetch(request, env) {
@@ -126,7 +127,7 @@ export default {
       if (path === '/emotes')          return handleEmotes(request, env);
       if (path === '/characters')      return handleCharacters(request, env);
 
-      return new Response('Not Found', { status: 404 });
+      return await handleNotFound(request, env);
     } catch(err) {
       return new Response(`Worker Error: ${err.message}\n\nStack: ${err.stack}`, {
         status: 500,

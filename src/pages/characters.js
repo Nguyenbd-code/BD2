@@ -67,7 +67,7 @@ export async function handleCharacters(request, env) {
       <img src="/img/atk_${esc(atk.toLowerCase())}" class="img-err-hide" style="width:13px;height:13px;object-fit:contain;margin-left:4px" title="${esc(atk)}">
     </div>
     ${costumes.length
-      ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
+      ? `<select class="char-costume-picker" data-slug="${esc(slug)}" aria-label="Choose costume for ${esc(char.name)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
           ${costumeOpts}
         </select>
         <div style="font-size:0.65rem;color:var(--text3);margin-top:0.3rem">${costumes.length} costume${costumes.length !== 1 ? 's' : ''}</div>`
@@ -78,14 +78,18 @@ export async function handleCharacters(request, env) {
   }).join('');
 
   return await layout('Characters', `
-<div class="hero" style="padding:3rem 1.5rem 1.5rem;text-align:center">
-  <h1>Characters</h1>
-  <p>PvP characters and costumes. Select a costume from the dropdown to preview its portrait.</p>
+<div class="hero" style="padding-bottom:2rem">
+  <div class="hero-tag">Roster</div>
+  <h1>Characters &amp; <span>Costumes</span></h1>
+  <p>PvP-relevant units and the costumes worth bringing. Switch a costume to preview its portrait.</p>
 </div>
 <div style="max-width:1400px;margin:0 auto;padding:0 1.5rem 2rem">
 
+  <div class="char-filter-head">
+    <span class="char-filter-eyebrow">Filter By</span>
+  </div>
   <div class="elem-filter-bar" id="elem-filter">
-    <button class="elem-filter-btn active" data-element="all">
+    <button class="elem-filter-btn active" data-element="all" aria-label="Show all characters">
       <span class="efb-all">✦</span>
       <span>All</span>
     </button>
@@ -122,18 +126,27 @@ export async function handleCharacters(request, env) {
 
 <style>
 .char-page-card {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-top: 2px solid var(--el-color, var(--border2));
-  border-radius: 8px;
+  position:relative;
+  background: #14141e;
+  border-radius: 4px;
   overflow: hidden;
-  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  isolation:isolate;
+  box-shadow:inset 3px 0 0 var(--el-color,#c9a84c),
+             0 1px 0 rgba(220,230,255,0.06) inset,
+             0 0 0 1px rgba(220,230,255,0.04),
+             0 8px 22px rgba(0,0,0,0.5),
+             0 2px 4px rgba(0,0,0,0.55);
+  transition: transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
   cursor: default;
 }
 .char-page-card:hover {
-  border-color: var(--el-color, rgba(201,168,76,0.6));
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px var(--el-glow, rgba(201,168,76,0.15));
+  box-shadow:inset 3px 0 0 var(--el-color,#c9a84c),
+             0 1px 0 rgba(220,230,255,0.09) inset,
+             0 0 0 1px rgba(220,230,255,0.07),
+             0 14px 32px rgba(0,0,0,0.6),
+             0 3px 6px rgba(0,0,0,0.7),
+             0 0 22px var(--el-glow,rgba(201,168,76,0.18));
 }
 .char-coming-soon { opacity:0.5; border-top-color: var(--border2) !important; --el-color:var(--border2); }
 .char-img-wrap {
@@ -167,12 +180,23 @@ export async function handleCharacters(request, env) {
   color:#000;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:3px;
   font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.05em;
 }
-.char-card-body { padding:0.75rem; }
-.char-card-name-row { display:flex;align-items:center;gap:0.4rem;margin-bottom:0.1rem; }
-.char-card-name { font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:0.93rem;color:var(--text); }
-.char-card-elem { font-size:0.68rem;font-weight:600;margin-bottom:0.55rem;letter-spacing:0.04em; }
+.char-card-body { padding:0.85rem 0.85rem 0.85rem 1rem; }
+.char-card-name-row { display:flex;align-items:center;gap:0.4rem;margin-bottom:0.15rem; }
+.char-card-name { font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:1.02rem;color:#eef0fa;letter-spacing:-0.008em; }
+.char-card-elem { font-size:0.66rem;font-weight:600;margin-bottom:0.55rem;letter-spacing:0.08em;text-transform:uppercase; }
 
 /* Element filter bar */
+.char-filter-head {
+  display:flex;align-items:center;gap:0.7rem;margin:0.5rem 0 0.5rem;
+}
+.char-filter-eyebrow {
+  display:inline-flex;align-items:center;gap:0.6rem;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;
+  letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.45);
+}
+.char-filter-eyebrow::before {
+  content:'';width:22px;height:1px;background:var(--gold);opacity:0.7;
+}
 .elem-filter-bar {
   display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.75rem;padding:0.35rem 0 0.85rem;
   border-bottom:1px solid rgba(220,230,255,0.05);
