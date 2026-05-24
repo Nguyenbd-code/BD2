@@ -338,11 +338,14 @@ main{padding-top:74px;position:relative;z-index:1;}
 .video-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:2rem;animation:vm-fade 0.18s ease-out;cursor:pointer;}
 .video-modal-stage{position:relative;width:min(90vw,1200px);aspect-ratio:16/9;max-height:85vh;cursor:default;box-shadow:0 30px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(201,168,76,0.35),0 0 40px rgba(201,168,76,0.18);border-radius:6px;overflow:hidden;background:#000;}
 .video-modal-stage iframe,.video-modal-stage video{width:100%;height:100%;display:block;border:0;}
-/* Tweet variant — portrait-friendly fixed width, scrolls vertically inside.
-   Twitter's iframe doesn't have a clean 16:9 aspect since tweets vary in
-   height. We give it a usable column and let the embed handle the rest. */
-.video-modal-stage-tweet{aspect-ratio:auto;width:min(96vw,540px);height:min(85vh,720px);background:#15131d;overflow:auto;}
-.video-modal-stage-tweet iframe{height:100%;}
+.video-modal-stage-tweet{aspect-ratio:auto;width:min(96vw,560px);max-height:85vh;background:#15131d;overflow:auto;padding:0.85rem 0.85rem 1rem;display:flex;flex-direction:column;align-items:stretch;gap:0.75rem;}
+.video-modal-stage-tweet iframe{height:auto !important;width:100% !important;}
+.tweet-host{min-height:120px;display:flex;align-items:center;justify-content:center;}
+.tweet-host twitter-widget{width:100% !important;max-width:100% !important;}
+.tweet-loading{display:flex;align-items:center;justify-content:center;gap:0.55rem;padding:1.5rem 0;color:rgba(220,228,245,0.6);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;letter-spacing:0.02em;}
+.tweet-fallback{display:inline-flex;align-self:center;align-items:center;gap:0.3rem;padding:7px 14px;border-radius:3px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);color:var(--gold);text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.06em;transition:background 0.15s ease,border-color 0.15s ease;}
+.tweet-fallback:hover{background:rgba(201,168,76,0.2);border-color:var(--gold);}
+.tweet-unavailable{padding:1.25rem;text-align:center;color:rgba(220,228,245,0.6);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;line-height:1.5;}
 .video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
 .video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
 @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}

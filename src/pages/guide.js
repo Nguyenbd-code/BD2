@@ -633,12 +633,10 @@ function openLightbox(src) {
     if (kind === 'yt' && id) {
       inner = '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
     } else if (kind === 'tweet' && id) {
-      // X/Twitter embeds use platform.twitter.com's Tweet.html viewer. The
-      // iframe is sized by the embed itself; we just give it a portrait-
-      // friendly stage. theme=dark + dnt=true to match the codex palette
-      // and disable cross-site tracking handshake.
       stageClass = 'video-modal-stage video-modal-stage-tweet';
-      inner = '<iframe src="https://platform.twitter.com/embed/Tweet.html?id=' + encodeURIComponent(id) + '&theme=dark&dnt=true" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-top-navigation" scrolling="no"></iframe>';
+      inner = '<div class="tweet-host" id="tweet-host-' + id + '"></div>'
+        + '<div class="tweet-loading" id="tweet-loading-' + id + '"><span class="loading-spinner"></span>Loading post</div>'
+        + '<a class="tweet-fallback" href="https://x.com/i/status/' + encodeURIComponent(id) + '" target="_blank" rel="noopener">Open on X &#8599;</a>';
     } else if (kind === 'file' && src) {
       inner = '<video controls autoplay playsinline src="' + src.replace(/"/g,'&quot;') + '"></video>';
     }
@@ -648,6 +646,40 @@ function openLightbox(src) {
     ov.addEventListener('click', function(ev){ if (ev.target === ov || ev.target.classList.contains('video-modal-close')) close(); });
     document.addEventListener('keydown', onKey);
     document.body.appendChild(ov);
+
+    if (kind === 'tweet' && id) {
+      function renderTweet(){
+        var host = document.getElementById('tweet-host-' + id);
+        var loading = document.getElementById('tweet-loading-' + id);
+        if (!host || !window.twttr || !window.twttr.widgets) return;
+        window.twttr.widgets.createTweet(id, host, { theme: 'dark', dnt: true, conversation: 'none' })
+          .then(function(el){
+            if (loading) loading.remove();
+            if (!el) {
+              host.innerHTML = '<div class="tweet-unavailable">This post is unavailable or has been removed.</div>';
+            }
+          })
+          .catch(function(){
+            if (loading) loading.remove();
+            host.innerHTML = '<div class="tweet-unavailable">Couldn\\'t load this post — try the Open on X link below.</div>';
+          });
+      }
+      if (window.twttr && window.twttr.ready) {
+        window.twttr.ready(renderTweet);
+      } else {
+        var s = document.getElementById('twttr-widgets');
+        if (!s) {
+          s = document.createElement('script');
+          s.id = 'twttr-widgets';
+          s.async = true;
+          s.src = 'https://platform.twitter.com/widgets.js';
+          s.onload = function(){ if (window.twttr && window.twttr.ready) window.twttr.ready(renderTweet); };
+          document.head.appendChild(s);
+        } else {
+          s.addEventListener('load', function(){ if (window.twttr && window.twttr.ready) window.twttr.ready(renderTweet); });
+        }
+      }
+    }
   });
 })();
 </script>
