@@ -677,7 +677,7 @@ function openLightbox(src) {
           var text = tw.text || '';
           var mediaHtml = '';
           if (video && video.url) {
-            mediaHtml = '<video class="tweet-video" controls autoplay playsinline'
+            mediaHtml = '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
               + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
               + ' src="' + escA(video.url) + '"></video>';
           } else if (photo && photo.url) {
