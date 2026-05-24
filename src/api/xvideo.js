@@ -16,37 +16,31 @@ function pickMp4Url(video) {
   return url;
 }
 
-export async function handleXVideo(request) {
-  const url = new URL(request.url);
+function parsePathParts(url, expectedPrefix) {
   const parts = url.pathname.split('/').filter(Boolean);
-  // /api/x-video/{user}/{id}
-  if (parts.length < 4) return new Response('Bad path', { status: 400 });
+  // /api/<prefix>/{user}/{id}
+  if (parts.length < 4) return null;
+  if (parts[1] !== expectedPrefix) return null;
   const username = parts[2];
   const id = parts[3];
-  if (!/^[A-Za-z0-9_]{1,20}$/.test(username)) return new Response('Bad user', { status: 400 });
-  if (!/^\d{1,25}$/.test(id)) return new Response('Bad id', { status: 400 });
+  if (!/^[A-Za-z0-9_]{1,20}$/.test(username)) return null;
+  if (!/^\d{1,25}$/.test(id)) return null;
+  return { username, id };
+}
 
-  let apiData;
-  try {
-    const apiRes = await fetch(`${FX_BASE}/${encodeURIComponent(username)}/status/${encodeURIComponent(id)}`, {
-      headers: { 'User-Agent': 'browndust2-bnkitsu/1.0' },
-    });
-    if (!apiRes.ok) return new Response('Tweet fetch failed', { status: 502 });
-    apiData = await apiRes.json();
-  } catch (e) {
-    return new Response('Tweet fetch error: ' + (e.message || 'unknown'), { status: 502 });
-  }
+async function fetchTweet(username, id) {
+  const apiRes = await fetch(`${FX_BASE}/${encodeURIComponent(username)}/status/${encodeURIComponent(id)}`, {
+    headers: { 'User-Agent': 'browndust2-bnkitsu/1.0' },
+  });
+  if (!apiRes.ok) return null;
+  const data = await apiRes.json();
+  if (!data || data.code !== 200 || !data.tweet) return null;
+  return data.tweet;
+}
 
-  const tw = apiData && apiData.tweet;
-  if (!tw || apiData.code !== 200) return new Response('Tweet unavailable', { status: 404 });
-
-  const videoMeta = tw.media && tw.media.videos && tw.media.videos[0];
-  if (!videoMeta) return new Response('No video on tweet', { status: 404 });
-  const mp4Url = pickMp4Url(videoMeta);
-  if (!mp4Url) return new Response('No MP4 variant', { status: 404 });
-
+async function proxyMedia(upstreamUrl, request, fallbackType) {
   let target;
-  try { target = new URL(mp4Url); } catch { return new Response('Bad upstream URL', { status: 502 }); }
+  try { target = new URL(upstreamUrl); } catch { return new Response('Bad upstream URL', { status: 502 }); }
   if (!ALLOWED_HOSTS.has(target.host)) return new Response('Upstream not allowed', { status: 502 });
 
   const upstreamHeaders = { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://twitter.com/' };
@@ -55,7 +49,7 @@ export async function handleXVideo(request) {
 
   let upstream;
   try {
-    upstream = await fetch(mp4Url, { headers: upstreamHeaders });
+    upstream = await fetch(upstreamUrl, { headers: upstreamHeaders });
   } catch (e) {
     return new Response('Upstream fetch failed: ' + (e.message || 'unknown'), { status: 502 });
   }
@@ -66,8 +60,51 @@ export async function handleXVideo(request) {
     const v = upstream.headers.get(h);
     if (v) headers.set(h, v);
   }
-  if (!headers.get('content-type')) headers.set('content-type', 'video/mp4');
+  if (!headers.get('content-type')) headers.set('content-type', fallbackType);
   headers.set('cache-control', 'public, max-age=86400, immutable');
 
   return new Response(upstream.body, { status: upstream.status, headers });
+}
+
+export async function handleXVideo(request) {
+  const url = new URL(request.url);
+  const parsed = parsePathParts(url, 'x-video');
+  if (!parsed) return new Response('Bad path', { status: 400 });
+
+  let tweet;
+  try { tweet = await fetchTweet(parsed.username, parsed.id); }
+  catch (e) { return new Response('Tweet fetch error: ' + (e.message || 'unknown'), { status: 502 }); }
+  if (!tweet) return new Response('Tweet unavailable', { status: 404 });
+
+  const videoMeta = tweet.media && tweet.media.videos && tweet.media.videos[0];
+  if (!videoMeta) return new Response('No video on tweet', { status: 404 });
+  const mp4Url = pickMp4Url(videoMeta);
+  if (!mp4Url) return new Response('No MP4 variant', { status: 404 });
+
+  return proxyMedia(mp4Url, request, 'video/mp4');
+}
+
+export async function handleXThumb(request) {
+  const url = new URL(request.url);
+  const parsed = parsePathParts(url, 'x-thumb');
+  if (!parsed) return new Response('Bad path', { status: 400 });
+
+  let tweet;
+  try { tweet = await fetchTweet(parsed.username, parsed.id); }
+  catch (e) { return new Response('Tweet fetch error: ' + (e.message || 'unknown'), { status: 502 }); }
+  if (!tweet) return new Response('Tweet unavailable', { status: 404 });
+
+  const media = tweet.media || {};
+  const video = (media.videos && media.videos[0]) || null;
+  const photo = (media.photos && media.photos[0]) || null;
+  const all   = media.all && media.all[0];
+
+  const thumbUrl =
+    (video && (video.thumbnail_url || video.preview_image_url)) ||
+    (photo && photo.url) ||
+    (all   && (all.thumbnail_url || all.url)) ||
+    '';
+
+  if (!thumbUrl) return new Response('No thumbnail', { status: 404 });
+  return proxyMedia(thumbUrl, request, 'image/jpeg');
 }

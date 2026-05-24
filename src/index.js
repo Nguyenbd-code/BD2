@@ -7,7 +7,7 @@ import { handleAdmin, handleAdminLogin, handleAdminLogout } from './pages/admin.
 import { handleRedeem }                            from './api/redeem.js';
 import { handleAdminApi }                          from './api/admin.js';
 import { handleImage }                             from './api/images.js';
-import { handleXVideo }                            from './api/xvideo.js';
+import { handleXVideo, handleXThumb }              from './api/xvideo.js';
 import { handleStylesheet }                        from './css/styles.js';
 import { handleNotFound }                          from './pages/notfound.js';
 
@@ -113,8 +113,9 @@ export default {
         return new Response(JSON.stringify({ sets: rows }), { headers: { 'Content-Type': 'application/json' } });
       }
 
-      // X/Twitter video proxy
+      // X/Twitter video + thumbnail proxy
       if (path.startsWith('/api/x-video/')) return handleXVideo(request);
+      if (path.startsWith('/api/x-thumb/')) return handleXThumb(request);
 
       // Admin APIs
       if (path.startsWith('/api/admin/')) return handleAdminApi(request, env);
