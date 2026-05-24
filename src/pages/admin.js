@@ -1065,7 +1065,7 @@ export async function handleAdmin(request, env) {
 
         <div class="form-group">
           <label>Display Location <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(overrides the auto-derived Location: ... line in the hint modal — leave blank to use the page name)</span></label>
-          <input type="text" id="set-cfg-display-location" placeholder="e.g. Hamburger, ?????, Kitsu's Emotes">
+          <input type="text" id="set-cfg-display-location" placeholder="e.g. Side Menu, ?????, Kitsu's Emotes">
         </div>
 
         <div class="form-group">

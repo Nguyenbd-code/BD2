@@ -50,7 +50,7 @@ async function ensureSchema(env) {
       [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              '',              '',                  ''],
       [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes",'',                  ''],
       [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????',         '',                  ''],
-      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger',     '',                  ''],
+      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Side Menu',     '',                  ''],
       [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  '',              'rou,zenith,yuri',   'Only 8 Elements.'],
       [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              '',              '',                  ''],
     ];
@@ -108,7 +108,7 @@ async function ensureSchema(env) {
       // Location overrides shown in the hint modal
       await env.DB.prepare("UPDATE emote_sets SET display_location='?????'        WHERE set_num=3").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET display_location='Kitsu''s Emotes' WHERE set_num=2").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET display_location='Hamburger'    WHERE set_num=4").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu'    WHERE set_num=4").run().catch(()=>{});
       // Set M (letter M, set_num=6) gets an extra hint surfaced via a second ? button.
       const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
@@ -131,6 +131,13 @@ async function ensureSchema(env) {
       await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v8_migrated','1')").run().catch(()=>{});
       const setIRiddleV8 = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
       await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV8).run().catch(()=>{});
+    }
+    // v9 migration: rename "Hamburger" location label to "Side Menu" for
+    // any set whose admin-facing label still uses the old slang.
+    const v9 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v9_migrated'").first().catch(()=>null);
+    if (!v9) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v9_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu' WHERE display_location='Hamburger'").run().catch(()=>{});
     }
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
@@ -309,7 +316,7 @@ export async function handleEmotes(request, env) {
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Side Menu</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
@@ -597,7 +604,7 @@ export async function handleEmotes(request, env) {
         showHintModal('LOCKED', 'This Sub-Riddle becomes available once the previous difficulty tier is fully unlocked.');
         return;
       }
-      var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No Sub-Riddle available yet.');
+      var extraBody = 'Location: Side Menu\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No Sub-Riddle available yet.');
       // Generic extra-reveal append. Any set whose extra_sequence has been
       // matched in the char-circle gets its extra_reveal appended below the
       // primary extra_hint via an em-dash divider.
@@ -683,7 +690,7 @@ async function renderLocked(lockHintText, env, request) {
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Side Menu</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
