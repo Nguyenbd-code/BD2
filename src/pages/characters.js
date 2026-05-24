@@ -67,7 +67,7 @@ export async function handleCharacters(request, env) {
       <img src="/img/atk_${esc(atk.toLowerCase())}" class="img-err-hide" style="width:13px;height:13px;object-fit:contain;margin-left:4px" title="${esc(atk)}">
     </div>
     ${costumes.length
-      ? `<select class="char-costume-picker" data-slug="${esc(slug)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
+      ? `<select class="char-costume-picker" data-slug="${esc(slug)}" aria-label="Choose costume for ${esc(char.name)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.78rem">
           ${costumeOpts}
         </select>
         <div style="font-size:0.65rem;color:var(--text3);margin-top:0.3rem">${costumes.length} costume${costumes.length !== 1 ? 's' : ''}</div>`

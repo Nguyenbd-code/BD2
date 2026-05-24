@@ -356,7 +356,7 @@ export async function handleEmotes(request, env) {
   <div class="emote-modal">
     <div class="emote-modal-header">
       <div class="emote-modal-title" id="emote-modal-title">Set</div>
-      <button class="emote-modal-close" id="emote-modal-close">&#10005;</button>
+      <button class="emote-modal-close" id="emote-modal-close" aria-label="Close emote viewer">&#10005;</button>
     </div>
     <div id="emote-modal-body"></div>
   </div>
