@@ -1,5 +1,10 @@
 import { layout, esc } from '../layout/layout.js';
 import { T1_DATA, SCHERA_ICONS } from '../data/t1.js';
+import { memoTTL } from '../lib/memo.js';
+
+// Module-level latch — keeps the idempotent ALTER TABLE off the per-request
+// path. Fires once per cold isolate, after which every guide load skips it.
+let _guideSchemaReady = false;
 
 const STATIC_CHARS = {
   T1: [{name:'Rou',bond:'Red Riding Hood'},{name:'Seir',bond:'B-Rank Idol'},{name:'Lecliss',bond:'Android Queen'},{name:'Scheherazade',bond:'Magic Professor'},{name:'Sylvia',bond:'Bikini Agent'}],
@@ -333,8 +338,20 @@ function renderComp(comp, mediaMap, elementBySlug) {
 }
 
 export async function handleGuide(request, env) {
+  if (!_guideSchemaReady) {
+    try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
+    _guideSchemaReady = true;
+  }
+  // Full-HTML memoisation. The PvP guide is identical for every visitor — no
+  // user-specific data, no cookie-gated branches. On warm-isolate cache hits
+  // the 8-query batch, the comp render, and layout() all get skipped. 30s
+  // TTL; admin edits clear the cache via handleAdminApi → invalidateMemo.
+  const html = await memoTTL('guide:html', 30_000, () => buildGuideHtml(env, request));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildGuideHtml(env, request) {
   let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {}, elementBySlug = {};
-  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
     const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes, regRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
@@ -502,7 +519,7 @@ export async function handleGuide(request, env) {
     compsHtml += defComps.map((c, i) => buildCompHtml(c) + (i < defComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
-  return await layout('PvP Guide', `
+  const resp = await layout('PvP Guide', `
 <div style="display:flex;padding-top:1rem">
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
@@ -661,59 +678,53 @@ function openLightbox(src) {
     if (kind === 'tweet' && id) {
       var username = btn.dataset.videoUsername || 'i';
       var escA = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-      var proxyUrl = '/api/x-video/' + encodeURIComponent(username) + '/' + encodeURIComponent(id);
-      fetch('https://api.fxtwitter.com/' + encodeURIComponent(username) + '/status/' + encodeURIComponent(id))
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-          var host = document.getElementById('tweet-host-' + id);
-          var loading = document.getElementById('tweet-loading-' + id);
-          if (loading) loading.remove();
-          if (!host) return;
-          var tw = data && data.tweet;
-          if (!tw || data.code !== 200) {
-            host.innerHTML = '<div class="tweet-unavailable">This post is unavailable, private, or has been removed.</div>';
-            return;
-          }
-          var video = tw.media && tw.media.videos && tw.media.videos[0];
-          var photo = tw.media && tw.media.photos && tw.media.photos[0];
-          var author = (tw.author && tw.author.name) || '';
-          var handle = (tw.author && tw.author.screen_name) || '';
-          var text = tw.text || '';
-          var hasVideo = !!(video && (video.url || (video.variants && video.variants.length)));
-          var mediaHtml = '';
-          if (hasVideo) {
-            mediaHtml = '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
-              + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
-              + ' src="' + escA(proxyUrl) + '"></video>';
-          } else if (photo && photo.url) {
-            mediaHtml = '<img class="tweet-image" src="' + escA(photo.url) + '" alt="">';
-          }
-          var header = author
-            ? '<div class="tweet-author">' + escA(author)
-              + (handle ? ' <span class="tweet-handle">@' + escA(handle) + '</span>' : '')
-              + '</div>'
-            : '';
-          var body = text ? '<div class="tweet-text">' + escA(text).replace(/\\n/g,'<br>') + '</div>' : '';
-          host.innerHTML = '<div class="tweet-card">' + header + (mediaHtml ? '<div class="tweet-media">' + mediaHtml + '</div>' : '') + body + '</div>';
-          var vEl = host.querySelector('video.tweet-video');
-          if (vEl) {
-            vEl.addEventListener('error', function(){
-              console.warn('[tweet-video] proxy playback failed for id ' + id + ':', vEl.error);
-              var box = vEl.parentNode;
-              if (!box) return;
-              box.innerHTML = '<div class="tweet-unavailable">Video proxy couldn\\'t reach the source. Use the Open on X link below.</div>';
-            });
-          }
-        })
-        .catch(function(){
-          var host = document.getElementById('tweet-host-' + id);
-          var loading = document.getElementById('tweet-loading-' + id);
-          if (loading) loading.remove();
-          if (host) host.innerHTML = '<div class="tweet-unavailable">Couldn\\'t reach the post proxy — try the Open on X link below.</div>';
-        });
+      var videoUrl = '/api/x-video/' + encodeURIComponent(username) + '/' + encodeURIComponent(id);
+      var thumbUrl = '/api/x-thumb/' + encodeURIComponent(username) + '/' + encodeURIComponent(id);
+      var metaUrl  = '/api/x-tweet/' + encodeURIComponent(username) + '/' + encodeURIComponent(id);
+
+      var host = document.getElementById('tweet-host-' + id);
+      var loading = document.getElementById('tweet-loading-' + id);
+      if (loading) loading.remove();
+      if (host) {
+        host.innerHTML =
+          '<div class="tweet-card">'
+          + '<div class="tweet-author tweet-author-placeholder">&nbsp;</div>'
+          + '<div class="tweet-media">'
+          +   '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
+          +     ' poster="' + escA(thumbUrl) + '"'
+          +     ' src="' + escA(videoUrl) + '"></video>'
+          + '</div>'
+          + '<div class="tweet-text tweet-text-placeholder"></div>'
+          + '</div>';
+        var vEl = host.querySelector('video.tweet-video');
+        if (vEl) {
+          vEl.addEventListener('error', function(){
+            console.warn('[tweet-video] proxy playback failed for id ' + id + ':', vEl.error);
+            var box = vEl.parentNode;
+            if (!box) return;
+            box.innerHTML = '<div class="tweet-unavailable">Video proxy couldn\\'t reach the source. Use the Open on X link below.</div>';
+          });
+        }
+      }
+
+      fetch(metaUrl).then(function(r){ return r.json(); }).then(function(meta){
+        if (!host || !meta || !meta.ok) return;
+        var authorEl = host.querySelector('.tweet-author');
+        var textEl   = host.querySelector('.tweet-text');
+        if (authorEl && meta.author) {
+          authorEl.classList.remove('tweet-author-placeholder');
+          authorEl.innerHTML = escA(meta.author)
+            + (meta.handle ? ' <span class="tweet-handle">@' + escA(meta.handle) + '</span>' : '');
+        }
+        if (textEl && meta.text) {
+          textEl.classList.remove('tweet-text-placeholder');
+          textEl.innerHTML = escA(meta.text).replace(/\\n/g,'<br>');
+        }
+      }).catch(function(){});
     }
   });
 })();
 </script>
 `, 'guide', env, request);
+  return await resp.text();
 }

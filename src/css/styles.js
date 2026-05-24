@@ -357,6 +357,8 @@ main{padding-top:74px;position:relative;z-index:1;}
 .tweet-video{width:100%;height:auto;max-height:65vh;display:block;background:#000;}
 .tweet-image{width:100%;height:auto;display:block;}
 .tweet-text{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;line-height:1.5;color:rgba(232,224,200,0.85);white-space:pre-wrap;word-wrap:break-word;}
+.tweet-author-placeholder{visibility:hidden;}
+.tweet-text-placeholder{display:none;}
 .video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
 .video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
 @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}

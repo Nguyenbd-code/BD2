@@ -108,3 +108,39 @@ export async function handleXThumb(request) {
   if (!thumbUrl) return new Response('No thumbnail', { status: 404 });
   return proxyMedia(thumbUrl, request, 'image/jpeg');
 }
+
+export async function handleXTweet(request) {
+  const url = new URL(request.url);
+  const parsed = parsePathParts(url, 'x-tweet');
+  if (!parsed) return new Response('Bad path', { status: 400 });
+
+  let tweet;
+  try { tweet = await fetchTweet(parsed.username, parsed.id); }
+  catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message || 'fetch failed' }), {
+      status: 502, headers: { 'content-type': 'application/json' },
+    });
+  }
+  if (!tweet) {
+    return new Response(JSON.stringify({ ok: false, error: 'unavailable' }), {
+      status: 404, headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const media = tweet.media || {};
+  const payload = {
+    ok: true,
+    author: (tweet.author && tweet.author.name) || '',
+    handle: (tweet.author && tweet.author.screen_name) || '',
+    text: tweet.text || '',
+    has_video: !!(media.videos && media.videos.length),
+    has_photo: !!(media.photos && media.photos.length),
+  };
+
+  return new Response(JSON.stringify(payload), {
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'public, max-age=3600',
+    },
+  });
+}

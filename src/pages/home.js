@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { memoTTL } from '../lib/memo.js';
 
 function compCard(comp, idx) {
   const color = (comp.color && comp.color !== 'undefined') ? comp.color : '#c9a84c';
@@ -43,6 +44,14 @@ function strategyCard(note, idx) {
 }
 
 export async function handleHome(request, env) {
+  const cookie = request.headers.get('Cookie') || '';
+  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const html = await memoTTL(`home:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
+    () => buildHomeHtml(env, request));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildHomeHtml(env, request) {
   let compRows = [];
   let homeNotes = { 1: DEFAULT_HOME_NOTES[1], 2: DEFAULT_HOME_NOTES[2], 3: DEFAULT_HOME_NOTES[3], 4: DEFAULT_HOME_NOTES[4] };
   try {
@@ -61,7 +70,7 @@ export async function handleHome(request, env) {
     }
   } catch { /* ignore */ }
 
-  return await layout('Home', `
+  const resp = await layout('Home', `
 <div class="hero">
   <div class="hero-tag">PvP Resource</div>
   <h1>Brown Dust 2 <span>BnKitsu Guide</span></h1>
@@ -168,4 +177,5 @@ export async function handleHome(request, env) {
 })();
 </script>
 `, 'home', env, request);
+  return await resp.text();
 }

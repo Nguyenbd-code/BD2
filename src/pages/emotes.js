@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses module state across requests within an
 // isolate, so the migration block in ensureSchema only fires the first time
@@ -6,8 +7,18 @@ import { layout, esc } from '../layout/layout.js';
 // round-trips.
 let _schemaReady = false;
 
+// Bump this suffix whenever a new vN migration block is added below. Any
+// database that already shows this marker can skip the entire migration
+// block on cold-isolate startup, turning ~16 D1 round-trips into 1.
+const SCHEMA_MARKER_KEY = 'emote_schema_v10';
+
 async function ensureSchema(env) {
   if (_schemaReady) return;
+  // Fast path — if the umbrella marker is present, all migrations have
+  // already run on this DB and there is nothing to do.
+  const lock = await env.DB.prepare('SELECT data FROM images WHERE key=?')
+    .bind(SCHEMA_MARKER_KEY).first().catch(() => null);
+  if (lock) { _schemaReady = true; return; }
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS emote_sets (
     set_num INTEGER PRIMARY KEY,
     name TEXT,
@@ -168,6 +179,9 @@ async function ensureSchema(env) {
     // are empty so a deliberate admin edit isn't clobbered.
     await env.DB.prepare("UPDATE emote_sets SET extra_sequence='rou,zenith,yuri', extra_reveal='Only 8 Elements.' WHERE set_num=5 AND (extra_sequence IS NULL OR extra_sequence='') AND (extra_reveal IS NULL OR extra_reveal='')").run().catch(()=>{});
   }
+  // Stamp the umbrella marker so future cold isolates can take the fast path.
+  await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)')
+    .bind(SCHEMA_MARKER_KEY, '1').run().catch(()=>{});
   _schemaReady = true;
 }
 
@@ -185,22 +199,60 @@ export async function handleEmotes(request, env) {
   const cookie = request.headers.get('Cookie') || '';
   const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
 
+  // Full-HTML memoisation. The rendered page is identical for every visitor
+  // sharing the same lock state (locked vs unlocked) — neither path embeds
+  // per-user data, all gameplay state lives in localStorage. Cache hits
+  // bypass D1, the schema check, the JSON build, and layout() entirely.
+  // 30s TTL; admin writes invalidate via handleAdminApi → invalidateMemo.
+  const cacheKey = `emotes:html:${isUnlocked ? 'u' : 'l'}`;
+  const html = await memoTTL(cacheKey, 30_000, () => buildEmotesHtml(isUnlocked, env, request, DEFAULT_LOCK_HINT));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildEmotesHtml(isUnlocked, env, request, DEFAULT_LOCK_HINT) {
   if (!isUnlocked) {
     const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
     const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
-    return await renderLocked(lockHintText, env, request);
+    const resp = await renderLocked(lockHintText, env, request);
+    return await resp.text();
   }
+  return await buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT);
+}
 
-  // Run the four read queries in parallel instead of awaiting them one at a
-  // time. Emotes are *not* fetched in full — we only need per-set counts and
-  // a fallback cover URL (only used when the set has no cover_key set).
-  const [lockImgRow, lockHintRow, setsRes, countsRes, fallbackCoverRes] = await Promise.all([
-    env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null),
-    env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
-    env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all().catch(() => ({results:[]})),
-    env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num').all().catch(() => ({results:[]})),
-    env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)").all().catch(() => ({results:[]})),
-  ]);
+async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
+
+  // 30s in-memory cache wrapping a single D1 batch. On warm isolate cache
+  // hits the entire page render skips D1; on misses we still get one HTTP
+  // round-trip (batch) instead of five parallel ones. Falls back to
+  // per-statement reads if batch errors. Admin edits propagate within 30s.
+  const { lockImgRow, lockHintRow, setsRes, countsRes, fallbackCoverRes } =
+    await memoTTL('emotes:page-reads', 30_000, async () => {
+      let li = null, lh = null;
+      let sr = { results: [] }, cr = { results: [] }, fr = { results: [] };
+      try {
+        const batch = await env.DB.batch([
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'"),
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'"),
+          env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num'),
+          env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num'),
+          env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)"),
+        ]);
+        li = (batch[0] && batch[0].results && batch[0].results[0]) || null;
+        lh = (batch[1] && batch[1].results && batch[1].results[0]) || null;
+        sr = batch[2] || sr;
+        cr = batch[3] || cr;
+        fr = batch[4] || fr;
+      } catch {
+        [li, lh, sr, cr, fr] = await Promise.all([
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null),
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
+          env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all().catch(() => ({results:[]})),
+          env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num').all().catch(() => ({results:[]})),
+          env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)").all().catch(() => ({results:[]})),
+        ]);
+      }
+      return { lockImgRow: li, lockHintRow: lh, setsRes: sr, countsRes: cr, fallbackCoverRes: fr };
+    });
 
   const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
   const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
@@ -300,7 +352,7 @@ export async function handleEmotes(request, env) {
       </div>`;
   }).join('');
 
-  return await layout("Kitsu's Emotes", `
+  const resp = await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
@@ -667,6 +719,7 @@ export async function handleEmotes(request, env) {
 })();
 </script>
 `, 'emotes', env, request);
+  return await resp.text();
 }
 
 // Slim render for locked users — just the lock screen + the layout chrome.

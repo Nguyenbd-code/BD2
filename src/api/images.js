@@ -22,7 +22,7 @@ export async function handleImage(request, env) {
       return new Response(body, {
         headers: {
           'Content-Type': fb.mime,
-          'Cache-Control': 'public, max-age=86400',
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=86400',
         },
       });
     }
@@ -45,7 +45,10 @@ export async function handleImage(request, env) {
   return new Response(bytes.buffer, {
     headers: {
       'Content-Type': mimeType,
-      'Cache-Control': 'public, max-age=3600, must-revalidate',
+      // Browser holds for 1h, edge holds for 24h and may serve stale for
+      // another day while revalidating. Admin re-uploads pick up within
+      // an hour of the browser cache expiring, sooner via shift-reload.
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
     },
   });
 }

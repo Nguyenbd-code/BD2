@@ -1,6 +1,15 @@
 import { layout, esc } from '../layout/layout.js';
+import { memoTTL } from '../lib/memo.js';
 
 export async function handleCoupons(request, env) {
+  const cookie = request.headers.get('Cookie') || '';
+  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const html = await memoTTL(`coupons:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
+    () => buildCouponsHtml(env, request));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildCouponsHtml(env, request) {
   let codes = [];
   try {
     const res = await env.DB.prepare('SELECT * FROM coupons WHERE active=1 ORDER BY created_at DESC').all();
@@ -34,7 +43,7 @@ export async function handleCoupons(request, env) {
   const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })))
     .replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
 
-  return await layout('Coupons', `
+  const resp = await layout('Coupons', `
 <div class="hero" style="padding-bottom:2rem">
   <div class="hero-tag">Rewards</div>
   <h1>Coupon <span>Codes</span></h1>
@@ -507,4 +516,5 @@ var specialInput = document.getElementById('special-passcode');
 if (specialInput) specialInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkSpecialPasscode(); });
 </script>
 `, 'coupons', env, request);
+  return await resp.text();
 }
