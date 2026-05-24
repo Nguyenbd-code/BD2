@@ -1,11 +1,18 @@
 import { layout, esc } from '../layout/layout.js';
 
+// Module-level latch — Workers reuses the isolate across requests, so the
+// idempotent ALTER fires once per cold isolate instead of on every page hit.
+let _charsSchemaReady = false;
+
 export async function handleCharacters(request, env) {
   let chars = [];
   const costumesMap = {};
 
   try {
-    await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
+    if (!_charsSchemaReady) {
+      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
+      _charsSchemaReady = true;
+    }
     const r = await env.DB.prepare('SELECT * FROM char_registry ORDER BY name').all();
     chars = r.results || [];
     if (chars.length) {

@@ -18,14 +18,18 @@ export async function layout(title, content, activePage = '', env = null, reques
     isUnlocked = true;
   }
   if (env && isUnlocked) {
-    // Two independent lookups; fire in parallel.
+    // Single round-trip — grab both rows in one SELECT instead of two
+    // parallel HTTP requests. Runs on every page load for unlocked users.
     try {
-      const [navRow, tapRow] = await Promise.all([
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first(),
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first(),
-      ]);
-      if (navRow && navRow.data) hasMamonir = true;
-      if (tapRow && tapRow.data) tapTarget = Math.max(1, parseInt(tapRow.data, 10) || 7);
+      const r = await env.DB.prepare(
+        "SELECT key, data FROM images WHERE key IN ('mamonir_nav','mamonir_tap_count')"
+      ).all();
+      for (const row of (r.results || [])) {
+        if (row.key === 'mamonir_nav' && row.data) hasMamonir = true;
+        if (row.key === 'mamonir_tap_count' && row.data) {
+          tapTarget = Math.max(1, parseInt(row.data, 10) || 7);
+        }
+      }
     } catch {}
   }
 

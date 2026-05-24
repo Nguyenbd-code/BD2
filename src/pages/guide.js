@@ -1,6 +1,10 @@
 import { layout, esc } from '../layout/layout.js';
 import { T1_DATA, SCHERA_ICONS } from '../data/t1.js';
 
+// Module-level latch — keeps the idempotent ALTER TABLE off the per-request
+// path. Fires once per cold isolate, after which every guide load skips it.
+let _guideSchemaReady = false;
+
 const STATIC_CHARS = {
   T1: [{name:'Rou',bond:'Red Riding Hood'},{name:'Seir',bond:'B-Rank Idol'},{name:'Lecliss',bond:'Android Queen'},{name:'Scheherazade',bond:'Magic Professor'},{name:'Sylvia',bond:'Bikini Agent'}],
   T2: [{name:'Rou',bond:'Red Riding Hood'},{name:'Zenith',bond:'Robin Hood'},{name:'Roxy',bond:'Respected Master'},{name:'Eleaneer',bond:'B-Rank Idol'},{name:'Scheherazade',bond:'Magic Professor'}],
@@ -334,7 +338,10 @@ function renderComp(comp, mediaMap, elementBySlug) {
 
 export async function handleGuide(request, env) {
   let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {}, elementBySlug = {};
-  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
+  if (!_guideSchemaReady) {
+    try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
+    _guideSchemaReady = true;
+  }
   try {
     const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes, regRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
