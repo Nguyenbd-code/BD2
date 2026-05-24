@@ -52,12 +52,14 @@ function cSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function charStrip(chars, compId, bondsData, compGear) {
-  const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+function charStrip(chars, compId, bondsData, compGear, elementBySlug) {
+  const fallback = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22'];
+  const elemColors = { Water:'#2E86C1', Fire:'#C0392B', Wind:'#27AE60', Light:'#F4D03F', Dark:'#8E44AD' };
   const costumeSlug = (n) => (n||'').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   return chars.map((c, idx) => {
     const slug = c.slug || cSlug(c.name);
-    const col  = colors[idx % colors.length];
+    const elem = elementBySlug ? (elementBySlug[slug] || elementBySlug[cSlug(c.name)] || '') : '';
+    const col  = elemColors[elem] || fallback[idx % fallback.length];
     const cid  = `${slug}-${compId}`;
     const bond = bondsData && bondsData[c.name];
     const cosSlug = costumeSlug(c.costume_name || (bond && bond.costume) || '');
@@ -103,7 +105,7 @@ function charStrip(chars, compId, bondsData, compGear) {
   }).join('');
 }
 
-function renderComp(comp, mediaMap) {
+function renderComp(comp, mediaMap, elementBySlug) {
   const tier    = comp.tier;
   const color   = comp.color || '#c9a84c';
   const video   = (mediaMap[tier] && mediaMap[tier].video) ? mediaMap[tier].video : '';
@@ -114,7 +116,7 @@ function renderComp(comp, mediaMap) {
 
   // Character strip
   const stripHtml = (comp.chars||[]).length
-    ? charStrip(comp.chars, anchorId, comp.bondsData||null, comp.compGear||{})
+    ? charStrip(comp.chars, anchorId, comp.bondsData||null, comp.compGear||{}, elementBySlug)
     : [1,2,3,4,5].map(() => `<div class="char-card-wrap" style="flex:1;min-width:150px;max-width:220px">
   <div class="char-card-inner">
     <div class="char-face">
@@ -329,10 +331,10 @@ function renderComp(comp, mediaMap) {
 }
 
 export async function handleGuide(request, env) {
-  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {};
+  let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {}, elementBySlug = {};
   try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
-    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes] = await Promise.all([
+    const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes, regRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
       env.DB.prepare('SELECT * FROM comp_media').all().catch(() => ({results:[]})),
       env.DB.prepare('SELECT * FROM comp_rotations ORDER BY tier, char_name, slot').all().catch(() => ({results:[]})),
@@ -340,7 +342,14 @@ export async function handleGuide(request, env) {
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'notes_%'").all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key, data FROM images WHERE key LIKE 'preemptive_%' OR key LIKE 'how_to_play_%' OR key LIKE 'counters_%'").all().catch(() => ({results:[]})),
       env.DB.prepare("SELECT key FROM images WHERE key LIKE 'comp_gear_%'").all().catch(() => ({results:[]})),
+      env.DB.prepare("SELECT slug, name, element FROM char_registry").all().catch(() => ({results:[]})),
     ]);
+    for (const r of (regRes.results||[])) {
+      const el = (r.element || '').toString().trim();
+      const norm = el ? el.charAt(0).toUpperCase() + el.slice(1).toLowerCase() : '';
+      if (r.slug) elementBySlug[r.slug] = norm;
+      if (r.name) elementBySlug[cSlug(r.name)] = norm;
+    }
     allComps = compRes.results || [];
     for (const m of (mediaRes.results||[])) {
       if (!mediaMap[m.tier]) mediaMap[m.tier] = {};
@@ -463,7 +472,7 @@ export async function handleGuide(request, env) {
       howToPlay,
       guide_label: dbComp.guide_label || '',
       compGear: compGearMap[tier.toLowerCase()] || {},
-    }, mediaMap);
+    }, mediaMap, elementBySlug);
   };
 
   let compsHtml = '';
