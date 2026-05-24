@@ -658,6 +658,21 @@ function openLightbox(src) {
 
     if (kind === 'tweet' && id) {
       var escA = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      var pickMp4 = function(video){
+        var variants = (video && video.variants) || [];
+        var mp4s = variants.filter(function(v){
+          var ct = (v.content_type || '').toLowerCase();
+          var u = (v.url || '').toLowerCase();
+          return ct === 'video/mp4' || /\\.mp4(?:$|\\?)/.test(u);
+        });
+        if (mp4s.length) {
+          mp4s.sort(function(a, b){ return (b.bitrate || 0) - (a.bitrate || 0); });
+          return mp4s[0].url;
+        }
+        var url = (video && video.url) || '';
+        if (/\\.m3u8(?:$|\\?)/i.test(url)) return '';
+        return url;
+      };
       fetch('https://api.fxtwitter.com/i/status/' + encodeURIComponent(id))
         .then(function(r){ return r.json(); })
         .then(function(data){
@@ -675,11 +690,12 @@ function openLightbox(src) {
           var author = (tw.author && tw.author.name) || '';
           var handle = (tw.author && tw.author.screen_name) || '';
           var text = tw.text || '';
+          var videoUrl = video ? pickMp4(video) : '';
           var mediaHtml = '';
-          if (video && video.url) {
-            mediaHtml = '<video class="tweet-video" controls autoplay playsinline'
+          if (videoUrl) {
+            mediaHtml = '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
               + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
-              + ' src="' + escA(video.url) + '"></video>';
+              + ' src="' + escA(videoUrl) + '"></video>';
           } else if (photo && photo.url) {
             mediaHtml = '<img class="tweet-image" src="' + escA(photo.url) + '" alt="">';
           }
@@ -690,6 +706,14 @@ function openLightbox(src) {
             : '';
           var body = text ? '<div class="tweet-text">' + escA(text).replace(/\\n/g,'<br>') + '</div>' : '';
           host.innerHTML = '<div class="tweet-card">' + header + (mediaHtml ? '<div class="tweet-media">' + mediaHtml + '</div>' : '') + body + '</div>';
+          var vEl = host.querySelector('video.tweet-video');
+          if (vEl) {
+            vEl.addEventListener('error', function(){
+              var box = vEl.parentNode;
+              if (!box) return;
+              box.innerHTML = '<div class="tweet-unavailable">This video can\\'t play here. Use the Open on X link below.</div>';
+            });
+          }
         })
         .catch(function(){
           var host = document.getElementById('tweet-host-' + id);
