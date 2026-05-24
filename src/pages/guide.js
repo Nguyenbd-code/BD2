@@ -657,37 +657,46 @@ function openLightbox(src) {
     document.body.appendChild(ov);
 
     if (kind === 'tweet' && id) {
-      function renderTweet(){
-        var host = document.getElementById('tweet-host-' + id);
-        var loading = document.getElementById('tweet-loading-' + id);
-        if (!host || !window.twttr || !window.twttr.widgets) return;
-        window.twttr.widgets.createTweet(id, host, { theme: 'dark', dnt: true, conversation: 'none' })
-          .then(function(el){
-            if (loading) loading.remove();
-            if (!el) {
-              host.innerHTML = '<div class="tweet-unavailable">This post is unavailable or has been removed.</div>';
-            }
-          })
-          .catch(function(){
-            if (loading) loading.remove();
-            host.innerHTML = '<div class="tweet-unavailable">Couldn\\'t load this post — try the Open on X link below.</div>';
-          });
-      }
-      if (window.twttr && window.twttr.ready) {
-        window.twttr.ready(renderTweet);
-      } else {
-        var s = document.getElementById('twttr-widgets');
-        if (!s) {
-          s = document.createElement('script');
-          s.id = 'twttr-widgets';
-          s.async = true;
-          s.src = 'https://platform.twitter.com/widgets.js';
-          s.onload = function(){ if (window.twttr && window.twttr.ready) window.twttr.ready(renderTweet); };
-          document.head.appendChild(s);
-        } else {
-          s.addEventListener('load', function(){ if (window.twttr && window.twttr.ready) window.twttr.ready(renderTweet); });
-        }
-      }
+      var escA = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+      fetch('https://api.fxtwitter.com/i/status/' + encodeURIComponent(id))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var host = document.getElementById('tweet-host-' + id);
+          var loading = document.getElementById('tweet-loading-' + id);
+          if (loading) loading.remove();
+          if (!host) return;
+          var tw = data && data.tweet;
+          if (!tw || data.code !== 200) {
+            host.innerHTML = '<div class="tweet-unavailable">This post is unavailable, private, or has been removed.</div>';
+            return;
+          }
+          var video = tw.media && tw.media.videos && tw.media.videos[0];
+          var photo = tw.media && tw.media.photos && tw.media.photos[0];
+          var author = (tw.author && tw.author.name) || '';
+          var handle = (tw.author && tw.author.screen_name) || '';
+          var text = tw.text || '';
+          var mediaHtml = '';
+          if (video && video.url) {
+            mediaHtml = '<video class="tweet-video" controls autoplay playsinline'
+              + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
+              + ' src="' + escA(video.url) + '"></video>';
+          } else if (photo && photo.url) {
+            mediaHtml = '<img class="tweet-image" src="' + escA(photo.url) + '" alt="">';
+          }
+          var header = author
+            ? '<div class="tweet-author">' + escA(author)
+              + (handle ? ' <span class="tweet-handle">@' + escA(handle) + '</span>' : '')
+              + '</div>'
+            : '';
+          var body = text ? '<div class="tweet-text">' + escA(text).replace(/\\n/g,'<br>') + '</div>' : '';
+          host.innerHTML = '<div class="tweet-card">' + header + (mediaHtml ? '<div class="tweet-media">' + mediaHtml + '</div>' : '') + body + '</div>';
+        })
+        .catch(function(){
+          var host = document.getElementById('tweet-host-' + id);
+          var loading = document.getElementById('tweet-loading-' + id);
+          if (loading) loading.remove();
+          if (host) host.innerHTML = '<div class="tweet-unavailable">Couldn\\'t reach the post proxy — try the Open on X link below.</div>';
+        });
     }
   });
 })();

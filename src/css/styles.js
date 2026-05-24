@@ -346,6 +346,13 @@ main{padding-top:74px;position:relative;z-index:1;}
 .tweet-fallback{display:inline-flex;align-self:center;align-items:center;gap:0.3rem;padding:7px 14px;border-radius:3px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);color:var(--gold);text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.06em;transition:background 0.15s ease,border-color 0.15s ease;}
 .tweet-fallback:hover{background:rgba(201,168,76,0.2);border-color:var(--gold);}
 .tweet-unavailable{padding:1.25rem;text-align:center;color:rgba(220,228,245,0.6);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;line-height:1.5;}
+.tweet-card{display:flex;flex-direction:column;gap:0.7rem;}
+.tweet-author{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:0.98rem;color:#eef0fa;letter-spacing:-0.005em;}
+.tweet-handle{color:rgba(220,228,245,0.5);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;font-weight:400;letter-spacing:0.02em;margin-left:0.35rem;}
+.tweet-media{position:relative;border-radius:6px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(220,230,255,0.06),0 6px 18px rgba(0,0,0,0.5);}
+.tweet-video{width:100%;height:auto;max-height:65vh;display:block;background:#000;}
+.tweet-image{width:100%;height:auto;display:block;}
+.tweet-text{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;line-height:1.5;color:rgba(232,224,200,0.85);white-space:pre-wrap;word-wrap:break-word;}
 .video-modal-close{position:absolute;top:-2.6rem;right:0;width:36px;height:36px;background:rgba(20,20,30,0.85);border:1px solid var(--gold);color:var(--gold2);font-size:1.1rem;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;transition:background 0.2s ease,transform 0.2s ease;}
 .video-modal-close:hover{background:var(--gold);color:#0a0a0f;transform:scale(1.06);}
 @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}
