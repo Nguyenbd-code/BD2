@@ -214,7 +214,7 @@ function renderComp(comp, mediaMap, elementBySlug) {
   // Detect YouTube and X/Twitter URLs separately. Both open in the same
   // fullscreen modal but each shows a different thumbnail/embed.
   const ytMatch = video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  const xMatch = video.match(/(?:x\.com|twitter\.com)\/(?:i\/status|[A-Za-z0-9_]+\/status)\/(\d+)/i);
+  const xMatch = video.match(/(?:x\.com|twitter\.com)\/(?:i\/status|([A-Za-z0-9_]+)\/status)\/(\d+)/i);
   const playSvg = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="28" fill="rgba(10,10,15,0.78)" stroke="#c9a84c" stroke-width="1.5"/><path d="M26 20 L46 32 L26 44 Z" fill="#c9a84c"/></svg>';
   // X/Twitter doesn't expose a public thumbnail URL, so we render a styled
   // placeholder with the X logo glyph.
@@ -229,7 +229,7 @@ function renderComp(comp, mediaMap, elementBySlug) {
              <span class="video-thumb-label">Watch Replay</span>
            </button>`
         : xMatch
-        ? `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-id="${esc(xMatch[1])}" data-video-kind="tweet" aria-label="Play tweet">
+        ? `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-id="${esc(xMatch[2])}" data-video-username="${esc(xMatch[1] || 'i')}" data-video-kind="tweet" aria-label="Play tweet">
              <span class="video-thumb-xlogo" aria-hidden="true">${xLogoSvg}</span>
              <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
              <span class="video-thumb-label">View Post on X</span>
@@ -657,23 +657,22 @@ function openLightbox(src) {
     document.body.appendChild(ov);
 
     if (kind === 'tweet' && id) {
+      var username = btn.dataset.videoUsername || 'i';
       var escA = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-      var pickMp4 = function(video){
+      var pickMp4Sources = function(video){
         var variants = (video && video.variants) || [];
         var mp4s = variants.filter(function(v){
           var ct = (v.content_type || '').toLowerCase();
           var u = (v.url || '').toLowerCase();
           return ct === 'video/mp4' || /\\.mp4(?:$|\\?)/.test(u);
         });
-        if (mp4s.length) {
-          mp4s.sort(function(a, b){ return (b.bitrate || 0) - (a.bitrate || 0); });
-          return mp4s[0].url;
-        }
+        mp4s.sort(function(a, b){ return (b.bitrate || 0) - (a.bitrate || 0); });
+        if (mp4s.length) return mp4s.map(function(v){ return { url: v.url, type: 'video/mp4' }; });
         var url = (video && video.url) || '';
-        if (/\\.m3u8(?:$|\\?)/i.test(url)) return '';
-        return url;
+        if (!url || /\\.m3u8(?:$|\\?)/i.test(url)) return [];
+        return [{ url: url, type: 'video/mp4' }];
       };
-      fetch('https://api.fxtwitter.com/i/status/' + encodeURIComponent(id))
+      fetch('https://api.fxtwitter.com/' + encodeURIComponent(username) + '/status/' + encodeURIComponent(id))
         .then(function(r){ return r.json(); })
         .then(function(data){
           var host = document.getElementById('tweet-host-' + id);
@@ -690,12 +689,14 @@ function openLightbox(src) {
           var author = (tw.author && tw.author.name) || '';
           var handle = (tw.author && tw.author.screen_name) || '';
           var text = tw.text || '';
-          var videoUrl = video ? pickMp4(video) : '';
+          var sources = video ? pickMp4Sources(video) : [];
           var mediaHtml = '';
-          if (videoUrl) {
+          if (sources.length) {
             mediaHtml = '<video class="tweet-video" controls autoplay muted playsinline preload="auto"'
               + (video.thumbnail_url ? ' poster="' + escA(video.thumbnail_url) + '"' : '')
-              + ' src="' + escA(videoUrl) + '"></video>';
+              + '>'
+              + sources.map(function(s){ return '<source src="' + escA(s.url) + '" type="' + escA(s.type) + '">'; }).join('')
+              + '</video>';
           } else if (photo && photo.url) {
             mediaHtml = '<img class="tweet-image" src="' + escA(photo.url) + '" alt="">';
           }
@@ -708,10 +709,20 @@ function openLightbox(src) {
           host.innerHTML = '<div class="tweet-card">' + header + (mediaHtml ? '<div class="tweet-media">' + mediaHtml + '</div>' : '') + body + '</div>';
           var vEl = host.querySelector('video.tweet-video');
           if (vEl) {
-            vEl.addEventListener('error', function(){
+            var handleFail = function(reason){
+              console.warn('[tweet-video] playback failed for id ' + id + ':', reason, 'sources:', sources);
               var box = vEl.parentNode;
               if (!box) return;
-              box.innerHTML = '<div class="tweet-unavailable">This video can\\'t play here. Use the Open on X link below.</div>';
+              box.innerHTML = '<div class="tweet-unavailable">This video can\\'t play here — Twitter\\'s CDN may be blocking the request. Use the Open on X link below.</div>';
+            };
+            vEl.addEventListener('error', function(){ handleFail(vEl.error); });
+            var sourceEls = vEl.querySelectorAll('source');
+            var failCount = 0;
+            sourceEls.forEach(function(se){
+              se.addEventListener('error', function(){
+                failCount++;
+                if (failCount >= sourceEls.length) handleFail('all sources failed');
+              });
             });
           }
         })
