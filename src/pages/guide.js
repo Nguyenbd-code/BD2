@@ -1,5 +1,10 @@
 import { layout, esc } from '../layout/layout.js';
 import { T1_DATA, SCHERA_ICONS } from '../data/t1.js';
+import { memoTTL } from '../lib/memo.js';
+
+// Module-level latch — keeps the idempotent ALTER TABLE off the per-request
+// path. Fires once per cold isolate, after which every guide load skips it.
+let _guideSchemaReady = false;
 
 const STATIC_CHARS = {
   T1: [{name:'Rou',bond:'Red Riding Hood'},{name:'Seir',bond:'B-Rank Idol'},{name:'Lecliss',bond:'Android Queen'},{name:'Scheherazade',bond:'Magic Professor'},{name:'Sylvia',bond:'Bikini Agent'}],
@@ -333,8 +338,20 @@ function renderComp(comp, mediaMap, elementBySlug) {
 }
 
 export async function handleGuide(request, env) {
+  if (!_guideSchemaReady) {
+    try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
+    _guideSchemaReady = true;
+  }
+  // Full-HTML memoisation. The PvP guide is identical for every visitor — no
+  // user-specific data, no cookie-gated branches. On warm-isolate cache hits
+  // the 8-query batch, the comp render, and layout() all get skipped. 30s
+  // TTL; admin edits clear the cache via handleAdminApi → invalidateMemo.
+  const html = await memoTTL('guide:html', 30_000, () => buildGuideHtml(env, request));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildGuideHtml(env, request) {
   let mediaMap = {}, rotationMap = {}, allComps = [], compCharsMap = {}, dbNotes = {}, extraMap = {}, compGearMap = {}, elementBySlug = {};
-  try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
   try {
     const [compRes, mediaRes, rotRes, compCharsRes, noteRes, extraRes, gearRes, regRes] = await Promise.all([
       env.DB.prepare("SELECT * FROM compositions ORDER BY type ASC, COALESCE(NULLIF(sort_order,0),id*10) ASC, id ASC").all().catch(() => env.DB.prepare('SELECT * FROM compositions ORDER BY type ASC, id ASC').all()),
@@ -502,7 +519,7 @@ export async function handleGuide(request, env) {
     compsHtml += defComps.map((c, i) => buildCompHtml(c) + (i < defComps.length - 1 ? '<div class="codex-divider"><span></span></div>' : '')).join('');
   }
 
-  return await layout('PvP Guide', `
+  const resp = await layout('PvP Guide', `
 <div style="display:flex;padding-top:1rem">
   <div class="section" style="flex:1;min-width:0;padding-right:0">
     <div class="hero" style="padding:2rem 2rem 2rem;text-align:left">
@@ -709,4 +726,5 @@ function openLightbox(src) {
 })();
 </script>
 `, 'guide', env, request);
+  return await resp.text();
 }

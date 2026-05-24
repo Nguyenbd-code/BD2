@@ -1,4 +1,5 @@
 import { json } from '../layout/layout.js';
+import { invalidateMemo } from '../lib/memo.js';
 
 async function renameTierCascade(env, oldTier, newTier) {
   if (oldTier === newTier) return;
@@ -33,6 +34,15 @@ function isAuthed(request) {
 function unauth() { return json({ success: false, message: 'Unauthorized' }, 401); }
 
 export async function handleAdminApi(request, env) {
+  const res = await dispatchAdminApi(request, env);
+  // Invalidate AFTER the write has committed, so a public read racing the
+  // mutation can't re-populate the cache with pre-write data for the full
+  // TTL. Runs for any non-GET admin call (writes are rare + auth-gated).
+  if (request.method !== 'GET') invalidateMemo();
+  return res;
+}
+
+async function dispatchAdminApi(request, env) {
   if (!isAuthed(request)) return unauth();
 
   const url    = new URL(request.url);

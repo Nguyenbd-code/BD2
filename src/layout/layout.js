@@ -1,4 +1,5 @@
 import { getStyles, getCssVersion } from '../css/styles.js';
+import { memoTTL } from '../lib/memo.js';
 
 export async function layout(title, content, activePage = '', env = null, request = null) {
   let tapTarget = 7;
@@ -18,14 +19,25 @@ export async function layout(title, content, activePage = '', env = null, reques
     isUnlocked = true;
   }
   if (env && isUnlocked) {
-    // Two independent lookups; fire in parallel.
+    // 60s in-memory cache — admin edits propagate within a minute, and in
+    // exchange every cache hit on a warm isolate skips D1 entirely. This
+    // runs on every page load for unlocked users, so the wins compound.
     try {
-      const [navRow, tapRow] = await Promise.all([
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_nav'").first(),
-        env.DB.prepare("SELECT data FROM images WHERE key='mamonir_tap_count'").first(),
-      ]);
-      if (navRow && navRow.data) hasMamonir = true;
-      if (tapRow && tapRow.data) tapTarget = Math.max(1, parseInt(tapRow.data, 10) || 7);
+      const info = await memoTTL('layout:mamonir', 60_000, async () => {
+        const r = await env.DB.prepare(
+          "SELECT key, data FROM images WHERE key IN ('mamonir_nav','mamonir_tap_count')"
+        ).all();
+        let nav = false, tap = 7;
+        for (const row of (r.results || [])) {
+          if (row.key === 'mamonir_nav' && row.data) nav = true;
+          if (row.key === 'mamonir_tap_count' && row.data) {
+            tap = Math.max(1, parseInt(row.data, 10) || 7);
+          }
+        }
+        return { nav, tap };
+      });
+      hasMamonir = info.nav;
+      tapTarget = info.tap;
     } catch {}
   }
 

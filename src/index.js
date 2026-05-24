@@ -11,6 +11,13 @@ import { handleXVideo, handleXThumb, handleXTweet } from './api/xvideo.js';
 import { handleStylesheet }                        from './css/styles.js';
 import { handleNotFound }                          from './pages/notfound.js';
 
+// Module-level latch — coupon seeding only needs to happen once per database,
+// not once per request. Without this we ate a D1 SELECT COUNT(*) on every
+// inbound request (including static assets) just to confirm the table was
+// already populated. Set to true after a successful non-empty check.
+let _couponsSeeded = false;
+let _emoteSetsApiSchemaReady = false;
+
 export default {
   async fetch(request, env) {
     const url    = new URL(request.url);
@@ -18,30 +25,33 @@ export default {
     const method = request.method;
 
     try {
-      // Seed initial coupon codes on first run
-      try {
-        const existing = await env.DB.prepare('SELECT COUNT(*) as count FROM coupons').first();
-        if (existing && existing.count === 0) {
-          const initCodes = [
-            ['2026BD2MAY',       '50 Diamonds + 3 Draw Tickets', null],
-            ['BD2RADIOFINALE',   'Stamina x20 + Diamonds x30',   null],
-            ['Waiting4legend',   '30 Diamonds',                  null],
-            ['BD2025SUMMER',     '50 Diamonds',                  null],
-            ['SQUARE1000DEKO',   '30 Diamonds',                  null],
-            ['BD2RADIOABYSS',    '30 Diamonds',                  null],
-          ];
-          for (const [code, rewards, expiry] of initCodes) {
-            await env.DB.prepare('INSERT OR IGNORE INTO coupons (code,rewards,expiry,active) VALUES (?,?,?,1)')
-              .bind(code, rewards, expiry).run();
-          }
-        }
-      } catch(e) { /* ignore seed errors */ }
-
-      // Image serving
+      // Fast-path the highest-frequency routes BEFORE any DB work. Image and
+      // stylesheet responses are cacheable + don't touch coupons.
       if (path.startsWith('/img/')) return handleImage(request, env);
+      if (path === '/styles.css')   return handleStylesheet();
 
-      // Cached stylesheet (immutable, busted via ?v= query string)
-      if (path === '/styles.css') return handleStylesheet();
+      // Seed initial coupon codes — once per isolate. The latch avoids the
+      // recurring COUNT(*) on every non-static request.
+      if (!_couponsSeeded) {
+        try {
+          const existing = await env.DB.prepare('SELECT COUNT(*) as count FROM coupons').first();
+          if (existing && existing.count === 0) {
+            const initCodes = [
+              ['2026BD2MAY',       '50 Diamonds + 3 Draw Tickets', null],
+              ['BD2RADIOFINALE',   'Stamina x20 + Diamonds x30',   null],
+              ['Waiting4legend',   '30 Diamonds',                  null],
+              ['BD2025SUMMER',     '50 Diamonds',                  null],
+              ['SQUARE1000DEKO',   '30 Diamonds',                  null],
+              ['BD2RADIOABYSS',    '30 Diamonds',                  null],
+            ];
+            for (const [code, rewards, expiry] of initCodes) {
+              await env.DB.prepare('INSERT OR IGNORE INTO coupons (code,rewards,expiry,active) VALUES (?,?,?,1)')
+                .bind(code, rewards, expiry).run();
+            }
+          }
+          _couponsSeeded = true;
+        } catch(e) { /* ignore seed errors — retry on next isolate */ }
+      }
 
       // Secret code check (public, no auth)
       if (path === '/api/secret/check' && method === 'POST') {
@@ -97,16 +107,19 @@ export default {
       if (path === '/api/emote-sets' && method === 'GET') {
         let rows = [];
         try {
-          await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run();
-          // Make sure every column the client reads exists. Idempotent.
-          await Promise.all([
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{}),
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{}),
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{}),
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{}),
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{}),
-            env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{}),
-          ]);
+          if (!_emoteSetsApiSchemaReady) {
+            await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run();
+            // Make sure every column the client reads exists. Idempotent.
+            await Promise.all([
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{}),
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{}),
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{}),
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{}),
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{}),
+              env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{}),
+            ]);
+            _emoteSetsApiSchemaReady = true;
+          }
           const r = await env.DB.prepare('SELECT set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, unlock_message, difficulty, extra_hint, display_location, extra_sequence, extra_reveal FROM emote_sets ORDER BY set_num').all().catch(() => env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count FROM emote_sets ORDER BY set_num').all());
           rows = r.results || [];
         } catch(e) {}
