@@ -140,6 +140,7 @@ export async function layout(title, content, activePage = '', env = null, reques
 }catch(e){}</script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <script>
 window.showSetUnlockModal = function(setNum, setName, message) {
   var existing = document.getElementById('kitsu-unlock-ov');
@@ -430,7 +431,7 @@ window.showSetUnlockModal = function(setNum, setName, message) {
   });
 })();
 </script>
-<main>${content}</main>
+<main id="main-content" tabindex="-1">${content}</main>
 <footer>
   <div class="footer-copyright">&copy; 2026 <span>BD2Guide</span> by BnKitsu. All rights reserved.</div>
   <div class="footer-disclaimer">This website is not affiliated with or endorsed by Brown Dust 2. All trademarks and copyrights of the game and its characters are owned by their respective owners.</div>

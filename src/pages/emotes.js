@@ -50,7 +50,7 @@ async function ensureSchema(env) {
       [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              '',              '',                  ''],
       [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes",'',                  ''],
       [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????',         '',                  ''],
-      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Hamburger',     '',                  ''],
+      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Side Menu',     '',                  ''],
       [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  '',              'rou,zenith,yuri',   'Only 8 Elements.'],
       [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              '',              '',                  ''],
     ];
@@ -108,7 +108,7 @@ async function ensureSchema(env) {
       // Location overrides shown in the hint modal
       await env.DB.prepare("UPDATE emote_sets SET display_location='?????'        WHERE set_num=3").run().catch(()=>{});
       await env.DB.prepare("UPDATE emote_sets SET display_location='Kitsu''s Emotes' WHERE set_num=2").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET display_location='Hamburger'    WHERE set_num=4").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu'    WHERE set_num=4").run().catch(()=>{});
       // Set M (letter M, set_num=6) gets an extra hint surfaced via a second ? button.
       const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
       await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
@@ -131,6 +131,13 @@ async function ensureSchema(env) {
       await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v8_migrated','1')").run().catch(()=>{});
       const setIRiddleV8 = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
       await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV8).run().catch(()=>{});
+    }
+    // v9 migration: rename "Hamburger" location label to "Side Menu" for
+    // any set whose admin-facing label still uses the old slang.
+    const v9 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v9_migrated'").first().catch(()=>null);
+    if (!v9) {
+      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v9_migrated','1')").run().catch(()=>{});
+      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu' WHERE display_location='Hamburger'").run().catch(()=>{});
     }
 
     // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
@@ -309,7 +316,7 @@ export async function handleEmotes(request, env) {
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Side Menu</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
@@ -349,7 +356,7 @@ export async function handleEmotes(request, env) {
   <div class="emote-modal">
     <div class="emote-modal-header">
       <div class="emote-modal-title" id="emote-modal-title">Set</div>
-      <button class="emote-modal-close" id="emote-modal-close">&#10005;</button>
+      <button class="emote-modal-close" id="emote-modal-close" aria-label="Close emote viewer">&#10005;</button>
     </div>
     <div id="emote-modal-body"></div>
   </div>
@@ -410,14 +417,20 @@ export async function handleEmotes(request, env) {
 .emote-dl:hover { text-decoration:underline; }
 .set-lock-img-wrap { width:80px;height:80px;margin-bottom:0.5rem;display:none; }
 .set-lock-img-wrap img { width:100%;height:100%;object-fit:contain; }
-.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);display:none;align-items:center;justify-content:center;padding:2rem 1rem;overflow-y:auto; }
+/* Emote-gallery modal — opens when an unlocked set cover is tapped. Same
+   codex card pattern as the unlock / hint modals. */
+.emote-modal-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.86);display:none;align-items:center;justify-content:center;padding:2rem 1rem;overflow-y:auto;animation:hint-modal-fade 0.22s ease-out; }
 .emote-modal-overlay.open { display:flex; }
-.emote-modal { background:var(--bg2);border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:1.5rem;max-width:800px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.9);position:relative; }
-.emote-modal-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem; }
-.emote-modal-title { font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--gold);font-size:1.1rem; }
-.emote-modal-close { background:none;border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center; }
-.emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:0.6rem;margin-top:1rem; }
-.emote-dl-all { font-size:0.7rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:3px 10px;border-radius:4px;cursor:pointer;white-space:nowrap; }
+.emote-modal { position:relative;background:#14141e;border-radius:4px;padding:1.75rem 1.85rem;max-width:840px;width:100%;isolation:isolate;box-shadow:0 1px 0 rgba(220,230,255,0.07) inset,0 0 0 1px rgba(220,230,255,0.05),0 24px 60px rgba(0,0,0,0.75),0 0 36px rgba(201,168,76,0.16);animation:hint-modal-in 0.32s cubic-bezier(0.22,1,0.36,1); }
+.emote-modal::after { content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.4' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px; }
+.emote-modal > * { position:relative;z-index:1; }
+.emote-modal-header { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(220,230,255,0.06); }
+.emote-modal-title { font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 96;color:#eef0fa;font-size:1.4rem;letter-spacing:-0.012em; }
+.emote-modal-close { background:transparent;border:1px solid rgba(220,230,255,0.12);color:rgba(220,228,245,0.6);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.95rem;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.18s ease; }
+.emote-modal-close:hover { border-color:var(--gold);color:var(--gold2);background:rgba(201,168,76,0.08);transform:scale(1.06); }
+.emote-items-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.7rem;margin-top:0.75rem; }
+.emote-dl-all { font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.66rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold2);padding:6px 14px;border-radius:3px;cursor:pointer;white-space:nowrap;transition:all 0.18s ease; }
+.emote-dl-all:hover { background:rgba(201,168,76,0.1);border-color:var(--gold);transform:translateY(-1px); }
 </style>
 
 <script>
@@ -525,14 +538,14 @@ export async function handleEmotes(request, env) {
     var body = document.getElementById('emote-modal-body');
     if (!overlay || !body) return;
     if (title) title.textContent = (setData ? (setData.name || 'Set ' + sn) : 'Set ' + sn) + "'s Emotes";
-    body.innerHTML = '<div style="color:var(--text3);font-size:0.82rem">Loading emotes...</div>';
+    body.innerHTML = '<div class="loading-state"><span class="loading-spinner"></span>Loading emotes</div>';
     overlay.classList.add('open');
     fetch('/api/emotes/by-set?set_num=' + sn)
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var emotes = d.emotes || [];
         if (!emotes.length) {
-          body.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem">No emotes in this set yet.</p>';
+          body.innerHTML = '<div class="empty-state"><div class="empty-state-eyebrow">Empty</div><div class="empty-state-title">No emotes in this set yet</div><div class="empty-state-sub">Check back once Kitsu adds more.</div></div>';
           return;
         }
         var html = '<div class="emote-items-grid">';
@@ -591,7 +604,7 @@ export async function handleEmotes(request, env) {
         showHintModal('LOCKED', 'This Sub-Riddle becomes available once the previous difficulty tier is fully unlocked.');
         return;
       }
-      var extraBody = 'Location: Hamburger\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No Sub-Riddle available yet.');
+      var extraBody = 'Location: Side Menu\\n\\n' + ((es && es.extra_hint) ? es.extra_hint : 'No Sub-Riddle available yet.');
       // Generic extra-reveal append. Any set whose extra_sequence has been
       // matched in the char-circle gets its extra_reveal appended below the
       // primary extra_hint via an em-dash divider.
@@ -677,7 +690,7 @@ async function renderLocked(lockHintText, env, request) {
     </div>
     <a href="/" style="display:block;width:100%;box-sizing:border-box;text-align:center;background:var(--gold);color:#0a0a0f;border:none;padding:0.7rem;border-radius:6px;font-weight:700;cursor:pointer;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.9rem;letter-spacing:0.06em;text-decoration:none">Go to Home Page</a>
     <div id="lock-hint-bubble" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold2);font-style:italic;line-height:1.6;text-align:left">
-      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Hamburger</div>
+      <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.06em;margin-bottom:0.4rem;text-transform:uppercase;font-style:normal">Location: Side Menu</div>
       Hit the red rabbit twice and the green rabbit thrice.
     </div>
   </div>
