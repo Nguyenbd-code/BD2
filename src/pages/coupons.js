@@ -56,13 +56,13 @@ export async function handleCoupons(request, env) {
   <div id="redeem-status" style="font-size:0.8rem;color:var(--text3);margin-top:0.5rem;min-height:1.2em"></div>
 
   <div id="redeem-results" style="display:none;margin-top:1.5rem">
-    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.88rem;color:var(--gold);margin-bottom:0.75rem">Results</div>
+    <div class="coupon-eyebrow">Results</div>
     <div id="results-list"></div>
     <div id="redeem-summary" style="margin-top:0.75rem;font-size:0.82rem;color:var(--text3)"></div>
   </div>
 
-  <div style="margin-top:1.25rem;border-top:1px solid var(--border2);padding-top:1.25rem">
-    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.5rem;font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:0.04em">MANUAL CODE REDEEM</div>
+  <div class="coupon-divider">
+    <div class="coupon-eyebrow">Manual Code Redeem</div>
     <div style="display:flex;gap:0.5rem;align-items:stretch;flex-wrap:wrap">
       <input type="text" id="manual-code" placeholder="Enter code manually..." autocomplete="off"
         style="flex:1;min-width:160px;font-size:0.95rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:0.6rem 0.8rem;border-radius:4px;outline:none">
@@ -184,6 +184,19 @@ ${specialConfig.enabled ? `
 .ct-expiry { color:rgba(220,228,245,0.55);font-size:0.78rem; }
 .ct-copy-btn { background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:#c9a84c;font-size:0.72rem;padding:4px 12px;border-radius:3px;cursor:pointer;font-family:inherit;letter-spacing:0.06em;transition:background 0.15s; }
 .ct-copy-btn:hover { background:rgba(201,168,76,0.22); }
+.coupon-eyebrow {
+  display:inline-flex;align-items:center;gap:0.6rem;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;
+  letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.5);
+  margin-bottom:0.65rem;
+}
+.coupon-eyebrow::before {
+  content:'';width:20px;height:1px;background:var(--gold);opacity:0.7;
+}
+.coupon-divider {
+  margin-top:1.5rem;padding-top:1.4rem;
+  border-top:1px solid rgba(220,230,255,0.06);
+}
 </style>
 
 <div id="toast-stack"></div>
