@@ -331,6 +331,10 @@ main{padding-top:74px;position:relative;z-index:1;}
 .video-thumb-play svg{width:100%;height:100%;display:block;}
 .video-thumb-label{position:absolute;left:0;right:0;bottom:0.5rem;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:var(--gold2);text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .video-thumb-file{background:linear-gradient(180deg,#1a1a28 0%,#0e0e16 100%);}
+.video-thumb-x{background:linear-gradient(180deg,#1a1a28 0%,#0e0e16 100%);}
+.video-thumb-x .video-thumb-img-failed{display:none;}
+.video-thumb-x:has(.video-thumb-img-failed) .video-thumb-shade{display:none;}
+.video-thumb-x:not(:has(.video-thumb-img-failed)) .video-thumb-xlogo{display:none;}
 .video-thumb-xlogo{position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% - 18px));pointer-events:none;}
 .video-thumb-xlogo svg{display:block;}
 
