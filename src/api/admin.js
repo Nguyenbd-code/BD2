@@ -1,4 +1,5 @@
 import { json } from '../layout/layout.js';
+import { invalidateMemo } from '../lib/memo.js';
 
 async function renameTierCascade(env, oldTier, newTier) {
   if (oldTier === newTier) return;
@@ -43,6 +44,11 @@ export async function handleAdminApi(request, env) {
   if (method === 'POST') {
     try { body = await request.json(); } catch { body = {}; }
   }
+
+  // Any admin write may touch tables that the read-side TTL caches snapshot.
+  // Wipe the memo cache on every non-GET admin call so edits are reflected on
+  // the next public page load, instead of waiting for the 30-60s TTL.
+  if (method !== 'GET') invalidateMemo();
 
   try {
     // ── Coupons ──────────────────────────────────────────────

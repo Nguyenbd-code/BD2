@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses module state across requests within an
 // isolate, so the migration block in ensureSchema only fires the first time
@@ -204,35 +205,38 @@ export async function handleEmotes(request, env) {
     return await renderLocked(lockHintText, env, request);
   }
 
-  // Ship all five reads in a single D1 batch — one HTTP round-trip from the
-  // Worker to D1 instead of five parallel ones. Emotes are *not* fetched in
-  // full; we only need per-set counts plus a fallback cover URL (only used
-  // when the set has no cover_key set).
-  let lockImgRow = null, lockHintRow = null;
-  let setsRes = { results: [] }, countsRes = { results: [] }, fallbackCoverRes = { results: [] };
-  try {
-    const batch = await env.DB.batch([
-      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'"),
-      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'"),
-      env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num'),
-      env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num'),
-      env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)"),
-    ]);
-    lockImgRow       = (batch[0] && batch[0].results && batch[0].results[0]) || null;
-    lockHintRow      = (batch[1] && batch[1].results && batch[1].results[0]) || null;
-    setsRes          = batch[2] || setsRes;
-    countsRes        = batch[3] || countsRes;
-    fallbackCoverRes = batch[4] || fallbackCoverRes;
-  } catch {
-    // Fall back to individual reads if batch fails — preserves prior behaviour.
-    [lockImgRow, lockHintRow, setsRes, countsRes, fallbackCoverRes] = await Promise.all([
-      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null),
-      env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
-      env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all().catch(() => ({results:[]})),
-      env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num').all().catch(() => ({results:[]})),
-      env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)").all().catch(() => ({results:[]})),
-    ]);
-  }
+  // 30s in-memory cache wrapping a single D1 batch. On warm isolate cache
+  // hits the entire page render skips D1; on misses we still get one HTTP
+  // round-trip (batch) instead of five parallel ones. Falls back to
+  // per-statement reads if batch errors. Admin edits propagate within 30s.
+  const { lockImgRow, lockHintRow, setsRes, countsRes, fallbackCoverRes } =
+    await memoTTL('emotes:page-reads', 30_000, async () => {
+      let li = null, lh = null;
+      let sr = { results: [] }, cr = { results: [] }, fr = { results: [] };
+      try {
+        const batch = await env.DB.batch([
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'"),
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'"),
+          env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num'),
+          env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num'),
+          env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)"),
+        ]);
+        li = (batch[0] && batch[0].results && batch[0].results[0]) || null;
+        lh = (batch[1] && batch[1].results && batch[1].results[0]) || null;
+        sr = batch[2] || sr;
+        cr = batch[3] || cr;
+        fr = batch[4] || fr;
+      } catch {
+        [li, lh, sr, cr, fr] = await Promise.all([
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_image'").first().catch(() => null),
+          env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null),
+          env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all().catch(() => ({results:[]})),
+          env.DB.prepare('SELECT set_num, COUNT(*) AS c FROM emotes GROUP BY set_num').all().catch(() => ({results:[]})),
+          env.DB.prepare("SELECT set_num, image_url FROM emotes WHERE id IN (SELECT MIN(id) FROM emotes GROUP BY set_num)").all().catch(() => ({results:[]})),
+        ]);
+      }
+      return { lockImgRow: li, lockHintRow: lh, setsRes: sr, countsRes: cr, fallbackCoverRes: fr };
+    });
 
   const lockImgSrc = lockImgRow ? '/img/emote_lock_image' : '';
   const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
