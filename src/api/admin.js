@@ -34,6 +34,15 @@ function isAuthed(request) {
 function unauth() { return json({ success: false, message: 'Unauthorized' }, 401); }
 
 export async function handleAdminApi(request, env) {
+  const res = await dispatchAdminApi(request, env);
+  // Invalidate AFTER the write has committed, so a public read racing the
+  // mutation can't re-populate the cache with pre-write data for the full
+  // TTL. Runs for any non-GET admin call (writes are rare + auth-gated).
+  if (request.method !== 'GET') invalidateMemo();
+  return res;
+}
+
+async function dispatchAdminApi(request, env) {
   if (!isAuthed(request)) return unauth();
 
   const url    = new URL(request.url);
@@ -44,11 +53,6 @@ export async function handleAdminApi(request, env) {
   if (method === 'POST') {
     try { body = await request.json(); } catch { body = {}; }
   }
-
-  // Any admin write may touch tables that the read-side TTL caches snapshot.
-  // Wipe the memo cache on every non-GET admin call so edits are reflected on
-  // the next public page load, instead of waiting for the 30-60s TTL.
-  if (method !== 'GET') invalidateMemo();
 
   try {
     // ── Coupons ──────────────────────────────────────────────
