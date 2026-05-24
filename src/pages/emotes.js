@@ -199,11 +199,27 @@ export async function handleEmotes(request, env) {
   const cookie = request.headers.get('Cookie') || '';
   const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
 
+  // Full-HTML memoisation. The rendered page is identical for every visitor
+  // sharing the same lock state (locked vs unlocked) — neither path embeds
+  // per-user data, all gameplay state lives in localStorage. Cache hits
+  // bypass D1, the schema check, the JSON build, and layout() entirely.
+  // 30s TTL; admin writes invalidate via handleAdminApi → invalidateMemo.
+  const cacheKey = `emotes:html:${isUnlocked ? 'u' : 'l'}`;
+  const html = await memoTTL(cacheKey, 30_000, () => buildEmotesHtml(isUnlocked, env, request, DEFAULT_LOCK_HINT));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildEmotesHtml(isUnlocked, env, request, DEFAULT_LOCK_HINT) {
   if (!isUnlocked) {
     const lockHintRow = await env.DB.prepare("SELECT data FROM images WHERE key='emote_lock_hint'").first().catch(() => null);
     const lockHintText = (lockHintRow && lockHintRow.data) ? lockHintRow.data : DEFAULT_LOCK_HINT;
-    return await renderLocked(lockHintText, env, request);
+    const resp = await renderLocked(lockHintText, env, request);
+    return await resp.text();
   }
+  return await buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT);
+}
+
+async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
 
   // 30s in-memory cache wrapping a single D1 batch. On warm isolate cache
   // hits the entire page render skips D1; on misses we still get one HTTP
@@ -336,7 +352,7 @@ export async function handleEmotes(request, env) {
       </div>`;
   }).join('');
 
-  return await layout("Kitsu's Emotes", `
+  const resp = await layout("Kitsu's Emotes", `
 <!-- Page lock screen — shown only if kitsu_unlocked not set -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
@@ -703,6 +719,7 @@ export async function handleEmotes(request, env) {
 })();
 </script>
 `, 'emotes', env, request);
+  return await resp.text();
 }
 
 // Slim render for locked users — just the lock screen + the layout chrome.

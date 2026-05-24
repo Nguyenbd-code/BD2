@@ -1,10 +1,21 @@
 import { layout, esc } from '../layout/layout.js';
+import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses the isolate across requests, so the
 // idempotent ALTER fires once per cold isolate instead of on every page hit.
 let _charsSchemaReady = false;
 
 export async function handleCharacters(request, env) {
+  // Vary cache key by isUnlocked because layout() only emits the mamonir
+  // nav widget for unlocked visitors. Page body itself is identical.
+  const cookie = request.headers.get('Cookie') || '';
+  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const html = await memoTTL(`characters:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
+    () => buildCharactersHtml(env, request));
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+async function buildCharactersHtml(env, request) {
   let chars = [];
   const costumesMap = {};
 
@@ -84,7 +95,7 @@ export async function handleCharacters(request, env) {
 </div>`;
   }).join('');
 
-  return await layout('Characters', `
+  const resp = await layout('Characters', `
 <div class="hero" style="padding-bottom:2rem">
   <div class="hero-tag">Roster</div>
   <h1>Characters &amp; <span>Costumes</span></h1>
@@ -446,4 +457,5 @@ document.addEventListener('change', function(e) {
 });
 </script>
 `, 'characters', env, request);
+  return await resp.text();
 }
