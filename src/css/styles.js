@@ -693,6 +693,16 @@ footer span{color:var(--gold);}
 .nf-link:hover{transform:translateX(2px);background:rgba(220,230,255,0.05);border-left-color:var(--gold);}
 .nf-link-label{font-family:'Fraunces',Georgia,serif;font-weight:600;font-variation-settings:'opsz' 36;font-size:1.05rem;color:#f0e6d2;letter-spacing:-0.01em;}
 .nf-link-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.78rem;color:rgba(220,228,245,0.55);}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.55rem;padding:2.25rem 1.5rem;text-align:center;color:rgba(220,228,245,0.55);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;line-height:1.55;}
+.empty-state-eyebrow{display:inline-flex;align-items:center;gap:0.6rem;font-size:0.62rem;font-weight:600;letter-spacing:0.24em;text-transform:uppercase;color:rgba(220,228,245,0.4);}
+.empty-state-eyebrow::before,.empty-state-eyebrow::after{content:'';width:16px;height:1px;background:rgba(201,168,76,0.45);}
+.empty-state-title{font-family:'Fraunces',Georgia,serif;font-weight:500;font-variation-settings:'opsz' 36;font-size:1.05rem;color:#eef0fa;letter-spacing:-0.005em;}
+.empty-state-sub{color:rgba(220,228,245,0.5);font-size:0.8rem;max-width:340px;}
+.empty-state-cell{padding:1.75rem 1rem !important;text-align:center;color:rgba(220,228,245,0.5) !important;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;font-style:italic;letter-spacing:0.01em;}
+.loading-state{display:inline-flex;align-items:center;gap:0.55rem;color:rgba(220,228,245,0.55);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.82rem;letter-spacing:0.02em;}
+.loading-spinner{display:inline-block;width:13px;height:13px;border:1.5px solid rgba(201,168,76,0.18);border-top-color:var(--gold);border-radius:50%;animation:loading-spin 0.85s linear infinite;flex-shrink:0;}
+@keyframes loading-spin{to{transform:rotate(360deg);}}
+@media(prefers-reduced-motion:reduce){.loading-spinner{animation:none;border-top-color:rgba(201,168,76,0.45);}}
 @media(max-width:600px){
   .hero{padding:3.25rem 1.1rem 2.25rem;}
   .hero h1{font-size:clamp(1.85rem,7.5vw,2.6rem);}

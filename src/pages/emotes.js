@@ -538,14 +538,14 @@ export async function handleEmotes(request, env) {
     var body = document.getElementById('emote-modal-body');
     if (!overlay || !body) return;
     if (title) title.textContent = (setData ? (setData.name || 'Set ' + sn) : 'Set ' + sn) + "'s Emotes";
-    body.innerHTML = '<div style="color:var(--text3);font-size:0.82rem">Loading emotes...</div>';
+    body.innerHTML = '<div class="loading-state"><span class="loading-spinner"></span>Loading emotes</div>';
     overlay.classList.add('open');
     fetch('/api/emotes/by-set?set_num=' + sn)
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var emotes = d.emotes || [];
         if (!emotes.length) {
-          body.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem">No emotes in this set yet.</p>';
+          body.innerHTML = '<div class="empty-state"><div class="empty-state-eyebrow">Empty</div><div class="empty-state-title">No emotes in this set yet</div><div class="empty-state-sub">Check back once Kitsu adds more.</div></div>';
           return;
         }
         var html = '<div class="emote-items-grid">';

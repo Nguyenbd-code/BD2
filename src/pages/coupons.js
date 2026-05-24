@@ -28,7 +28,7 @@ export async function handleCoupons(request, env) {
           <td class="ct-expiry">${esc(c.expiry || '—')}</td>
           <td class="ct-action"><button class="copy-btn ct-copy-btn" data-action="copy-code" data-code="${esc(c.code)}">Copy</button></td>
         </tr>`).join('')
-    : `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:1.5rem">No active codes right now — check back soon!</td></tr>`;
+    : `<tr><td colspan="4" class="empty-state-cell">No active codes right now — check back soon</td></tr>`;
 
   // Safe JSON injection: escape </ to prevent </script> from breaking the HTML parser
   const codesJson = JSON.stringify(codes.map(c => ({ code: c.code, rewards: c.rewards || '' })))
@@ -117,7 +117,7 @@ ${specialConfig.enabled ? `
   <div id="special-unlocked-view" style="display:none">
     <div style="font-size:0.82rem;color:var(--text3);margin-bottom:1rem">Your special code is ready. Enter your in-game nickname above, then click Redeem.</div>
     <div class="code-card" id="special-code-display" style="font-size:1.1rem;letter-spacing:0.08em;font-family:monospace;text-align:center;padding:1rem">
-      <span id="special-code-value">Loading...</span>
+      <span id="special-code-value" class="loading-state"><span class="loading-spinner"></span>Loading</span>
       <button class="copy-btn" data-action="copy-special-code" style="margin-left:0.75rem">Copy</button>
     </div>
     <button class="btn" data-action="redeem-special-code" style="width:100%;margin-top:0.75rem">Redeem Special Code</button>
