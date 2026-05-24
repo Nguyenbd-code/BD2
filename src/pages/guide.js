@@ -229,8 +229,10 @@ function renderComp(comp, mediaMap, elementBySlug) {
              <span class="video-thumb-label">Watch Replay</span>
            </button>`
         : xMatch
-        ? `<button type="button" class="video-thumb video-thumb-file" data-action="open-video" data-video-id="${esc(xMatch[2])}" data-video-username="${esc(xMatch[1] || 'i')}" data-video-kind="tweet" aria-label="Play tweet">
+        ? `<button type="button" class="video-thumb video-thumb-x" data-action="open-video" data-video-id="${esc(xMatch[2])}" data-video-username="${esc(xMatch[1] || 'i')}" data-video-kind="tweet" aria-label="Play tweet">
+             <img src="/api/x-thumb/${esc(xMatch[1] || 'i')}/${esc(xMatch[2])}" alt="" class="video-thumb-img" loading="lazy" onerror="this.classList.add('video-thumb-img-failed')">
              <span class="video-thumb-xlogo" aria-hidden="true">${xLogoSvg}</span>
+             <span class="video-thumb-shade" aria-hidden="true"></span>
              <span class="video-thumb-play" aria-hidden="true">${playSvg}</span>
              <span class="video-thumb-label">View Post on X</span>
            </button>`
