@@ -391,9 +391,18 @@ main{padding-top:74px;position:relative;z-index:1;}
 .char-face-back{transform:rotateY(180deg) translateZ(0);-webkit-transform:rotateY(180deg) translateZ(0);border-radius:4px;}
 /* Bond card corner brackets — same brass flourish used on .codex-card */
 .char-face::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.45'%3E%3Cpath d='M0 6 L0 0 L6 0'/%3E%3Cpath d='M94 0 L100 0 L100 6'/%3E%3Cpath d='M100 94 L100 100 L94 100'/%3E%3Cpath d='M6 100 L0 100 L0 94'/%3E%3C/g%3E%3C/svg%3E");background-size:100% 100%;border-radius:4px;}
-.board-face{-webkit-backface-visibility:hidden !important;backface-visibility:hidden !important;}
+.board-face{position:absolute;inset:0;background:#0e0c14;border-radius:4px;overflow:hidden;-webkit-backface-visibility:hidden !important;backface-visibility:hidden !important;}
 .board-face:not(.board-face-back){transform:translateZ(0) !important;-webkit-transform:translateZ(0) !important;}
 .board-face-back{transform:rotateY(180deg) translateZ(0) !important;-webkit-transform:rotateY(180deg) translateZ(0) !important;}
+.board-flip-wrap{position:absolute;inset:0;}
+.board-card-inner{width:100%;height:100%;position:relative;transition:transform 0.55s cubic-bezier(0.22,1,0.36,1);transform-style:preserve-3d;cursor:pointer;}
+.board-face-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.board-face-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Fraunces',Georgia,serif;font-style:italic;font-variation-settings:'opsz' 24;color:rgba(220,228,245,0.32);font-size:0.85rem;letter-spacing:0.01em;text-align:center;white-space:nowrap;}
+.board-face-zoom{position:absolute;top:8px;right:8px;width:26px;height:26px;background:rgba(10,10,15,0.7);border:1px solid rgba(201,168,76,0.45);color:var(--gold2);cursor:pointer;border-radius:50%;font-size:0.78rem;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10;pointer-events:auto;transition:all 0.18s ease;}
+.board-face-zoom:hover{background:rgba(201,168,76,0.18);border-color:var(--gold);transform:scale(1.08);box-shadow:0 0 12px rgba(201,168,76,0.35);}
+.board-face-zoom-left{right:auto;left:8px;}
+.board-flip-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.6rem;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:rgba(220,228,245,0.32);pointer-events:none;z-index:5;}
+.board-flip-wrap:hover ~ .board-flip-hint,.board-flip-wrap:hover .board-flip-hint{color:var(--gold2);}
 .char-card-wrap.flipped .card-zoom-overlay{display:block !important;}
 .card-zoom{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);font-size:0.72rem;cursor:pointer;padding:2px 5px;border-radius:3px;z-index:2;line-height:1;}
 #guide-lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.87);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}

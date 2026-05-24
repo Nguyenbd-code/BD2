@@ -183,21 +183,21 @@ function renderComp(comp, mediaMap) {
   // Board positioning — flip card (front + back)
   const frontKey = tier === 'T1' ? 'board_pos' : `comp_${tier.toLowerCase()}_board`;
   const backKey  = `comp_${tier.toLowerCase()}_board_back`;
-  const boardHtml = `<div class="board-flip-wrap" style="position:absolute;inset:0;" data-action="board-flip" data-tier="${esc(tier)}">
-  <div class="board-card-inner" id="board-card-${esc(tier)}" style="width:100%;height:100%;position:relative;transition:transform 0.5s;transform-style:preserve-3d;cursor:pointer">
-    <div class="board-face" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No image yet</span>
-      <img src="/img/${esc(frontKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+  const boardHtml = `<div class="board-flip-wrap" data-action="board-flip" data-tier="${esc(tier)}">
+  <div class="board-card-inner" id="board-card-${esc(tier)}">
+    <div class="board-face">
+      <div class="board-face-empty">No image yet</div>
+      <img src="/img/${esc(frontKey)}" class="img-err-hide board-face-img">
+      <button class="board-face-zoom" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(frontKey)}');return false;" aria-label="Zoom front">&#x2922;</button>
     </div>
-    <div class="board-face board-face-back" style="position:absolute;inset:0;background:var(--bg4);border-radius:6px;overflow:hidden;">
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text3);font-size:0.75rem">No back image yet</span>
-      <img src="/img/${esc(backKey)}" class="img-err-hide" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
-      <button onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);border:none;color:var(--gold);cursor:pointer;border-radius:4px;padding:3px 7px;font-size:0.75rem;z-index:10;pointer-events:auto">⤢</button>
+    <div class="board-face board-face-back">
+      <div class="board-face-empty">No back image yet</div>
+      <img src="/img/${esc(backKey)}" class="img-err-hide board-face-img">
+      <button class="board-face-zoom board-face-zoom-left" onclick="event.stopPropagation();event.preventDefault();openLightbox('/img/${esc(backKey)}');return false;" aria-label="Zoom back">&#x2922;</button>
     </div>
   </div>
 </div>
-<div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.65rem;color:var(--text3);pointer-events:none">Click to flip</div>`;
+<div class="board-flip-hint">Tap to flip</div>`;
 
   // Board section — ATK/DEF dual-box with arrow
   const isAtk = comp.type === 'ATK';
