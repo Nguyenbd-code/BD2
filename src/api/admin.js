@@ -1,13 +1,18 @@
 import { json } from '../layout/layout.js';
 import { invalidateMemo } from '../lib/memo.js';
+import { isAuthed } from '../lib/auth.js';
 
 async function renameTierCascade(env, oldTier, newTier) {
   if (oldTier === newTier) return;
   const ol = oldTier.toLowerCase();
   const nl = newTier.toLowerCase();
-  await env.DB.prepare('UPDATE comp_rotations SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
-  await env.DB.prepare('UPDATE comp_media SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
-  await env.DB.prepare('UPDATE comp_chars SET tier=? WHERE tier=?').bind(newTier, oldTier).run().catch(()=>{});
+  // The three structured-table renames commit together — a partial failure
+  // here would leave rotations/media/chars pointing at different tiers.
+  await env.DB.batch([
+    env.DB.prepare('UPDATE comp_rotations SET tier=? WHERE tier=?').bind(newTier, oldTier),
+    env.DB.prepare('UPDATE comp_media SET tier=? WHERE tier=?').bind(newTier, oldTier),
+    env.DB.prepare('UPDATE comp_chars SET tier=? WHERE tier=?').bind(newTier, oldTier),
+  ]).catch(()=>{});
   const imgPatterns = [
     [`comp_${ol}_board`, `comp_${nl}_board`],
     [`comp_${ol}_board_back`, `comp_${nl}_board_back`],
@@ -26,12 +31,41 @@ async function renameTierCascade(env, oldTier, newTier) {
   }
 }
 
-function isAuthed(request) {
-  const cookie = request.headers.get('Cookie') || '';
-  return cookie.split(';').some(c => c.trim() === 'admin=true');
+function unauth() { return json({ success: false, message: 'Unauthorized' }, 401); }
+
+// Parse stored JSON without letting a corrupt row throw and 500 the endpoint
+// (which would otherwise wedge the route until the row is manually repaired).
+function safeParse(str, fallback) {
+  if (str == null) return fallback;
+  try { return JSON.parse(str); } catch { return fallback; }
 }
 
-function unauth() { return json({ success: false, message: 'Unauthorized' }, 401); }
+// Idempotent schema fixups for tables the admin endpoints touch. These used
+// to run inline on nearly every admin handler (one+ ALTER per request); now
+// they fire once per isolate. ADD COLUMN on an existing column throws and is
+// swallowed, so this can't run inside a batch (a failure would roll back the
+// CREATE too) — sequential .catch() is intentional.
+let _adminSchemaReady = false;
+async function ensureAdminSchema(env) {
+  if (_adminSchemaReady) return;
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
+  await Promise.all([
+    "ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0",
+    "ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''",
+    "ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1",
+    "ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'",
+    "ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'",
+    "ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''",
+    "ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''",
+    "ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'",
+  ].map(sql => env.DB.prepare(sql).run().catch(()=>{})));
+  _adminSchemaReady = true;
+}
 
 export async function handleAdminApi(request, env) {
   const res = await dispatchAdminApi(request, env);
@@ -43,7 +77,7 @@ export async function handleAdminApi(request, env) {
 }
 
 async function dispatchAdminApi(request, env) {
-  if (!isAuthed(request)) return unauth();
+  if (!(await isAuthed(request, env))) return unauth();
 
   const url    = new URL(request.url);
   const path   = url.pathname;
@@ -55,6 +89,7 @@ async function dispatchAdminApi(request, env) {
   }
 
   try {
+    await ensureAdminSchema(env);
     // ── Coupons ──────────────────────────────────────────────
     if (path === '/api/admin/coupon/add' && method === 'POST') {
       if (!body.code) return json({ success:false, message:'Code required' }, 400);
@@ -88,7 +123,6 @@ async function dispatchAdminApi(request, env) {
       return json({ success:true, message:'Deleted.' });
     }
     if (path === '/api/admin/comp/reorder' && method === 'POST') {
-      await env.DB.prepare('ALTER TABLE compositions ADD COLUMN sort_order INTEGER DEFAULT 0').run().catch(() => {});
       // Drag-drop bulk reorder: ids array
       if (Array.isArray(body.ids)) {
         for (let i = 0; i < body.ids.length; i++) {
@@ -186,7 +220,6 @@ async function dispatchAdminApi(request, env) {
     // ── Emotes ───────────────────────────────────────────────
     if (path === '/api/admin/emote/add' && method === 'POST') {
       if (!body.name || !body.image_url) return json({ success:false, message:'Name and image_url required' }, 400);
-      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
       const sn = parseInt(body.set_num, 10) || 1;
       const r = await env.DB.prepare(
         'INSERT INTO emotes (name, image_url, set_num) VALUES (?,?,?)'
@@ -198,24 +231,10 @@ async function dispatchAdminApi(request, env) {
       return json({ success:true, message:'Deleted.' });
     }
     if (path === '/api/admin/emote-set/list' && method === 'GET') {
-      await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
-      await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{});
       const r = await env.DB.prepare('SELECT * FROM emote_sets ORDER BY set_num').all();
       return json({ success:true, sets: r.results || [] });
     }
     if (path === '/api/admin/emote-set/save' && method === 'POST') {
-      await env.DB.prepare("CREATE TABLE IF NOT EXISTS emote_sets (set_num INTEGER PRIMARY KEY, name TEXT, hint TEXT, unlock_page TEXT, unlock_target TEXT, unlock_count INTEGER DEFAULT 7, cover_key TEXT)").run().catch(()=>{});
-      await Promise.all([
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_mode TEXT DEFAULT 'count'").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_sequence TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN set_letter TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN unlock_message TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN difficulty TEXT DEFAULT 'easy'").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_hint TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{}),
-        env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{}),
-      ]);
       const sn = parseInt(body.set_num, 10);
       if (!sn) return json({ success:false, message:'set_num required' }, 400);
       const validModes = ['count', 'count_then_seal', 'sequence', 'letter_sequence', 'char_sequence', 'who_am_i', 'nav_icon_tap'];
@@ -252,13 +271,11 @@ async function dispatchAdminApi(request, env) {
       return json({ success:true, message:'Set saved.' });
     }
     if (path === '/api/admin/emote/list-by-set' && method === 'GET') {
-      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
       const sn = parseInt(new URL(request.url).searchParams.get('set_num'), 10) || 1;
       const r = await env.DB.prepare('SELECT * FROM emotes WHERE set_num=? ORDER BY created_at DESC').bind(sn).all();
       return json({ success:true, emotes: r.results || [] });
     }
     if (path === '/api/admin/emote/bulk-add' && method === 'POST') {
-      await env.DB.prepare('ALTER TABLE emotes ADD COLUMN set_num INTEGER DEFAULT 1').run().catch(()=>{});
       const sn = parseInt(body.set_num, 10) || 1;
       const items = Array.isArray(body.items) ? body.items : [];
       let added = 0;
@@ -317,7 +334,7 @@ async function dispatchAdminApi(request, env) {
     }
     if (path === '/api/admin/t1/order/get' && method === 'GET') {
       const row = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('unit_order').first();
-      const order = row ? JSON.parse(row.data) : ['Rou','Seir','Lecliss','Scheherazade','Sylvia'];
+      const order = safeParse(row && row.data, ['Rou','Seir','Lecliss','Scheherazade','Sylvia']);
       return json({ order });
     }
 
@@ -329,22 +346,20 @@ async function dispatchAdminApi(request, env) {
     }
     if (path === '/api/admin/board/get' && method === 'GET') {
       const row = await env.DB.prepare("SELECT data FROM images WHERE key='board_layout'").first();
-      const board = row ? JSON.parse(row.data) : {
+      const board = safeParse(row && row.data, {
         d1:'Seir',d2:'',d3:'Lecliss',d4:'',d5:'',d6:'',
         a1:'Rou',a2:'Schera',a3:'',a4:'Sylvia',a5:'',a6:'',
-      };
+      });
       return json({ board });
     }
 
     // ── Characters ────────────────────────────────────────────
     if (path === '/api/admin/chars/list' && method === 'GET') {
-      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
       const r = await env.DB.prepare('SELECT * FROM char_registry ORDER BY name').all();
       return json({ chars: r.results || [] });
     }
     if (path === '/api/admin/chars/add' && method === 'POST') {
       if (!body.name || !body.slug) return json({ success:false, message:'Name and slug required' }, 400);
-      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
       const r = await env.DB.prepare(
         'INSERT INTO char_registry (name, slug, element, atk_type, status) VALUES (?,?,?,?,?)'
       ).bind(body.name.trim(), body.slug.trim(), body.element||'Dark', body.atk_type||'Physical', body.status||'active').run();
@@ -352,7 +367,6 @@ async function dispatchAdminApi(request, env) {
     }
     if (path === '/api/admin/chars/update' && method === 'POST') {
       if (!body.id) return json({ success:false, message:'id required' }, 400);
-      await env.DB.prepare("ALTER TABLE char_registry ADD COLUMN atk_type TEXT DEFAULT 'Physical'").run().catch(()=>{});
       await env.DB.prepare('UPDATE char_registry SET name=?,element=?,atk_type=?,status=? WHERE id=?')
         .bind(body.name||'', body.element||'Dark', body.atk_type||'Physical', body.status||'active', body.id).run();
       return json({ success:true, message:'Updated.' });
@@ -472,7 +486,6 @@ async function dispatchAdminApi(request, env) {
     // ── Guide Card Label ──────────────────────────────────────
     if (path === '/api/admin/comp/guide-label' && method === 'POST') {
       if (!body.id) return json({ success:false, message:'id required' }, 400);
-      await env.DB.prepare('ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT \'\'').run().catch(() => {});
       await env.DB.prepare('UPDATE compositions SET guide_label=? WHERE id=?').bind(body.guide_label||'', body.id).run();
       return json({ success:true, message:'Guide label saved.' });
     }
@@ -490,14 +503,14 @@ async function dispatchAdminApi(request, env) {
     if (path === '/api/admin/comp/preemptive/get' && method === 'GET') {
       const tier = url.searchParams.get('tier') || '';
       const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind('preemptive_' + tier.toLowerCase()).first();
-      const items = row ? JSON.parse(row.data) : [];
+      const items = safeParse(row && row.data, []);
       return json({ items });
     }
     if (path === '/api/admin/comp/preemptive/add' && method === 'POST') {
       if (!body.tier || !body.data) return json({ success:false, message:'tier and data required' }, 400);
       const key  = 'preemptive_' + body.tier.toLowerCase();
       const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
-      const items = row ? JSON.parse(row.data) : [];
+      const items = safeParse(row && row.data, []);
       items.push(body.data);
       await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
       return json({ success:true, message:'Added.', count: items.length });
@@ -506,7 +519,7 @@ async function dispatchAdminApi(request, env) {
       if (!body.tier || body.index === undefined) return json({ success:false, message:'tier and index required' }, 400);
       const key  = 'preemptive_' + body.tier.toLowerCase();
       const row  = await env.DB.prepare('SELECT data FROM images WHERE key=?').bind(key).first();
-      const items = row ? JSON.parse(row.data) : [];
+      const items = safeParse(row && row.data, []);
       items.splice(body.index, 1);
       await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)').bind(key, JSON.stringify(items)).run();
       return json({ success:true, message:'Deleted.' });
@@ -563,12 +576,15 @@ async function dispatchAdminApi(request, env) {
     // ── Comp Chars ────────────────────────────────────────────
     if (path === '/api/admin/comp/chars/save' && method === 'POST') {
       if (!body.tier || !Array.isArray(body.chars)) return json({ success:false, message:'tier and chars[] required' }, 400);
-      await env.DB.prepare('DELETE FROM comp_chars WHERE tier=?').bind(body.tier).run();
+      // Atomic: the delete and all inserts commit together, so a mid-loop
+      // failure can't leave the tier wiped or half-populated.
+      const stmts = [env.DB.prepare('DELETE FROM comp_chars WHERE tier=?').bind(body.tier)];
       for (const c of body.chars) {
-        await env.DB.prepare(
+        stmts.push(env.DB.prepare(
           'INSERT INTO comp_chars (tier,position,char_name,char_slug,costume_name,bond_stats) VALUES (?,?,?,?,?,?)'
-        ).bind(body.tier, c.position||0, c.char_name||'', c.char_slug||'', c.costume_name||'', c.bond_stats||'').run();
+        ).bind(body.tier, c.position||0, c.char_name||'', c.char_slug||'', c.costume_name||'', c.bond_stats||''));
       }
+      await env.DB.batch(stmts);
       return json({ success:true, message:'Chars saved.' });
     }
     if (path === '/api/admin/comp/chars/get' && method === 'GET') {
@@ -612,7 +628,7 @@ async function dispatchAdminApi(request, env) {
         4: { title: 'Building PvP Characters', content: 'Tanks: target 105% Magic Resist, Defence at 90%\nDamage carries: 50% Crit Rate with buffer, 100% without\nJustia & Alec: HP ring with ATK substats + Magic Resist Armor\nAll compositions can swap lanes' },
       };
       const row  = await env.DB.prepare("SELECT data FROM images WHERE key=?").bind('home_strategy_' + slot).first();
-      const data = row ? JSON.parse(row.data) : (defaults[slot] || { title: '', content: '' });
+      const data = safeParse(row && row.data, defaults[slot] || { title: '', content: '' });
       return json({ data });
     }
 
