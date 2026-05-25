@@ -1,19 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
-
-const ADMIN_PASSWORD = 'Anime0404!';
-
-function isAuthed(request) {
-  const cookie = request.headers.get('Cookie') || '';
-  return cookie.split(';').some(c => c.trim() === 'admin=true');
-}
-
-async function getAdminPassword(env) {
-  try {
-    const row = await env.DB.prepare("SELECT data FROM images WHERE key='admin_password'").first();
-    if (row && row.data) return row.data;
-  } catch {}
-  return ADMIN_PASSWORD;
-}
+import { isAuthed, getAdminPassword, createSessionCookie, clearSessionCookie } from '../lib/auth.js';
 
 export async function handleAdminLogin(request, env) {
   const form = await request.formData();
@@ -23,7 +9,7 @@ export async function handleAdminLogin(request, env) {
       status: 302,
       headers: {
         Location: '/admin',
-        'Set-Cookie': 'admin=true; Path=/; HttpOnly; SameSite=Lax',
+        'Set-Cookie': await createSessionCookie(env),
       },
     });
   }
@@ -35,13 +21,13 @@ export async function handleAdminLogout() {
     status: 302,
     headers: {
       Location: '/',
-      'Set-Cookie': 'admin=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'Set-Cookie': clearSessionCookie(),
     },
   });
 }
 
 export async function handleAdmin(request, env) {
-  if (!isAuthed(request)) return renderLogin();
+  if (!(await isAuthed(request, env))) return renderLogin();
 
   let coupons = [], emotes = [], comps = [], images = [], chars = [];
   let mamonirTapCount = 7;
@@ -1633,7 +1619,7 @@ async function addComp() {
     var compSel = document.getElementById('comp-select');
     if (compSel) {
       var opt = document.createElement('option');
-      opt.value = 'db-' + r.id;
+      opt.value = r.id;
       opt.dataset.tier = tier;
       opt.textContent = tier + ' — ' + name + ' (' + type + ')';
       var newOpt = compSel.querySelector('option[value="new"]');
@@ -3154,13 +3140,7 @@ async function normalizeCompTiers() {
   showAlert('normalize-alert', true, 'Normalizing…');
   var r = await apiPost('/api/admin/comp/normalize-tiers', {});
   showAlert('normalize-alert', r.success, r.message);
-  if (r.success) {
-    // Reload comps from server
-    try {
-      var res = await fetch('/api/admin/chars/list'); // reuse pattern: fetch comps fresh
-    } catch(e) {}
-    window.location.reload();
-  }
+  if (r.success) window.location.reload();
 }
 
 async function resetAllChars() {

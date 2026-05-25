@@ -18,6 +18,9 @@ export async function handleCharacters(request, env) {
 async function buildCharactersHtml(env, request) {
   let chars = [];
   const costumesMap = {};
+  // Slugs of any "who am I?" anomaly characters. Their cards are rendered
+  // hidden by default and only revealed client-side when the puzzle is live.
+  const ghostSlugs = new Set();
 
   try {
     if (!_charsSchemaReady) {
@@ -32,6 +35,10 @@ async function buildCharactersHtml(env, request) {
         if (!costumesMap[c.char_slug]) costumesMap[c.char_slug] = [];
         costumesMap[c.char_slug].push(c);
       }
+    }
+    const gr = await env.DB.prepare("SELECT unlock_target FROM emote_sets WHERE unlock_mode='who_am_i' AND unlock_page='characters'").all().catch(() => ({ results: [] }));
+    for (const row of (gr.results || [])) {
+      if (row.unlock_target) ghostSlugs.add(String(row.unlock_target).toLowerCase());
     }
   } catch { /* ignore */ }
 
@@ -60,8 +67,9 @@ async function buildCharactersHtml(env, request) {
     const defaultImg = baseCostume
       ? `/img/char_${esc(slug)}_${esc(baseCostume.costume_slug)}_icon`
       : `/img/char_${esc(slug)}_portrait`;
+    const isGhost = ghostSlugs.has(String(slug).toLowerCase());
 
-    return `<div class="char-page-card" data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow};--codex-i:${i}">
+    return `<div class="char-page-card${isGhost ? ' char-ghost-hidden' : ''}"${isGhost ? ' data-ghost="1"' : ''} data-element="${esc(el)}" data-atk-type="${esc(atk)}" style="--el-color:${elemColor};--el-glow:${elemGlow};--codex-i:${i}">
   <div class="char-img-wrap">
     <span class="char-initial">${esc(char.name.charAt(0))}</span>
     <img src="${defaultImg}" class="img-err-hide char-portrait-img" id="cp-portrait-${esc(slug)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1">
@@ -167,6 +175,11 @@ async function buildCharactersHtml(env, request) {
              0 0 22px var(--el-glow,rgba(201,168,76,0.18));
 }
 .char-coming-soon { opacity:0.5; border-top-color: var(--border2) !important; --el-color:var(--border2); }
+/* Anomaly ("who am I?") card — hidden by default, server-side, so it never
+   flashes on load and the element/attack filters (which set inline display)
+   can't reveal it. The client lifts this class only when the Hard puzzle
+   tier is reachable and the riddle is unsolved. */
+.char-page-card.char-ghost-hidden { display:none !important; }
 .char-img-wrap {
   position:relative;height:230px;background:var(--bg4);overflow:hidden;
   display:flex;align-items:center;justify-content:center;
@@ -277,17 +290,22 @@ function setupWhoAmI() {
     var targetSlug = (s.unlock_target || '').toLowerCase();
     if (!targetSlug) return;
     var picker = document.querySelector('.char-costume-picker[data-slug="' + targetSlug + '"]');
-    var ghostCard = picker ? picker.closest('.char-page-card') : null;
+    var ghostCard = picker ? picker.closest('.char-page-card') : (document.querySelector('.char-page-card[data-ghost="1"]'));
+    // Solved, or Hard tier not yet reachable → keep the card hidden. The
+    // server already rendered it with .char-ghost-hidden, so we just leave
+    // (or re-assert) that class; the !important rule keeps the element/attack
+    // filters from revealing it.
     if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') {
-      if (ghostCard) ghostCard.style.display = 'none';
+      if (ghostCard) ghostCard.classList.add('char-ghost-hidden');
       return;
     }
-    // Ghost card stays hidden until the Hard difficulty tier is available.
     if (!tierUnlocked(s.difficulty || 'easy')) {
-      if (ghostCard) ghostCard.style.display = 'none';
+      if (ghostCard) ghostCard.classList.add('char-ghost-hidden');
       return;
     }
     if (!picker) return;
+    // Riddle is live: lift the hide and let the card obey the active filter.
+    if (ghostCard) revealGhostCard(ghostCard);
     var opt = document.createElement('option');
     opt.value = '__who_am_i__';
     opt.textContent = '~ Who Am I? ~';
@@ -319,7 +337,9 @@ function setupWhoAmI() {
         if (ghostCard) {
           ghostCard.style.transition = 'opacity 0.6s ease';
           ghostCard.style.opacity = '0';
-          setTimeout(function() { ghostCard.style.display = 'none'; }, 650);
+          // Re-assert the filter-proof hide once the fade completes so the
+          // card can't reappear when the visitor changes element filters.
+          setTimeout(function() { ghostCard.classList.add('char-ghost-hidden'); ghostCard.style.opacity = ''; }, 650);
         }
       } else {
         if (errEl) { errEl.textContent = 'Incorrect. Try again.'; setTimeout(function() { if (errEl) errEl.textContent = ''; }, 2000); }
@@ -329,6 +349,17 @@ function setupWhoAmI() {
     if (btn) btn.addEventListener('click', checkWhoAmI);
     if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkWhoAmI(); });
   });
+}
+
+// Lift the filter-proof hide and immediately reconcile with whatever element
+// filter is currently active, so revealing while on a non-matching element
+// doesn't pop the card into view.
+function revealGhostCard(card) {
+  card.classList.remove('char-ghost-hidden');
+  var active = document.querySelector('.elem-filter-btn.active');
+  var el = active ? (active.dataset.element || 'all').toLowerCase() : 'all';
+  var ce = (card.dataset.element || '').toLowerCase();
+  card.style.display = (el === 'all' || ce === el) ? '' : 'none';
 }
 
 // Delegated element-filter handler — survives if KITSU_SETS load fails
