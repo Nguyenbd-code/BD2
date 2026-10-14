@@ -1,6 +1,8 @@
 {
   "name": "bnkitsu-bd2",
   "version": "1.0.0",
+  "description": "Fan companion site for the game Brown Dust 2, built on Cloudflare Workers and D1",
+  "author": "Brandon Nguyen",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
