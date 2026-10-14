@@ -110,3 +110,56 @@ export async function isAuthed(request, env) {
   const age = Date.now() - issuedAt;
   return age >= 0 && age <= SESSION_MAX_AGE_S * 1000;
 }
+
+// ── Failed-login lockout ────────────────────────────────────
+// After MAX_FAILURES wrong passwords from one IP within LOCKOUT_MS, that IP
+// is blocked from logging in until the window ends. A correct login clears
+// the counter.
+const MAX_FAILURES = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+let _attemptsTableReady = false;
+
+async function ensureAttemptsTable(env) {
+  if (_attemptsTableReady) return;
+  await env.DB.prepare(
+    'CREATE TABLE IF NOT EXISTS admin_login_attempts (ip TEXT PRIMARY KEY, failures INTEGER NOT NULL, window_start INTEGER NOT NULL)'
+  ).run();
+  _attemptsTableReady = true;
+}
+
+export function clientIp(request) {
+  return request.headers.get('CF-Connecting-IP') || 'unknown';
+}
+
+export async function isLoginLocked(env, ip) {
+  try {
+    await ensureAttemptsTable(env);
+    const row = await env.DB.prepare('SELECT failures, window_start FROM admin_login_attempts WHERE ip=?').bind(ip).first();
+    if (!row) return false;
+    if (Date.now() - row.window_start > LOCKOUT_MS) return false;
+    return row.failures >= MAX_FAILURES;
+  } catch {
+    return false;
+  }
+}
+
+export async function recordLoginFailure(env, ip) {
+  try {
+    await ensureAttemptsTable(env);
+    const now = Date.now();
+    // Start a new window if the old one has expired; otherwise count up.
+    await env.DB.prepare(
+      `INSERT INTO admin_login_attempts (ip, failures, window_start) VALUES (?, 1, ?)
+       ON CONFLICT(ip) DO UPDATE SET
+         failures     = CASE WHEN ? - window_start > ? THEN 1 ELSE failures + 1 END,
+         window_start = CASE WHEN ? - window_start > ? THEN ? ELSE window_start END`
+    ).bind(ip, now, now, LOCKOUT_MS, now, LOCKOUT_MS, now).run();
+  } catch {}
+}
+
+export async function clearLoginFailures(env, ip) {
+  try {
+    await ensureAttemptsTable(env);
+    await env.DB.prepare('DELETE FROM admin_login_attempts WHERE ip=?').bind(ip).run();
+  } catch {}
+}

@@ -1,9 +1,15 @@
 import { layout, esc } from '../layout/layout.js';
-import { isAuthed, verifyAdminPassword, createSessionCookie, clearSessionCookie } from '../lib/auth.js';
+import { isAuthed, verifyAdminPassword, createSessionCookie, clearSessionCookie,
+         clientIp, isLoginLocked, recordLoginFailure, clearLoginFailures } from '../lib/auth.js';
 
 export async function handleAdminLogin(request, env) {
+  const ip = clientIp(request);
+  if (await isLoginLocked(env, ip)) {
+    return renderLogin('Too many failed attempts. Try again in 15 minutes.');
+  }
   const form = await request.formData();
   if (await verifyAdminPassword(env, form.get('password'))) {
+    await clearLoginFailures(env, ip);
     return new Response('', {
       status: 302,
       headers: {
@@ -12,6 +18,7 @@ export async function handleAdminLogin(request, env) {
       },
     });
   }
+  await recordLoginFailure(env, ip);
   return renderLogin('Incorrect password.');
 }
 
