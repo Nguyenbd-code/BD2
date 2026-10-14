@@ -7,6 +7,7 @@
 const SESSION_COOKIE = 'admin_session';
 const TOKEN_PREFIX   = 'admin';
 const SECRET_KEY = 'admin_secret';
+const SESSION_MAX_AGE_S = 7 * 24 * 60 * 60; // sessions last 7 days
 
 const enc = new TextEncoder();
 let _cachedSecret = null;
@@ -82,7 +83,7 @@ export async function createSessionCookie(env) {
   if (!secret) throw new Error('Session signing key unavailable');
   const payload = TOKEN_PREFIX + '.' + Date.now();
   const sig = await hmac(secret, payload);
-  return `${SESSION_COOKIE}=${payload}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
+  return `${SESSION_COOKIE}=${payload}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_S}`;
 }
 
 export function clearSessionCookie() {
@@ -100,5 +101,12 @@ export async function isAuthed(request, env) {
   const secret = await getSigningSecret(env);
   if (!secret) return false;
   const expected = await hmac(secret, payload);
-  return timingSafeEqual(sig, expected);
+  if (!timingSafeEqual(sig, expected)) return false;
+  // The cookie's Max-Age only tells the browser when to drop it, so the
+  // server checks the signed issue time too. A copied cookie stops working
+  // after 7 days no matter where it is used.
+  const issuedAt = Number(payload.slice(TOKEN_PREFIX.length + 1));
+  if (!Number.isFinite(issuedAt)) return false;
+  const age = Date.now() - issuedAt;
+  return age >= 0 && age <= SESSION_MAX_AGE_S * 1000;
 }
