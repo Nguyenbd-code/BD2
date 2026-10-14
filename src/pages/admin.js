@@ -1,10 +1,9 @@
 import { layout, esc } from '../layout/layout.js';
-import { isAuthed, getAdminPassword, createSessionCookie, clearSessionCookie } from '../lib/auth.js';
+import { isAuthed, verifyAdminPassword, createSessionCookie, clearSessionCookie } from '../lib/auth.js';
 
 export async function handleAdminLogin(request, env) {
   const form = await request.formData();
-  const correctPassword = await getAdminPassword(env);
-  if (form.get('password') === correctPassword) {
+  if (await verifyAdminPassword(env, form.get('password'))) {
     return new Response('', {
       status: 302,
       headers: {
