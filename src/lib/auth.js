@@ -1,12 +1,11 @@
 // Admin authentication. Sessions are HMAC-signed tokens in a cookie; the
 // signing key is generated once (32 random bytes) and persisted in D1, so it
-// never lives in source and forging a session is infeasible. Prefer setting
-// env.ADMIN_PASSWORD (and optionally env.ADMIN_SECRET) as Workers secrets;
-// the in-source fallback password below is a last resort to avoid lockout and
-// should be overridden + rotated.
+// never lives in source and forging a session is infeasible. The admin
+// password comes from the ADMIN_PASSWORD Workers secret (or a password saved
+// from the admin panel). There is no fallback: if neither is set, every login
+// attempt is rejected.
 const SESSION_COOKIE = 'admin_session';
 const TOKEN_PREFIX   = 'admin';
-const FALLBACK_PASSWORD = 'Anime0404!';
 const SECRET_KEY = 'admin_secret';
 
 const enc = new TextEncoder();
@@ -40,7 +39,7 @@ async function getSigningSecret(env) {
     }
     if (row && row.data) { _cachedSecret = row.data; return row.data; }
   } catch {}
-  return 'bd2-insecure-fallback';
+  return null;
 }
 
 async function hmac(secret, msg) {
@@ -62,11 +61,25 @@ export async function getAdminPassword(env) {
     const row = await env.DB.prepare("SELECT data FROM images WHERE key='admin_password'").first();
     if (row && row.data) return row.data;
   } catch {}
-  return FALLBACK_PASSWORD;
+  return null;
+}
+
+// Compares a login attempt to the configured password in constant time by
+// hashing both first, so the comparison never leaks length or prefix matches.
+export async function verifyAdminPassword(env, attempt) {
+  if (typeof attempt !== 'string' || attempt.length === 0) return false;
+  const correct = await getAdminPassword(env);
+  if (typeof correct !== 'string' || correct.length === 0) return false;
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(attempt)),
+    crypto.subtle.digest('SHA-256', enc.encode(correct)),
+  ]);
+  return timingSafeEqual(b64url(new Uint8Array(a)), b64url(new Uint8Array(b)));
 }
 
 export async function createSessionCookie(env) {
   const secret = await getSigningSecret(env);
+  if (!secret) throw new Error('Session signing key unavailable');
   const payload = TOKEN_PREFIX + '.' + Date.now();
   const sig = await hmac(secret, payload);
   return `${SESSION_COOKIE}=${payload}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`;
@@ -85,6 +98,7 @@ export async function isAuthed(request, env) {
   const sig = token.slice(lastDot + 1);
   if (!payload.startsWith(TOKEN_PREFIX + '.')) return false;
   const secret = await getSigningSecret(env);
+  if (!secret) return false;
   const expected = await hmac(secret, payload);
   return timingSafeEqual(sig, expected);
 }
