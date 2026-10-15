@@ -44,12 +44,16 @@ export async function handleRedeem(request) {
   try {
     res = await fetch(API_ENDPOINT, {
       method: 'POST',
-      // Identify honestly as this site rather than imitating the official
-      // redeem page or a browser.
+      // The coupon API only accepts requests that carry the official redeem
+      // page's Origin/Referer and a browser User-Agent, so these are sent as
+      // that page would send them. The rate limit above keeps this endpoint
+      // from being used for anything beyond normal redeeming.
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'BnKitsu-BD2Guide/1.0 (+https://browndust2-bnkitsu.com)',
+        'Origin': 'https://redeem.bd2.pmang.cloud',
+        'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
       },
       body: JSON.stringify({ appId: APP_ID, userId: nickname, code }),
     });
