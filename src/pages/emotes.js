@@ -3,14 +3,12 @@ import { readProgress } from '../lib/kitsu.js';
 import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses module state across requests within an
-// isolate, so the migration block in ensureSchema only fires the first time
-// the isolate handles /emotes. Subsequent requests skip ~10 ALTER/UPDATE
-// round-trips.
+// isolate, so ensureSchema only fires the first time the isolate handles
+// /emotes.
 let _schemaReady = false;
 
-// Bump this suffix whenever a new vN migration block is added below. Any
-// database that already shows this marker can skip the entire migration
-// block on cold-isolate startup, turning ~16 D1 round-trips into 1.
+// Any database that already shows this marker can skip the schema setup on
+// cold-isolate startup, turning ~10 D1 round-trips into 1.
 const SCHEMA_MARKER_KEY = 'emote_schema_v10';
 
 async function ensureSchema(env) {
@@ -38,148 +36,17 @@ async function ensureSchema(env) {
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN display_location TEXT DEFAULT ''").run().catch(()=>{});
   // extra_sequence/extra_reveal: optional nested sub-puzzle inside extra_hint.
   // When extra_sequence is a comma-list of char-circle slugs and the player
-  // matches that tail in kitsu_char_clicks, extra_reveal gets appended to the
-  // extra_hint modal. Per-set so admin can drive it without code changes.
+  // matches it in the side menu (checked by /api/kitsu/attempt), extra_reveal
+  // gets appended to the extra_hint modal. Per-set so admin can drive it
+  // without code changes.
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_sequence TEXT DEFAULT ''").run().catch(()=>{});
   await env.DB.prepare("ALTER TABLE emote_sets ADD COLUMN extra_reveal TEXT DEFAULT ''").run().catch(()=>{});
 
-  const set1Riddle = "The one I cherish hides a number in the length of her name. Uncover it, then awaken her element with that same number of touches, and when the awakening is complete, seal it with Magic.";
-  const set3Riddle = "Some things endure attention.\nOthers break beneath persistence.\n\nA certain symbol watches from above, unmoving and silent.\nMost pass by it without thought.\n\nBut those who insist, repeating the act without stopping,\nmay discover that even fixed things can fall.";
-  const set2Riddle = "Six marks lie hidden where expressions live.\nFive belong to the name you seek. One does not.\nPress what feels out of place last.\nBefore it, trace the name that was always there: not spoken in order, but remembered in feeling.\nBegin where silence feels sharp, not soft, and end with what does not belong.";
-  const set4Riddle = "I start where silence learns to walk without being seen, I follow the edge of warmth that lingers just behind it, I move into the call that answers the night in numbers rather than voice, I rise into the shadow that wears the shape of command, and I end where thought dissolves beneath a patient, endless depth.";
-  const set5Riddle = "The sea answers before the flame remembers.\nWhat is pure stands quietly between shadow and sky, though shadow never comes first.\nThe wind forgets nothing, yet speaks last, and only after the tide has already moved.\n\nYou must press the elements in order.";
-  const set6Hint = "Among the many who are remembered, one does not belong to memory.\nNot in strength, not in name… but in presence.\n\nLook carefully through those who should feel familiar.\nSomething exists that was never meant to be part of them.\n\nA portrait that does not match the world around it.\nA face that does not answer to any story.\n\nWhen you find what should not exist, do not treat it as a character.\nOpen it. Listen. Then ask the question it offers you.\n\n\"Who am I?\"\n\nThe answer is already known, it only forgot its shape.";
+  // Puzzle content (riddles, unlock modes, answers) is managed from the admin
+  // panel and lives only in D1. Older builds seeded and migrated it from
+  // here; every live database already carries those changes (see the
+  // emote_schema_v10 marker), so that code has been removed.
 
-  const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM emote_sets').first().catch(()=>null);
-  if (!r || !r.n) {
-    const setIRiddle = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
-    const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-    // Letters keep their original set-num positions so each letter still maps
-    // to its native mechanic. KITSU sequence stays solvable across tiers
-    // because letter buttons remain clickable even on tier-locked cards.
-    const defaults = [
-      // set_num, letter, hint, page, target, count, mode, seq, difficulty, extra_hint, display_location, extra_sequence, extra_reveal
-      [1, 'S', set1Riddle, 'characters', 'water', 7, 'count_then_seal', 'magic',                            'easy',   '',              '',              '',                  ''],
-      [2, 'T', set2Riddle, 'emotes',     '',      0, 'letter_sequence', 'K,I,T,S,U',                       'medium', '',              "Kitsu's Emotes",'',                  ''],
-      [3, 'K', set3Riddle, 'navigation', '',      0, 'nav_icon_tap',    '',                                 'easy',   '',              '?????',         '',                  ''],
-      [4, 'I', setIRiddle, 'sidebar',    '',      0, 'char_sequence',   'dalvi,rou,tyr,yuri,mamonir',       'medium', '',              'Side Menu',     '',                  ''],
-      [5, 'M', set5Riddle, 'characters', '',      0, 'sequence',        'water,fire,light,dark,wind',       'hard',   setMExtraHint,  '',              'rou,zenith,yuri',   'Only 8 Elements.'],
-      [6, 'U', set6Hint,   'characters', 'synae', 0, 'who_am_i',        'Synae',                            'hard',   '',              '',              '',                  ''],
-    ];
-    for (const [sn, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal] of defaults) {
-      await env.DB.prepare('INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, difficulty, extra_hint, display_location, extra_sequence, extra_reveal) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(sn, letter, letter, hint, page, target, count, mode, seq, diff, extra, loc, eseq, ereveal).run().catch(()=>{});
-    }
-  } else {
-    // One-time v2 migration: update sets to new config if not yet done
-    const v2 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v2_migrated'").first().catch(()=>null);
-    if (!v2) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v2_migrated','1')").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='S', set_letter='S' WHERE set_num=1 AND (name='Set 1' OR name IS NULL)").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='T', set_letter='T', hint=?, unlock_page='emotes', unlock_target='', unlock_count=0, unlock_mode='letter_sequence', unlock_sequence='K,I,T,S,U' WHERE set_num=2").bind(set2Riddle).run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='K', set_letter='K' WHERE set_num=3 AND (name='Set 3' OR name IS NULL)").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=4 AND (name='Set 4' OR name IS NULL)").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M', hint=?, unlock_mode='sequence', unlock_sequence='water,fire,light,dark,wind', unlock_count=0 WHERE set_num=5").bind(set5Riddle).run().catch(()=>{});
-      await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
-      // Force update set 6 hint to new text
-      await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=6").bind(set6Hint).run().catch(()=>{});
-    }
-    // Always ensure set 6 exists
-    await env.DB.prepare("INSERT OR IGNORE INTO emote_sets (set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence) VALUES (6,'U','U',?,'characters','synae',0,'who_am_i','Synae')").bind(set6Hint).run().catch(()=>{});
-    // Migrate set 3 to nav_icon_tap mode (once)
-    const set3MigDone = await env.DB.prepare("SELECT data FROM images WHERE key='emote_set3_nav_migrated'").first().catch(()=>null);
-    if (!set3MigDone) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_set3_nav_migrated','1')").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='navigation', unlock_target='', unlock_count=0, unlock_mode='nav_icon_tap', unlock_sequence='' WHERE set_num=3").bind(set3Riddle).run().catch(()=>{});
-    }
-    // v3 migration: set 1 -> count_then_seal (+magic), set 4 -> char_sequence
-    const v3 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v3_migrated'").first().catch(()=>null);
-    if (!v3) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v3_migrated','1')").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_mode='count_then_seal', unlock_sequence='magic' WHERE set_num=1").bind(set1Riddle).run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_page='sidebar', unlock_target='', unlock_count=0, unlock_mode='char_sequence', unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4").bind(set4Riddle).run().catch(()=>{});
-    }
-    // v4 migration: shuffle letters, difficulty tiers, Set 7, new Set I riddle, location overrides, Set M extra hint
-    const v4 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v4_migrated'").first().catch(()=>null);
-    if (!v4) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v4_migrated','1')").run().catch(()=>{});
-      // Letter shuffle — letters still spell KITSU when sets are pressed in the right order.
-      // Old → New: S→K (1), T→I (2), K→S (3), I→T (4), M→U (5), U→M (6).
-      await env.DB.prepare("UPDATE emote_sets SET name='K', set_letter='K' WHERE set_num=1").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=2").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='S', set_letter='S' WHERE set_num=3").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='T', set_letter='T' WHERE set_num=4").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='U', set_letter='U' WHERE set_num=5").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M' WHERE set_num=6").run().catch(()=>{});
-      // Difficulty tiers
-      await env.DB.prepare("UPDATE emote_sets SET difficulty='easy'   WHERE set_num IN (1,3)").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET difficulty='medium' WHERE set_num IN (2,4)").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET difficulty='hard'   WHERE set_num IN (5,6)").run().catch(()=>{});
-      // Set 4 (now letter T): new riddle and shorter character sequence
-      const newSet4Riddle = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-      await env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='rou,dalvi,yuri' WHERE set_num=4").bind(newSet4Riddle).run().catch(()=>{});
-      // Location overrides shown in the hint modal
-      await env.DB.prepare("UPDATE emote_sets SET display_location='?????'        WHERE set_num=3").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET display_location='Kitsu''s Emotes' WHERE set_num=2").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu'    WHERE set_num=4").run().catch(()=>{});
-      // Set M (letter M, set_num=6) gets an extra hint surfaced via a second ? button.
-      const set6ExtraHint = "Look for the one who feels almost familiar — a portrait without a story attached to it. The answer is in the name nobody asks for.";
-      await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=6").bind(set6ExtraHint).run().catch(()=>{});
-    }
-    // v7 migration — first gated re-sync.
-    const v7 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v7_migrated'").first().catch(()=>null);
-    if (!v7) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v7_migrated','1')").run().catch(()=>{});
-      const setIRiddleV7 = "The first hides hunger beneath affection.\nThe second remains where others would flee.\nThe third knows too little to distrust the world.\nThe fourth walks softly enough to disappear.\nThe last waits below, where even death obeys.";
-      const setMExtraHint = "In the quiet fields, the small one with quick feet hides when danger comes near.\nThe one with sharp eyes and the one with striped strength both chase through night and shadow.\n\nWhat are they?";
-      await Promise.all([
-        env.DB.prepare("UPDATE emote_sets SET hint=?, unlock_sequence='dalvi,rou,tyr,yuri,mamonir' WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV7).run().catch(()=>{}),
-        env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{}),
-        env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=2 AND unlock_mode='letter_sequence'").bind(set2Riddle).run().catch(()=>{}),
-      ]);
-    }
-    // v8 migration — refresh Set I riddle text only (sequence kept the same).
-    const v8 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v8_migrated'").first().catch(()=>null);
-    if (!v8) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v8_migrated','1')").run().catch(()=>{});
-      const setIRiddleV8 = "I begin with charm that conceals its true intentions.\nI follow with loyalty that never learned to leave.\nI drift through innocence too trusting to understand cruelty.\nI move beside justice that refuses to bend.\nI end beneath endless depths where even death kneels.";
-      await env.DB.prepare("UPDATE emote_sets SET hint=? WHERE set_num=4 AND unlock_mode='char_sequence'").bind(setIRiddleV8).run().catch(()=>{});
-    }
-    // v9 migration: rename "Hamburger" location label to "Side Menu" for
-    // any set whose admin-facing label still uses the old slang.
-    const v9 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v9_migrated'").first().catch(()=>null);
-    if (!v9) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v9_migrated','1')").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET display_location='Side Menu' WHERE display_location='Hamburger'").run().catch(()=>{});
-    }
-
-    // v5 migration: revert the v4 letter shuffle. v4 swapped letters per set_num
-    // but kept mechanics fixed, which broke the K-I-T-S-U letter sequence
-    // (Set T = letter_sequence at set_num=2 needed pressing U+M letters, which
-    // ended up on Hard tier sets). Putting each letter back on its original
-    // mechanic's set keeps the puzzle solvable: K = mamonir-falls (3, easy),
-    // S = element-count-seal (1, easy), T = letter_sequence (2, medium),
-    // I = char_sequence (4, medium), M = element-sequence (5, hard),
-    // U = who_am_i (6, hard). Also moves the extra_hint to Set M.
-    const v5 = await env.DB.prepare("SELECT data FROM images WHERE key='emote_v5_migrated'").first().catch(()=>null);
-    if (!v5) {
-      await env.DB.prepare("INSERT OR IGNORE INTO images (key,data) VALUES ('emote_v5_migrated','1')").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='S', set_letter='S' WHERE set_num=1").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='T', set_letter='T' WHERE set_num=2").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='K', set_letter='K' WHERE set_num=3").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='I', set_letter='I' WHERE set_num=4").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='M', set_letter='M' WHERE set_num=5").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET name='U', set_letter='U' WHERE set_num=6").run().catch(()=>{});
-      // Move the extra hint off Set U (6) and onto Set M (5), where the user
-      // actually asked for it. Hint targets the element-sequence puzzle.
-      const setMExtraHint = "Press them in the order of: ocean, flame, sun, void, breeze.";
-      await env.DB.prepare("UPDATE emote_sets SET extra_hint='' WHERE set_num=6").run().catch(()=>{});
-      await env.DB.prepare("UPDATE emote_sets SET extra_hint=? WHERE set_num=5").bind(setMExtraHint).run().catch(()=>{});
-    }
-    // Always seed Set M's nested sub-puzzle (sequence + reveal) when blank.
-    // Admin can change these via Settings; we only write when both fields
-    // are empty so a deliberate admin edit isn't clobbered.
-    await env.DB.prepare("UPDATE emote_sets SET extra_sequence='rou,zenith,yuri', extra_reveal='Only 8 Elements.' WHERE set_num=5 AND (extra_sequence IS NULL OR extra_sequence='') AND (extra_reveal IS NULL OR extra_reveal='')").run().catch(()=>{});
-  }
   // Stamp the umbrella marker so future cold isolates can take the fast path.
   await env.DB.prepare('INSERT OR REPLACE INTO images (key,data) VALUES (?,?)')
     .bind(SCHEMA_MARKER_KEY, '1').run().catch(()=>{});
