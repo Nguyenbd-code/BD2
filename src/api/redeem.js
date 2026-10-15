@@ -1,4 +1,6 @@
 import { json } from '../layout/layout.js';
+import { clientIp } from '../lib/auth.js';
+import { rateLimited } from '../lib/kitsu.js';
 
 const API_ENDPOINT = 'https://loj2urwaua.execute-api.ap-northeast-1.amazonaws.com/prod/coupon';
 const APP_ID = 'bd2-live';
@@ -17,23 +19,37 @@ function mapError(err) {
   }
 }
 
+// Coupon codes are short and alphanumeric; nicknames are capped to keep
+// requests to the game's API small and well-formed.
+const CODE_RE = /^[A-Za-z0-9_-]{3,32}$/;
+const MAX_NICKNAME = 32;
+
 export async function handleRedeem(request) {
+  // Per-IP limit so this endpoint can't be used to mass-guess codes against
+  // the game's coupon API. Redeeming every listed code at once fits easily.
+  if (rateLimited(clientIp(request), 'redeem', 20)) {
+    return json({ success: false, status: 'Error', message: 'Too many redeem attempts. Wait a minute and try again.' }, 429);
+  }
+
   let body;
   try { body = await request.json(); } catch { return json({ success: false, status: 'Error', message: 'Invalid request body.' }, 400); }
 
-  const { nickname, code } = body;
+  const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
+  const code = typeof body.code === 'string' ? body.code.trim() : '';
   if (!nickname || !code) return json({ success: false, status: 'Error', message: 'Missing nickname or code.' });
+  if (nickname.length > MAX_NICKNAME) return json({ success: false, status: 'IncorrectUser', message: 'Nickname is too long.' }, 400);
+  if (!CODE_RE.test(code)) return json({ success: false, status: 'InvalidCode', message: 'Invalid code format: use letters and numbers only.' }, 400);
 
   let res, text;
   try {
     res = await fetch(API_ENDPOINT, {
       method: 'POST',
+      // Identify honestly as this site rather than imitating the official
+      // redeem page or a browser.
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Origin': 'https://redeem.bd2.pmang.cloud',
-        'Referer': 'https://redeem.bd2.pmang.cloud/bd2/index.html?lang=en-EN',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'User-Agent': 'BnKitsu-BD2Guide/1.0 (+https://browndust2-bnkitsu.com)',
       },
       body: JSON.stringify({ appId: APP_ID, userId: nickname, code }),
     });
