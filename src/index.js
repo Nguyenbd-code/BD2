@@ -67,10 +67,9 @@ export default {
         let b = {};
         try { b = await request.json(); } catch {}
         const submitted = typeof b.code === 'string' ? b.code : '';
-        const DEFAULT_SECRET = 'Seji404';
         const row = await env.DB.prepare("SELECT data FROM images WHERE key='secret_code'").first().catch(()=>null);
-        const correct = (row && row.data) ? row.data : DEFAULT_SECRET;
-        const success = submitted.length > 0 && submitted === correct;
+        const correct = (row && row.data) ? row.data : '';
+        const success = correct.length > 0 && submitted === correct;
         const headers = { 'Content-Type': 'application/json' };
         if (success) {
           const p = await readProgress(request, env);
@@ -133,9 +132,12 @@ export default {
         }
       }
 
-      // Public emotes by set
+      // Emotes by set
+      // Only players who have unlocked a set (per their signed cookie) get its emotes.
       if (path === '/api/emotes/by-set' && method === 'GET') {
         const sn = parseInt(new URL(request.url).searchParams.get('set_num') || '1', 10);
+        const progress = await readProgress(request, env);
+        if (!progress.sets.has(sn)) return jsonResp({ emotes: [], locked: true }, 403);
         try {
           const r = await env.DB.prepare('SELECT * FROM emotes WHERE set_num=? ORDER BY created_at DESC').bind(sn).all();
           return new Response(JSON.stringify({ emotes: r.results || [] }), { headers: { 'Content-Type': 'application/json' } });
@@ -147,7 +149,9 @@ export default {
       // Redeem API
       if (path === '/api/redeem' && method === 'POST') return handleRedeem(request);
 
-      // Public emote sets metadata (unlock conditions, hints)
+      // Public emote sets metadata: hints and puzzle types only. Answers
+      // (unlock_target, unlock_sequence, extra_sequence, extra_reveal) stay on
+      // the server and are checked by /api/kitsu/attempt.
       if (path === '/api/emote-sets' && method === 'GET') {
         let rows = [];
         try {
@@ -164,7 +168,7 @@ export default {
             ]);
             _emoteSetsApiSchemaReady = true;
           }
-          const r = await env.DB.prepare('SELECT set_num, name, set_letter, hint, unlock_page, unlock_target, unlock_count, unlock_mode, unlock_sequence, unlock_message, difficulty, extra_hint, display_location, extra_sequence, extra_reveal FROM emote_sets ORDER BY set_num').all().catch(() => env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_target, unlock_count FROM emote_sets ORDER BY set_num').all());
+          const r = await env.DB.prepare('SELECT set_num, name, set_letter, hint, unlock_page, unlock_count, unlock_mode, unlock_message, difficulty, extra_hint, display_location FROM emote_sets ORDER BY set_num').all().catch(() => env.DB.prepare('SELECT set_num, name, hint, unlock_page, unlock_count FROM emote_sets ORDER BY set_num').all());
           rows = r.results || [];
         } catch(e) {}
         return new Response(JSON.stringify({ sets: rows }), { headers: { 'Content-Type': 'application/json' } });
