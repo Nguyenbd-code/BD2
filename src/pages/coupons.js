@@ -153,12 +153,6 @@ ${specialConfig.enabled ? `
 }
 .result-code { font-family:monospace;font-size:0.85rem;color:var(--text);flex:1;min-width:120px; }
 .result-rewards { font-size:0.72rem;color:var(--text3);flex:2; }
-.rb-debug {
-  flex-basis:100%;margin-top:0.4rem;padding:0.5rem 0.7rem;
-  background:rgba(0,0,0,0.35);border:1px dashed rgba(231,76,60,0.4);border-radius:4px;
-  font-family:'Courier New',monospace;font-size:0.7rem;color:#e67e22;
-  white-space:pre-wrap;word-break:break-all;line-height:1.5;
-}
 #toast-stack {
   position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);z-index:9999;
   display:flex;flex-direction:column;gap:0.5rem;width:340px;pointer-events:none;align-items:stretch;
@@ -231,11 +225,12 @@ function showToast(kind, title, msg) {
 function toastForResult(code, result) {
   var s = result.status;
   if (s === 'Success')       { showToast('success', code + ' - Redeemed!', result.message || 'Check your in-game mailbox.'); return; }
-  if (s === 'AlreadyUsed')   { showToast('warn',    code + ' - Already Used', result.message || ''); return; }
-  if (s === 'ExpiredCode')   { showToast('warn',    code + ' - Expired', result.message || ''); return; }
-  if (s === 'InvalidCode')   { showToast('error',   code + ' - Invalid Code', result.message || ''); return; }
-  if (s === 'IncorrectUser') { showToast('error',   'Wrong Nickname', result.message || 'Check your in-game name.'); return; }
-  showToast('error', code + ' - Error', result.message || 'Unknown error');
+  if (s === 'AlreadyUsed')   { showToast('warn',    code + ' - Already Claimed', 'You have already claimed this code.'); return; }
+  if (s === 'ExpiredCode')   { showToast('warn',    code + ' - Expired', 'This code has expired.'); return; }
+  if (s === 'Unavailable')   { showToast('warn',    code + ' - Claimed or Expired', 'This code is already claimed or expired.'); return; }
+  if (s === 'InvalidCode')   { showToast('error',   code + ' - Invalid Code', 'Please double-check the code.'); return; }
+  if (s === 'IncorrectUser') { showToast('error',   'Wrong Nickname', 'Check your in-game name.'); return; }
+  showToast('error', code + ' - Try Again', result.message || 'Something went wrong. Please try again.');
 }
 
 function escH(s) {
@@ -244,13 +239,13 @@ function escH(s) {
 function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
 function statusClass(s) {
-  var m = { Success:'rb-success', AlreadyUsed:'rb-used', ExpiredCode:'rb-expired', InvalidCode:'rb-invalid', IncorrectUser:'rb-user', NetworkError:'rb-error', Error:'rb-error' };
+  var m = { Success:'rb-success', AlreadyUsed:'rb-used', ExpiredCode:'rb-expired', Unavailable:'rb-expired', InvalidCode:'rb-invalid', IncorrectUser:'rb-user', NetworkError:'rb-error', Error:'rb-error' };
   return m[s] || 'rb-error';
 }
 
 function statusLabel(s) {
-  var m = { Success:'Redeemed!', AlreadyUsed:'Already Used', ExpiredCode:'Expired', InvalidCode:'Invalid Code', IncorrectUser:'Wrong Nickname', NetworkError:'Network Error', Error:'Error' };
-  return m[s] || s;
+  var m = { Success:'Redeemed!', AlreadyUsed:'Already Claimed', ExpiredCode:'Expired', Unavailable:'Claimed or Expired', InvalidCode:'Invalid Code', IncorrectUser:'Wrong Nickname', NetworkError:'Try Again', Error:'Try Again' };
+  return m[s] || 'Try Again';
 }
 
 function getNickname() {
@@ -265,18 +260,6 @@ async function redeemViaProxy(nickname, code) {
     body: JSON.stringify({ nickname: nickname, code: code }),
   });
   return await res.json();
-}
-
-function renderDebug(row, result) {
-  if (!row || row.querySelector('.rb-debug')) return;
-  var lines = [];
-  lines.push('msg: ' + (result.message || '-'));
-  lines.push('http: ' + (result.http != null ? result.http : '-'));
-  if (result.raw) lines.push('raw: ' + result.raw);
-  var div = document.createElement('div');
-  div.className = 'rb-debug';
-  div.textContent = lines.join('\\n');
-  row.appendChild(div);
 }
 
 async function redeemAll() {
@@ -324,14 +307,13 @@ async function redeemAll() {
         badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
         badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
       }
-      if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
       toastForResult(code, result);
       if (result.success) counts.success++;
-      else if (result.status === 'AlreadyUsed') counts.used++;
+      else if (result.status === 'AlreadyUsed' || result.status === 'ExpiredCode' || result.status === 'Unavailable') counts.used++;
       else counts.other++;
     } catch(e) {
-      if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
-      showToast('error', code + ' - Error', e.message || 'Request failed');
+      if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Try Again'; }
+      showToast('error', code + ' - Try Again', 'Something went wrong. Please try again.');
       counts.other++;
     }
   }
@@ -341,7 +323,7 @@ async function redeemAll() {
 
   var parts = [];
   if (counts.success) parts.push(counts.success + ' redeemed');
-  if (counts.used)    parts.push(counts.used + ' already used');
+  if (counts.used)    parts.push(counts.used + ' already claimed or expired');
   if (counts.other)   parts.push(counts.other + ' failed');
   summary.textContent = parts.join(' | ');
   showToast(counts.success ? 'success' : (counts.other ? 'warn' : 'info'), 'Done', parts.join(' | ') || 'Nothing to do');
@@ -369,8 +351,6 @@ async function redeemOne(code) {
   var row = document.getElementById(rowId);
   var badge = row.querySelector('.result-badge');
   if (badge) { badge.className = 'result-badge rb-pending'; badge.textContent = 'Trying...'; }
-  var prev = row.querySelector('.rb-debug');
-  if (prev) prev.remove();
 
   try {
     var result = await redeemViaProxy(nickname, code);
@@ -378,11 +358,10 @@ async function redeemOne(code) {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
     }
-    if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
     toastForResult(code, result);
   } catch(e) {
-    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
-    showToast('error', code + ' - Error', e.message || 'Request failed');
+    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Try Again'; }
+    showToast('error', code + ' - Try Again', 'Something went wrong. Please try again.');
   }
 }
 
@@ -418,12 +397,11 @@ async function redeemManual() {
       badge.className = 'result-badge ' + statusClass(result.status || (result.success ? 'Success' : 'Error'));
       badge.textContent = statusLabel(result.status || (result.success ? 'Success' : 'Error'));
     }
-    if (result.status !== 'Success' && result.status !== 'AlreadyUsed' && result.status !== 'IncorrectUser') renderDebug(row, result);
     toastForResult(code, result);
     if (result.success && codeEl) codeEl.value = '';
   } catch(e) {
-    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Error'; }
-    showToast('error', code + ' - Error', e.message || 'Request failed');
+    if (badge) { badge.className = 'result-badge rb-error'; badge.textContent = 'Try Again'; }
+    showToast('error', code + ' - Try Again', 'Something went wrong. Please try again.');
   }
 }
 
