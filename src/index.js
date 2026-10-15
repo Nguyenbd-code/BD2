@@ -10,6 +10,9 @@ import { handleImage }                             from './api/images.js';
 import { handleXVideo, handleXThumb, handleXTweet } from './api/xvideo.js';
 import { handleStylesheet }                        from './css/styles.js';
 import { handleNotFound }                          from './pages/notfound.js';
+import { clientIp }                              from './lib/auth.js';
+import { readProgress, progressCookie, clearProgressCookie, evaluateAttempt,
+         publicState, rateLimited }               from './lib/kitsu.js';
 
 // Module-level latch — coupon seeding only needs to happen once per database,
 // not once per request. Without this we ate a D1 SELECT COUNT(*) on every
@@ -17,6 +20,10 @@ import { handleNotFound }                          from './pages/notfound.js';
 // already populated. Set to true after a successful non-empty check.
 let _couponsSeeded = false;
 let _emoteSetsApiSchemaReady = false;
+
+function jsonResp(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+}
 
 export default {
   async fetch(request, env) {
@@ -53,21 +60,58 @@ export default {
         } catch(e) { /* ignore seed errors — retry on next isolate */ }
       }
 
-      // Secret code check (public, no auth)
+      // Secret code check (public, no auth). A correct code marks the
+      // visitor's signed progress cookie, which unlocks the Emotes page.
       if (path === '/api/secret/check' && method === 'POST') {
+        if (rateLimited(clientIp(request), 'secret', 10)) return jsonResp({ success: false, message: 'Too many attempts. Wait a minute.' }, 429);
         let b = {};
         try { b = await request.json(); } catch {}
-        const submitted = b.code || '';
+        const submitted = typeof b.code === 'string' ? b.code : '';
         const DEFAULT_SECRET = 'Seji404';
         const row = await env.DB.prepare("SELECT data FROM images WHERE key='secret_code'").first().catch(()=>null);
         const correct = (row && row.data) ? row.data : DEFAULT_SECRET;
-        return new Response(JSON.stringify({ success: submitted === correct }), {
-          headers: { 'Content-Type': 'application/json' },
+        const success = submitted.length > 0 && submitted === correct;
+        const headers = { 'Content-Type': 'application/json' };
+        if (success) {
+          const p = await readProgress(request, env);
+          p.home = true;
+          const c = await progressCookie(env, p);
+          if (c) headers['Set-Cookie'] = c;
+        }
+        return new Response(JSON.stringify({ success }), { headers });
+      }
+
+      // Puzzle attempts. The browser reports what the player did; the server
+      // compares it to answers that never leave the database.
+      if (path === '/api/kitsu/attempt' && method === 'POST') {
+        if (rateLimited(clientIp(request), 'kitsu', 120)) return jsonResp({ ok: false, message: 'Slow down a little.' }, 429);
+        let body = {};
+        try { body = await request.json(); } catch {}
+        const p = await readProgress(request, env);
+        const result = await evaluateAttempt(env, p, body);
+        const headers = { 'Content-Type': 'application/json' };
+        if (result.unlocked.length || result.revealed.length) {
+          const c = await progressCookie(env, p);
+          if (c) headers['Set-Cookie'] = c;
+        }
+        return new Response(JSON.stringify({ ok: true, ...result, state: await publicState(env, p) }), { headers });
+      }
+
+      if (path === '/api/kitsu/state' && method === 'GET') {
+        const p = await readProgress(request, env);
+        return jsonResp(await publicState(env, p));
+      }
+
+      // Lets a player wipe their own progress (used by the admin "Re-lock" button).
+      if (path === '/api/kitsu/reset' && method === 'POST') {
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { 'Content-Type': 'application/json', 'Set-Cookie': clearProgressCookie() },
         });
       }
 
       // Special code unlock
       if (path === '/api/special-code/unlock' && method === 'POST') {
+        if (rateLimited(clientIp(request), 'special', 10)) return jsonResp({ success: false, message: 'Too many attempts. Wait a minute.' }, 429);
         let sb = {};
         try { sb = await request.json(); } catch {}
         const enteredPasscode = sb.passcode || '';

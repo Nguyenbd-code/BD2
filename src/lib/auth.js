@@ -78,6 +78,19 @@ export async function verifyAdminPassword(env, attempt) {
   return timingSafeEqual(b64url(new Uint8Array(a)), b64url(new Uint8Array(b)));
 }
 
+// Signs a value with the site key for non-admin uses (puzzle progress).
+// The "kitsu|" prefix keeps these signatures from ever being valid as an
+// admin session token, which signs "admin.<time>" with the same key.
+export async function siteSign(env, msg) {
+  const secret = await getSigningSecret(env);
+  if (!secret) return null;
+  return hmac(secret, 'kitsu|' + msg);
+}
+
+export function safeEqual(a, b) {
+  return typeof a === 'string' && typeof b === 'string' && timingSafeEqual(a, b);
+}
+
 export async function createSessionCookie(env) {
   const secret = await getSigningSecret(env);
   if (!secret) throw new Error('Session signing key unavailable');
