@@ -1,9 +1,9 @@
 import { layout, esc } from '../layout/layout.js';
+import { readProgress } from '../lib/kitsu.js';
 import { memoTTL } from '../lib/memo.js';
 
 export async function handleCoupons(request, env) {
-  const cookie = request.headers.get('Cookie') || '';
-  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const isUnlocked = (await readProgress(request, env)).home;
   const html = await memoTTL(`coupons:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
     () => buildCouponsHtml(env, request));
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });

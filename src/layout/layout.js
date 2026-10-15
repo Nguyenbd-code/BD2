@@ -1,18 +1,18 @@
 import { getStyles, getCssVersion } from '../css/styles.js';
 import { memoTTL } from '../lib/memo.js';
+import { readProgress } from '../lib/kitsu.js';
 
 export async function layout(title, content, activePage = '', env = null, request = null) {
   let tapTarget = 7;
   let hasMamonir = false;
-  // Skip the two Mamonir D1 lookups entirely if the visitor isn't
-  // kitsu_unlocked yet — the falling-Mamonir feature is gated behind that
+  // Skip the two Mamonir D1 lookups entirely if the visitor hasn't
+  // solved the Home secret yet — the falling-Mamonir feature is gated behind that
   // anyway, so the markup never renders and we'd be paying for nothing.
   // Saves two D1 round-trips on the critical path of every public page for
   // every locked visitor (which is most of them).
   let isUnlocked = false;
   if (request) {
-    const cookie = request.headers ? (request.headers.get('Cookie') || '') : '';
-    isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+    isUnlocked = env ? (await readProgress(request, env)).home : false;
   } else {
     // Caller didn't pass request (back-compat) — assume unlocked so we don't
     // silently hide a working feature.
@@ -56,7 +56,7 @@ export async function layout(title, content, activePage = '', env = null, reques
     var icon = document.getElementById('mam-icon');
     var bubble = document.getElementById('mam-bubble');
     if (!wrap || !icon) return;
-    if (localStorage.getItem('kitsu_set_3') === '1') { wrap.style.display='none'; return; }
+    if (window.kitsuHas && window.kitsuHas(3)) { wrap.style.display='none'; return; }
     var n = parseInt(localStorage.getItem(KEY) || '0', 10);
     var regularLines = ['Owch!', 'Stop!', 'Octovius, finish it off!', 'Die!'];
     var climaxLines = ['I-I', "I'm!", "I'm Coming!"];
@@ -84,30 +84,28 @@ export async function layout(title, content, activePage = '', env = null, reques
     }
     wrap.addEventListener('click', function(e) {
       e.preventDefault();
-      if (localStorage.getItem('kitsu_set_3') === '1') return;
+      if (window.kitsuHas(3) || wrap.dataset.done === '1') return;
       n++;
       localStorage.setItem(KEY, String(n));
       icon.classList.add('mam-press');
       setTimeout(function() { icon.classList.remove('mam-press'); }, 120);
       showBubble(pickLine(n));
       if (n >= TARGET) {
-        localStorage.setItem('kitsu_set_3', '1');
-        localStorage.removeItem(KEY);
-        wrap.style.transition = 'transform 0.7s ease-in, opacity 0.7s ease-in';
-        wrap.style.transformOrigin = 'top center';
-        wrap.style.transform = 'translateY(80px) rotate(25deg)';
-        wrap.style.opacity = '0';
-        setTimeout(function() {
-          wrap.style.display = 'none';
-          fetch('/api/emote-sets').then(function(r) { return r.json(); }).then(function(d) {
-            var s = (d.sets || []).find(function(x) { return x.set_num === 3; }) || {};
-            var name = s.name || 'Set K';
-            var msg = s.unlock_message || 'The figure could not withstand your persistence. This set is now yours.';
-            if (window.showSetUnlockModal) window.showSetUnlockModal(3, name, msg);
-          }).catch(function() {
-            if (window.showSetUnlockModal) window.showSetUnlockModal(3, 'Set K', 'This set is now yours.');
-          });
-        }, 750);
+        // The server decides whether this counts; only fall if it agrees.
+        window.kitsuAttempt({ kind: 'nav_tap', taps: n }).then(function(d) {
+          var won = d.unlocked[0];
+          if (!won) return;
+          wrap.dataset.done = '1';
+          localStorage.removeItem(KEY);
+          wrap.style.transition = 'transform 0.7s ease-in, opacity 0.7s ease-in';
+          wrap.style.transformOrigin = 'top center';
+          wrap.style.transform = 'translateY(80px) rotate(25deg)';
+          wrap.style.opacity = '0';
+          setTimeout(function() {
+            wrap.style.display = 'none';
+            if (window.showSetUnlockModal) window.showSetUnlockModal(won.set_num, won.name, won.message);
+          }, 750);
+        });
       }
     });
   })();
@@ -126,29 +124,47 @@ export async function layout(title, content, activePage = '', env = null, reques
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"></noscript>
 <link rel="stylesheet" href="/styles.css?v=${getCssVersion()}">
 <script>try{
-  // Hide the falling-Mamonir nav button unless the visitor has already solved
-  // the Home-page secret code AND hasn't yet finished Set K (the click-to-fall
-  // puzzle). Locked visitors never see it — keeps the easter egg from
-  // existing before its prerequisite, and once Set K is solved it disappears
-  // for everyone as before.
-  if (localStorage.getItem('kitsu_unlocked') !== 'true' || localStorage.getItem('kitsu_set_3') === '1') {
-    var s = document.createElement('style');
-    s.textContent = '#mam-wrap{display:none!important}';
-    document.head.appendChild(s);
-  }
-}catch(e){}</script>
-<script>try{
-  // One-time migration: if the player solved the /emotes secret on an old
-  // build (localStorage only), mirror the unlock into a cookie so the server
-  // can lean-render the locked page. Reload exactly once per session if we
-  // landed on /emotes so the freshly-set cookie reaches the worker.
-  if (localStorage.getItem('kitsu_unlocked') === 'true' && !/(?:^|;\\s*)kitsu_unlocked=1/.test(document.cookie)) {
-    document.cookie = 'kitsu_unlocked=1; Path=/; Max-Age=31536000; SameSite=Lax';
-    if (location.pathname === '/emotes' && !sessionStorage.getItem('kitsu_cookie_migrated')) {
-      sessionStorage.setItem('kitsu_cookie_migrated', '1');
-      location.reload();
+  // Puzzle progress. The server records it in the signed kitsu_progress
+  // cookie; pages read it here to show what's unlocked, and report player
+  // actions through kitsuAttempt() so answers are only ever checked on the
+  // server. Editing the cookie by hand doesn't unlock anything, because the
+  // server rejects any cookie without a valid signature.
+  (function(){
+    function nums(s){ return s ? s.split('-').map(Number).filter(function(n){ return n > 0; }) : []; }
+    function readState(){
+      var m = document.cookie.match(/(?:^|;\s*)kitsu_progress=1\.([01])\.([0-9-]*)\.([0-9-]*)\./);
+      return { home: !!(m && m[1] === '1'), sets: m ? nums(m[2]) : [], reveals: m ? nums(m[3]) : [] };
     }
-  }
+    window.KITSU = readState();
+    window.kitsuHas = function(n){ return window.KITSU.sets.indexOf(Number(n)) !== -1; };
+    window.kitsuHome = function(){ return window.KITSU.home; };
+    window.kitsuAttempt = function(body){
+      return fetch('/api/kitsu/attempt', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(function(r){ return r.json(); }).then(function(d){
+        d = d || {};
+        if (d.state) window.KITSU = { home: !!d.state.home, sets: d.state.sets || [], reveals: Object.keys(d.state.reveals || {}).map(Number) };
+        d.unlocked = d.unlocked || []; d.revealed = d.revealed || [];
+        return d;
+      }).catch(function(){ return { unlocked: [], revealed: [] }; });
+    };
+    // Progress used to be saved only in the browser, where it could be
+    // edited. Clear those old saves once; everyone starts fresh.
+    if (localStorage.getItem('kitsu_v2') !== '1') {
+      Object.keys(localStorage).forEach(function(k){ if (k.indexOf('kitsu_') === 0) localStorage.removeItem(k); });
+      localStorage.setItem('kitsu_v2', '1');
+      document.cookie = 'kitsu_unlocked=; Path=/; Max-Age=0; SameSite=Lax';
+    }
+    // The falling-Mamonir figure only exists after the Home secret is solved
+    // and disappears once its set (3) is unlocked.
+    if (!window.kitsuHome() || window.kitsuHas(3)) {
+      var st = document.createElement('style');
+      st.textContent = '#mam-wrap{display:none!important}';
+      document.head.appendChild(st);
+    }
+  })();
 }catch(e){}</script>
 </head>
 <body>
@@ -299,20 +315,12 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     voiceTimer = setTimeout(function(){ voiceEl.classList.remove('show'); }, 2400);
   }
 
-  var charSetCache = null;
-  function loadSets() {
-    if (charSetCache) return Promise.resolve(charSetCache);
-    return fetch('/api/emote-sets').then(function(r){return r.json();}).then(function(d){
-      charSetCache = (d && d.sets) || [];
-      return charSetCache;
-    }).catch(function(){ return []; });
-  }
   // Rabbit-tap shortcut — 2x Liatris + 3x Zenith reveals where the lock-screen
   // secret-code lives. Only short-circuits once the user is properly unlocked;
   // the popup itself can re-trigger as many times as the player wants, since
   // each trigger clears the counters and forces them to do the sequence again.
   function checkRabbitShortcut() {
-    if (localStorage.getItem('kitsu_unlocked') === 'true') return;
+    if (window.kitsuHome()) return;
     var li = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10);
     var ze = parseInt(localStorage.getItem('kitsu_rabbit_zenith')  || '0', 10);
     if (li >= 2 && ze >= 3) {
@@ -353,8 +361,8 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     if (!slug) return;
     showVoiceLine(slug);
     // Bump rabbit-tap counters before everything else. Only gated by
-    // kitsu_unlocked so a locked player can always re-attempt the shortcut.
-    if (localStorage.getItem('kitsu_unlocked') !== 'true') {
+    // the Home secret so a locked player can always re-attempt the shortcut.
+    if (!window.kitsuHome()) {
       if (slug === 'liatris') {
         var n = parseInt(localStorage.getItem('kitsu_rabbit_liatris') || '0', 10) + 1;
         localStorage.setItem('kitsu_rabbit_liatris', String(n));
@@ -379,66 +387,26 @@ window.showSetUnlockModal = function(setNum, setName, message) {
     if (clicks.length > 30) clicks = clicks.slice(-30);
     localStorage.setItem('kitsu_char_clicks', JSON.stringify(clicks));
 
-    loadSets().then(function(sets){
-      // Difficulty gating — a tier is available only after every set in the previous tier is solved.
-      function unlocked(n){ return localStorage.getItem('kitsu_set_' + n) === '1'; }
-      function tierUnlocked(d){
-        if (d === 'easy') return true;
-        var prev = d === 'medium' ? 'easy' : 'medium';
-        var list = sets.filter(function(x){ return (x.difficulty||'easy') === prev; });
-        return list.length > 0 && list.every(function(x){ return unlocked(x.set_num); });
+    // Report the recent taps; the server checks them against the side-menu
+    // puzzle answers and any Sub-Riddle sequences.
+    window.kitsuAttempt({ kind: 'sidebar', events: clicks }).then(function(d){
+      d.revealed.forEach(function(r){
+        var toastKey = 'kitsu_reveal_toast_' + r.set_num;
+        var alreadyToasted = false;
+        try { alreadyToasted = sessionStorage.getItem(toastKey) === '1'; } catch(_){}
+        if (alreadyToasted) return;
+        try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
+        var toast = document.createElement('div');
+        toast.className = 'codex-toast';
+        toast.textContent = 'A new whisper rests inside Set ' + r.label + '\u2019s Sub-Riddle.';
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
+      });
+      if (d.unlocked.length) {
+        localStorage.removeItem('kitsu_char_clicks');
+        var won = d.unlocked[0];
+        if (window.showSetUnlockModal) window.showSetUnlockModal(won.set_num, won.name, won.message);
       }
-      // Generic extra_hint sub-puzzle: any set with an extra_sequence (a
-      // comma-list of char-circle slugs) and a non-empty extra_reveal gets
-      // a nested puzzle inside its EXTRA HINT modal. The reveal text appends
-      // to the modal after the player matches the slug sequence as the tail
-      // of kitsu_char_clicks. Gated to the set's difficulty tier so the
-      // sub-puzzle only arms when the player can legitimately reach the
-      // extra hint. Toast is suppressed per browser session via sessionStorage.
-      sets.forEach(function(s){
-        if (unlocked(s.set_num)) {
-          // Once the parent set is solved, the extra hint isn't visible
-          // anyway — no reason to keep firing the sub-puzzle.
-          return;
-        }
-        var extraSeq = (s.extra_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
-        if (!extraSeq.length) return;
-        if (!(s.extra_reveal||'').trim()) return;
-        if (!tierUnlocked(s.difficulty || 'easy')) return;
-        var revealKey = 'kitsu_set_' + s.set_num + '_extra_revealed';
-        var subTail = clicks.slice(-extraSeq.length);
-        if (subTail.length === extraSeq.length && subTail.every(function(v,i){return v === extraSeq[i];})) {
-          localStorage.setItem(revealKey, '1');
-          var toastKey = 'kitsu_set_' + s.set_num + '_toast_shown';
-          var alreadyToasted = false;
-          try { alreadyToasted = sessionStorage.getItem(toastKey) === '1'; } catch(_){}
-          if (!alreadyToasted) {
-            try { sessionStorage.setItem(toastKey, '1'); } catch(_){}
-            var toast = document.createElement('div');
-            toast.className = 'codex-toast';
-            toast.textContent = 'A new whisper rests inside Set ' + (s.set_letter || s.name || s.set_num) + '’s Sub-Riddle.';
-            document.body.appendChild(toast);
-            setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){toast.remove();},400); }, 3500);
-          }
-        }
-      });
-      sets.forEach(function(s){
-        if ((s.unlock_mode||'') !== 'char_sequence') return;
-        if (unlocked(s.set_num)) return;
-        if (!tierUnlocked(s.difficulty || 'easy')) return;
-        var seq = (s.unlock_sequence||'').split(',').map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
-        if (!seq.length) return;
-        var tail = clicks.slice(-seq.length);
-        if (tail.length === seq.length && tail.every(function(v,i){return v === seq[i];})) {
-          localStorage.setItem('kitsu_set_' + s.set_num, '1');
-          localStorage.removeItem('kitsu_char_clicks');
-          if (window.showSetUnlockModal) {
-            var name = s.name || ('Set ' + s.set_num);
-            var msg = s.unlock_message || 'Set unlocked!';
-            window.showSetUnlockModal(s.set_num, name, msg);
-          }
-        }
-      });
     });
   });
 })();

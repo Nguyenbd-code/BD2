@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { readProgress } from '../lib/kitsu.js';
 import { memoTTL } from '../lib/memo.js';
 
 function compCard(comp, idx) {
@@ -44,8 +45,7 @@ function strategyCard(note, idx) {
 }
 
 export async function handleHome(request, env) {
-  const cookie = request.headers.get('Cookie') || '';
-  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const isUnlocked = (await readProgress(request, env)).home;
   const html = await memoTTL(`home:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
     () => buildHomeHtml(env, request));
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
@@ -150,10 +150,8 @@ async function buildHomeHtml(env, request) {
       var res  = await fetch('/api/secret/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: val }) });
       var data = await res.json();
       if (data.success) {
-        localStorage.setItem('kitsu_unlocked', 'true');
-        // Set the cookie alongside localStorage so the server can skip the
-        // heavy /emotes render for locked users. 1-year SameSite=Lax.
-        document.cookie = 'kitsu_unlocked=1; Path=/; Max-Age=31536000; SameSite=Lax';
+        // The server has already recorded this in the signed progress cookie.
+        if (window.KITSU) window.KITSU.home = true;
         result.textContent = '✓ Access Granted — Emotes page is now unlocked!';
         result.style.color = '#d4af37';
         input.style.borderColor = '#d4af37';
