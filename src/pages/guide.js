@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { readProgress } from '../lib/kitsu.js';
 import { T1_DATA, SCHERA_ICONS } from '../data/t1.js';
 import { memoTTL } from '../lib/memo.js';
 
@@ -342,11 +343,14 @@ export async function handleGuide(request, env) {
     try { await env.DB.prepare("ALTER TABLE compositions ADD COLUMN guide_label TEXT DEFAULT ''").run(); } catch {}
     _guideSchemaReady = true;
   }
-  // Full-HTML memoisation. The PvP guide is identical for every visitor — no
-  // user-specific data, no cookie-gated branches. On warm-isolate cache hits
-  // the 8-query batch, the comp render, and layout() all get skipped. 30s
-  // TTL; admin edits clear the cache via handleAdminApi → invalidateMemo.
-  const html = await memoTTL('guide:html', 30_000, () => buildGuideHtml(env, request));
+  // Full-HTML memoisation. The PvP guide body is identical for every visitor,
+  // but layout() only adds the Mamonir nav widget once the Home secret is
+  // solved, so cache the locked and unlocked versions separately (like the
+  // other pages). On warm-isolate cache hits the 8-query batch, the comp
+  // render, and layout() all get skipped. 30s TTL; admin edits clear the
+  // cache via handleAdminApi → invalidateMemo.
+  const isUnlocked = (await readProgress(request, env)).home;
+  const html = await memoTTL(`guide:html:${isUnlocked ? 'u' : 'l'}`, 30_000, () => buildGuideHtml(env, request));
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
 }
 
