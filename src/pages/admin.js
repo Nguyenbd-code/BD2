@@ -1021,7 +1021,7 @@ export async function handleAdmin(request, env) {
       <div id="secret-code-alert"></div>
       <div class="form-group">
         <label>New Secret Code <span style="color:var(--text3);font-size:0.7rem">(min 4 characters)</span></label>
-        <input type="text" id="new-secret-code" placeholder="e.g. Seji404" autocomplete="off">
+        <input type="text" id="new-secret-code" placeholder="e.g. MySecret123" autocomplete="off">
       </div>
       <button class="btn" style="width:auto;padding:10px 24px" data-action="save-secret-code">Save Secret Code</button>
     </div>
@@ -1068,11 +1068,11 @@ export async function handleAdmin(request, env) {
         <div class="form-row">
           <div class="form-group">
             <label>Extra Sub-Puzzle Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-list of hamburger character slugs — leave blank to skip)</span></label>
-            <input type="text" id="set-cfg-extra-sequence" placeholder="e.g. rou,zenith,yuri">
+            <input type="text" id="set-cfg-extra-sequence" placeholder="e.g. slug1,slug2,slug3">
           </div>
           <div class="form-group">
             <label>Extra Reveal Text <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(appended to the extra hint once the sequence is pressed)</span></label>
-            <input type="text" id="set-cfg-extra-reveal" placeholder="e.g. Only 8 Elements.">
+            <input type="text" id="set-cfg-extra-reveal" placeholder="e.g. A short extra clue.">
           </div>
         </div>
 
@@ -1137,7 +1137,7 @@ export async function handleAdmin(request, env) {
           </div>
           <div class="form-group">
             <label>Correct Answer <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(what player must type to unlock)</span></label>
-            <input type="text" id="set-cfg-wai-answer" placeholder="e.g. Synae">
+            <input type="text" id="set-cfg-wai-answer" placeholder="e.g. CharacterName">
             <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Case-insensitive. The name the player enters in the "Who Am I?" input.</div>
           </div>
         </div>
@@ -1154,17 +1154,8 @@ export async function handleAdmin(request, env) {
         <!-- Character sequence (char_sequence mode) -->
         <div id="set-cfg-char-seq-wrap" class="form-group" style="display:none">
           <label>Character Sequence <span style="font-size:0.7rem;font-weight:400;color:var(--text3)">(comma-separated character slugs in order)</span></label>
-          <input type="text" id="set-cfg-char-seq" placeholder="e.g. dalvi,rou,tyr,yuri,mamonir" autocomplete="off">
-          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, rou, tyr, yuri, mamonir, liatris, zenith.</div>
-          <div style="margin-top:0.6rem;padding-top:0.6rem;border-top:1px dashed var(--border2)">
-            <label style="font-size:0.78rem">Preset Riddle <span style="font-size:0.68rem;font-weight:400;color:var(--text3)">(pick one to fill in both Hint and Sequence — you can still edit after)</span></label>
-            <select id="set-cfg-charseq-preset" style="margin-top:0.25rem">
-              <option value="">— Select a preset to apply —</option>
-              <option value="hidden_hunger">Hidden Hunger — dalvi/rou/tyr/yuri/mamonir</option>
-              <option value="watchers_patience">Watcher's Patience — zenith/dalvi/tyr/liatris/mamonir</option>
-              <option value="warmth_and_depths">Warmth &amp; Depths — rou/yuri/zenith/dalvi/mamonir</option>
-            </select>
-          </div>
+          <input type="text" id="set-cfg-char-seq" placeholder="e.g. slug1,slug2,slug3" autocomplete="off">
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:0.25rem">Player must click these characters in this order in the side-nav circle widget. Slugs must match: dalvi, liatris, mamonir, rou, tyr, yuri, zenith.</div>
         </div>
         <!-- Unlock Reveal (image + message) -->
         <div style="border:1px solid var(--border2);border-radius:6px;padding:0.85rem 1rem;background:rgba(46,204,113,0.04);margin-top:1rem">
@@ -2226,7 +2217,7 @@ function renderSetConfig(sn) {
   }
   // count_then_seal seal target — stored in unlock_sequence
   if ((s.unlock_mode || '') === 'count_then_seal') {
-    if (g('set-cfg-seal')) g('set-cfg-seal').value = (s.unlock_sequence || 'magic').toLowerCase();
+    if (g('set-cfg-seal')) g('set-cfg-seal').value = (s.unlock_sequence || '').toLowerCase();
   }
   // char_sequence — comma list in unlock_sequence
   if ((s.unlock_mode || '') === 'char_sequence') {
@@ -2757,39 +2748,6 @@ function setupEmoteSetUI() {
   if (waiCharSel) {
     waiCharSel.addEventListener('change', function() {
       refreshWAIPortrait(waiCharSel.value);
-    });
-  }
-  // Preset-riddle picker for char_sequence sets — fills in both the hint
-  // textarea and the sequence input when an option is selected. The admin
-  // can still hand-edit either field after applying a preset.
-  // (Backslashes are doubled because this whole script body is inside a
-  // server-side template literal; we want literal \\n to reach the browser.)
-  var CHAR_SEQ_PRESETS = {
-    hidden_hunger: {
-      hint: 'The first hides hunger beneath affection.\\nThe second remains where others would flee.\\nThe third knows too little to distrust the world.\\nThe fourth walks softly enough to disappear.\\nThe last waits below, where even death obeys.',
-      seq: 'dalvi,rou,tyr,yuri,mamonir'
-    },
-    watchers_patience: {
-      hint: 'The first waits silently while the world moves around her.\\nThe second smiles warmly while hiding ancient hunger.\\nThe third wanders too gently to understand fear.\\nThe fourth clings tightly enough to become dangerous.\\nThe last commands even those abandoned by death.',
-      seq: 'zenith,dalvi,tyr,liatris,mamonir'
-    },
-    warmth_and_depths: {
-      hint: 'Warmth arrives first, small enough to be overlooked.\\nJustice follows after with claws hidden beneath innocence.\\nSilence watches next from beyond the trees.\\nDesire smiles afterward like a beautiful dream.\\nBelow them all waits the ruler of endless depths.',
-      seq: 'rou,yuri,zenith,dalvi,mamonir'
-    }
-  };
-  var presetSel = document.getElementById('set-cfg-charseq-preset');
-  if (presetSel) {
-    presetSel.addEventListener('change', function(){
-      var key = presetSel.value;
-      var preset = CHAR_SEQ_PRESETS[key];
-      if (!preset) return;
-      var hintEl = document.getElementById('set-cfg-hint');
-      var seqEl = document.getElementById('set-cfg-char-seq');
-      if (hintEl) hintEl.value = preset.hint;
-      if (seqEl) seqEl.value = preset.seq;
-      // Reset selector so applying the same preset twice still fires.
-      setTimeout(function(){ presetSel.value = ''; }, 50);
     });
   }
   loadEmoteSets();
