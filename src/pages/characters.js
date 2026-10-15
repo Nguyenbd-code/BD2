@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { readProgress } from '../lib/kitsu.js';
 import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses the isolate across requests, so the
@@ -8,8 +9,7 @@ let _charsSchemaReady = false;
 export async function handleCharacters(request, env) {
   // Vary cache key by isUnlocked because layout() only emits the mamonir
   // nav widget for unlocked visitors. Page body itself is identical.
-  const cookie = request.headers.get('Cookie') || '';
-  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  const isUnlocked = (await readProgress(request, env)).home;
   const html = await memoTTL(`characters:html:${isUnlocked ? 'u' : 'l'}`, 30_000,
     () => buildCharactersHtml(env, request));
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
@@ -280,22 +280,22 @@ function tierUnlocked(d) {
   if (!KITSU_SETS) return false;
   var prev = d === 'medium' ? 'easy' : 'medium';
   var list = KITSU_SETS.filter(function(x){ return (x.difficulty || 'easy') === prev; });
-  return list.length > 0 && list.every(function(x){ return localStorage.getItem('kitsu_set_' + x.set_num) === '1'; });
+  return list.length > 0 && list.every(function(x){ return window.kitsuHas(x.set_num); });
 }
 
 function setupWhoAmI() {
   if (!KITSU_SETS) return;
   KITSU_SETS.forEach(function(s) {
     if ((s.unlock_mode || '') !== 'who_am_i') return;
-    var targetSlug = (s.unlock_target || '').toLowerCase();
-    if (!targetSlug) return;
-    var picker = document.querySelector('.char-costume-picker[data-slug="' + targetSlug + '"]');
-    var ghostCard = picker ? picker.closest('.char-page-card') : (document.querySelector('.char-page-card[data-ghost="1"]'));
+    // The server marks the mystery card with data-ghost; the answer itself
+    // is never sent to the browser.
+    var ghostCard = document.querySelector('.char-page-card[data-ghost="1"]');
+    var picker = ghostCard ? ghostCard.querySelector('.char-costume-picker') : null;
     // Solved, or Hard tier not yet reachable → keep the card hidden. The
     // server already rendered it with .char-ghost-hidden, so we just leave
     // (or re-assert) that class; the !important rule keeps the element/attack
     // filters from revealing it.
-    if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') {
+    if (window.kitsuHas(s.set_num)) {
       if (ghostCard) ghostCard.classList.add('char-ghost-hidden');
       return;
     }
@@ -312,7 +312,6 @@ function setupWhoAmI() {
     picker.appendChild(opt);
     var inputDiv = document.createElement('div');
     inputDiv.style.cssText = 'display:none;margin-top:0.4rem';
-    var answer = (s.unlock_sequence || '').trim();
     var setNum = s.set_num;
     inputDiv.innerHTML = '<input type="text" placeholder="Enter name..." autocomplete="off" style="width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-size:0.82rem;font-family:inherit">'
       + '<button style="width:100%;margin-top:0.25rem;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:5px;border-radius:4px;cursor:pointer;font-size:0.78rem;font-family:Cormorant Unicase,serif;letter-spacing:0.04em">Submit</button>'
@@ -326,25 +325,28 @@ function setupWhoAmI() {
     var errEl = inputDiv.querySelector('.wai-err');
     function checkWhoAmI() {
       var val = (inp ? inp.value : '').trim();
-      if (val.toLowerCase() === answer.toLowerCase()) {
-        localStorage.setItem('kitsu_set_' + setNum, '1');
-        inputDiv.style.display = 'none';
-        for (var i = picker.options.length - 1; i >= 0; i--) {
-          if (picker.options[i].value === '__who_am_i__') { picker.remove(i); break; }
+      if (!val) return;
+      window.kitsuAttempt({ kind: 'who_am_i', set_num: setNum, answer: val }).then(function(d) {
+        var won = d.unlocked[0];
+        if (won) {
+          inputDiv.style.display = 'none';
+          for (var i = picker.options.length - 1; i >= 0; i--) {
+            if (picker.options[i].value === '__who_am_i__') { picker.remove(i); break; }
+          }
+          picker.selectedIndex = 0;
+          showUnlockToast(won);
+          if (ghostCard) {
+            ghostCard.style.transition = 'opacity 0.6s ease';
+            ghostCard.style.opacity = '0';
+            // Re-assert the filter-proof hide once the fade completes so the
+            // card can't reappear when the visitor changes element filters.
+            setTimeout(function() { ghostCard.classList.add('char-ghost-hidden'); ghostCard.style.opacity = ''; }, 650);
+          }
+        } else {
+          if (errEl) { errEl.textContent = 'Incorrect. Try again.'; setTimeout(function() { if (errEl) errEl.textContent = ''; }, 2000); }
+          if (inp) { inp.value = ''; inp.focus(); }
         }
-        picker.selectedIndex = 0;
-        showUnlockToast(setNum);
-        if (ghostCard) {
-          ghostCard.style.transition = 'opacity 0.6s ease';
-          ghostCard.style.opacity = '0';
-          // Re-assert the filter-proof hide once the fade completes so the
-          // card can't reappear when the visitor changes element filters.
-          setTimeout(function() { ghostCard.classList.add('char-ghost-hidden'); ghostCard.style.opacity = ''; }, 650);
-        }
-      } else {
-        if (errEl) { errEl.textContent = 'Incorrect. Try again.'; setTimeout(function() { if (errEl) errEl.textContent = ''; }, 2000); }
-        if (inp) { inp.value = ''; inp.focus(); }
-      }
+      });
     }
     if (btn) btn.addEventListener('click', checkWhoAmI);
     if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') checkWhoAmI(); });
@@ -375,23 +377,7 @@ document.addEventListener('click', function(e) {
         var ca = (card.dataset.atkType || '').toLowerCase();
         card.style.display = (!at || ca === at) ? '' : 'none';
       });
-      // Track atk-type click for count_then_seal sealing
-      if (at && (window.KITSU_SETS || []).length) {
-        window.KITSU_SETS.forEach(function(s) {
-          if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
-          if (!tierUnlocked(s.difficulty || 'easy')) return;
-          if ((s.unlock_mode || '') !== 'count_then_seal') return;
-          var countKey = 'kitsu_set_' + s.set_num + '_count';
-          var c = parseInt(localStorage.getItem(countKey) || '0', 10);
-          var needed = s.unlock_count || 7;
-          var seal = (s.unlock_sequence || '').toLowerCase().trim();
-          if (c >= needed && seal && at === seal) {
-            localStorage.setItem('kitsu_set_' + s.set_num, '1');
-            localStorage.removeItem(countKey);
-            showUnlockToast(s.set_num);
-          }
-        });
-      }
+      if (at) reportFilterClick('atk:' + at);
     } catch (err) {}
     return;
   }
@@ -406,57 +392,39 @@ document.addEventListener('click', function(e) {
       var ce = (card.dataset.element || '').toLowerCase();
       card.style.display = (el === 'all' || ce === el) ? '' : 'none';
     });
-    if (el && el !== 'all' && KITSU_SETS) {
-      var recent = [];
-      try { recent = JSON.parse(localStorage.getItem('kitsu_recent_clicks') || '[]'); } catch(e) {}
-      recent.push(el);
-      if (recent.length > 30) recent = recent.slice(-30);
-      localStorage.setItem('kitsu_recent_clicks', JSON.stringify(recent));
-
-      KITSU_SETS.forEach(function(s) {
-        if ((s.unlock_page || '') !== 'characters') return;
-        if (localStorage.getItem('kitsu_set_' + s.set_num) === '1') return;
-        if (!tierUnlocked(s.difficulty || 'easy')) return;
-        var mode = s.unlock_mode || 'count';
-        if (mode === 'sequence') {
-          var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean);
-          if (!seq.length) return;
-          var tail = recent.slice(-seq.length);
-          if (tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; })) {
-            localStorage.setItem('kitsu_set_' + s.set_num, '1');
-            showUnlockToast(s.set_num);
-          }
-        } else if (mode === 'count') {
-          if (!(s.unlock_target || '')) return;
-          if ((s.unlock_target || '').toLowerCase() !== el) return;
-          var key = 'kitsu_set_' + s.set_num + '_count';
-          var c = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-          localStorage.setItem(key, String(c));
-          if (c >= (s.unlock_count || 7)) {
-            localStorage.setItem('kitsu_set_' + s.set_num, '1');
-            showUnlockToast(s.set_num);
-          }
-        } else if (mode === 'count_then_seal') {
-          if (!(s.unlock_target || '')) return;
-          if ((s.unlock_target || '').toLowerCase() !== el) return;
-          var ckey = 'kitsu_set_' + s.set_num + '_count';
-          var cc = parseInt(localStorage.getItem(ckey) || '0', 10);
-          if (cc < (s.unlock_count || 7)) {
-            cc++;
-            localStorage.setItem(ckey, String(cc));
-          }
-          // Unlock only after the seal atk-type click — see atk-filter handler.
-        }
-        // letter_sequence and who_am_i handled elsewhere
-      });
-    }
+    if (el && el !== 'all') reportFilterClick('el:' + el);
   } catch(err) {}
 });
 
-function showUnlockToast(n) {
-  var s = (KITSU_SETS || []).find(function(x) { return x.set_num === n; }) || {};
-  var name = s.name || ('Set ' + n);
-  var msg = s.unlock_message || ("Unlocked! Visit Kitsu's Emotes to see set " + n + '.');
+// Filter clicks feed the Characters-page puzzles. Keep a short history of
+// them and let the server check it; only bother while a puzzle here is
+// still unsolved and reachable.
+function charactersPuzzleLive() {
+  return (KITSU_SETS || []).some(function(s) {
+    var mode = s.unlock_mode || 'count';
+    return (s.unlock_page || '') === 'characters'
+      && (mode === 'sequence' || mode === 'count' || mode === 'count_then_seal')
+      && !window.kitsuHas(s.set_num) && tierUnlocked(s.difficulty || 'easy');
+  });
+}
+function reportFilterClick(ev) {
+  if (!charactersPuzzleLive()) return;
+  var hist = [];
+  try { hist = JSON.parse(localStorage.getItem('kitsu_filter_events') || '[]'); } catch(e) {}
+  hist.push(ev);
+  if (hist.length > 40) hist = hist.slice(-40);
+  localStorage.setItem('kitsu_filter_events', JSON.stringify(hist));
+  window.kitsuAttempt({ kind: 'characters', events: hist }).then(function(d) {
+    if (!d.unlocked.length) return;
+    localStorage.removeItem('kitsu_filter_events');
+    d.unlocked.forEach(showUnlockToast);
+  });
+}
+
+function showUnlockToast(won) {
+  var n = won.set_num;
+  var name = won.name || ('Set ' + n);
+  var msg = won.message || ("Unlocked! Visit Kitsu's Emotes to see set " + n + '.');
   if (window.showSetUnlockModal) {
     window.showSetUnlockModal(n, name, msg);
   } else {

@@ -1199,12 +1199,10 @@ export async function handleAdmin(request, env) {
 
       <div class="card" style="margin-top:1rem">
         <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:0.85rem;color:var(--gold2);margin-bottom:0.5rem">Testing / Reset Local State</div>
-        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Clears the localStorage flags used by Kitsu's emotes lock flow for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem">Resets Kitsu's emotes progress (Home secret, set unlocks, Sub-Riddle reveals, click trackers) for THIS browser only. Use when testing the page lock and per-set unlock mechanics.</p>
         <div id="kitsu-reset-alert" style="font-size:0.78rem;margin-bottom:0.5rem;min-height:1.2em"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
-          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-page">Re-lock Page (clear kitsu_unlocked)</button>
-          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-sets">Re-lock All Sets (clear kitsu_set_*)</button>
-          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset Everything (page + sets + click trackers)</button>
+          <button class="btn-danger" style="width:auto;padding:6px 14px;font-size:0.78rem" data-action="kitsu-reset-all">Reset My Progress</button>
         </div>
       </div>
 
@@ -3821,26 +3819,15 @@ document.addEventListener('click', function(e) {
   if (action === 'save-guide-label') saveGuideLabel();
   if (action === 'save-all-comp')    saveAllComp();
   if (action === 'skill-tile-upload') uploadSkillTile(parseInt(b.dataset.skillId, 10));
-  if (action === 'kitsu-reset-page') {
-    localStorage.removeItem('kitsu_unlocked');
-    showAlert('kitsu-reset-alert', true, 'Page lock reset. Reload the emotes page to see the lock screen.');
-  }
-  if (action === 'kitsu-reset-sets') {
-    var n = 0;
-    for (var i = localStorage.length - 1; i >= 0; i--) {
-      var k = localStorage.key(i);
-      if (k && k.indexOf('kitsu_set_') === 0) { localStorage.removeItem(k); n++; }
-    }
-    showAlert('kitsu-reset-alert', true, 'Cleared ' + n + ' per-set unlock keys.');
-  }
   if (action === 'kitsu-reset-all') {
-    var m = 0;
-    for (var j = localStorage.length - 1; j >= 0; j--) {
-      var kk = localStorage.key(j);
-      if (kk && kk.indexOf('kitsu_') === 0) { localStorage.removeItem(kk); m++; }
-    }
-    localStorage.removeItem('kitsu_mamonir_taps');
-    showAlert('kitsu-reset-alert', true, 'Cleared ' + m + ' kitsu_* keys (page lock, set unlocks, click trackers).');
+    // Progress lives in a signed cookie, so the server has to clear it.
+    fetch('/api/kitsu/reset', { method: 'POST', credentials: 'same-origin' }).then(function() {
+      for (var j = localStorage.length - 1; j >= 0; j--) {
+        var kk = localStorage.key(j);
+        if (kk && kk.indexOf('kitsu_') === 0 && kk !== 'kitsu_v2') localStorage.removeItem(kk);
+      }
+      showAlert('kitsu-reset-alert', true, 'Progress reset for this browser. Reload any page to see it locked again.');
+    }).catch(function() { showAlert('kitsu-reset-alert', false, 'Reset failed. Try again.'); });
   }
   if (action === 'save-nav-icon-settings') saveNavIconSettings();
   if (action === 'upload-mamonir-nav') uploadMamonirNav();

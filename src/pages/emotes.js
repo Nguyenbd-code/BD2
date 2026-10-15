@@ -1,4 +1,5 @@
 import { layout, esc } from '../layout/layout.js';
+import { readProgress } from '../lib/kitsu.js';
 import { memoTTL } from '../lib/memo.js';
 
 // Module-level latch — Workers reuses module state across requests within an
@@ -193,15 +194,14 @@ export async function handleEmotes(request, env) {
   // Cookie-gate: if the player hasn't solved the secret code (set by /home),
   // skip every D1 read for the puzzle content and ship a slim lock-screen
   // page. Saves ~60% of the HTML payload + 6 image lookups for locked users.
-  // localStorage stays the source of truth on the client; the cookie is just
-  // a mirror so the server can short-circuit. The migration script in
-  // layout.js head reconciles existing localStorage-only unlocks.
-  const cookie = request.headers.get('Cookie') || '';
-  const isUnlocked = /(?:^|;\s*)kitsu_unlocked=1(?:;|$)/.test(cookie);
+  // The Home secret is recorded in the signed kitsu_progress cookie, so the
+  // server can trust it.
+  const isUnlocked = (await readProgress(request, env)).home;
 
   // Full-HTML memoisation. The rendered page is identical for every visitor
   // sharing the same lock state (locked vs unlocked) — neither path embeds
-  // per-user data, all gameplay state lives in localStorage. Cache hits
+  // per-user data; each player's set progress is read in the browser from
+  // their own signed cookie. Cache hits
   // bypass D1, the schema check, the JSON build, and layout() entirely.
   // 30s TTL; admin writes invalidate via handleAdminApi → invalidateMemo.
   const cacheKey = `emotes:html:${isUnlocked ? 'u' : 'l'}`;
@@ -353,7 +353,7 @@ async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
   }).join('');
 
   const resp = await layout("Kitsu's Emotes", `
-<!-- Page lock screen — shown only if kitsu_unlocked not set -->
+<!-- Page lock screen — shown only until the Home secret is solved -->
 <div id="emote-lock-screen" style="display:none;position:fixed;inset:0;z-index:90;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:2rem;overflow-y:auto">
   <div style="max-width:460px;width:100%;text-align:center;position:relative">
     <button id="lock-hint-btn" type="button" aria-label="How to unlock" style="position:absolute;top:0;right:0;width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.45);color:var(--gold);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">?</button>
@@ -383,7 +383,7 @@ async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
   }
 })();</script>
 
-<script>(function(){if(localStorage.getItem('kitsu_unlocked')!=='true'){var ls=document.getElementById('emote-lock-screen');var pc=document.getElementById('emote-page-content');if(ls)ls.style.display='flex';if(pc)pc.style.display='none';}})();</script>
+<script>(function(){if(!(window.kitsuHome&&window.kitsuHome())){var ls=document.getElementById('emote-lock-screen');var pc=document.getElementById('emote-page-content');if(ls)ls.style.display='flex';if(pc)pc.style.display='none';}})();</script>
 <!-- Main page content (hidden until unlocked) -->
 <div id="emote-page-content">
 <div class="hero" style="padding-bottom:2rem">
@@ -497,7 +497,13 @@ async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
     if (lockImgWrap) lockImgWrap.innerHTML = '<img src="' + LOCK_IMG + '" style="width:100%;height:100%;object-fit:contain">';
   }
 
-  function isUnlocked(n) { return localStorage.getItem('kitsu_set_' + n) === '1'; }
+  function isUnlocked(n) { return window.kitsuHas(n); }
+  // Sub-Riddle reveal texts the player has earned, fetched from the server.
+  var REVEALS = {};
+  if (window.KITSU && window.KITSU.reveals.length) {
+    fetch('/api/kitsu/state', { credentials: 'same-origin' }).then(function(r){ return r.json(); })
+      .then(function(d){ REVEALS = (d && d.reveals) || {}; }).catch(function(){});
+  }
   function setsOfDifficulty(d) { return SETS.filter(function(s){ return (s.difficulty||'easy') === d; }); }
   function allUnlocked(list) { return list.length > 0 && list.every(function(s){ return isUnlocked(s.set_num); }); }
   // A difficulty tier is *available* (its puzzles can fire) only after every set in the previous tier is solved.
@@ -565,20 +571,16 @@ async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
   function getLetter(s) { return (s.set_letter || s.name || String(s.set_num)).toUpperCase(); }
 
   function checkLetterSequence(lclicks) {
-    SETS.forEach(function(s) {
-      if ((s.unlock_mode || '') !== 'letter_sequence') return;
-      if (isUnlocked(s.set_num)) return;
-      if (!isSetAvailable(s.set_num)) return;
-      var seq = (s.unlock_sequence || '').split(',').map(function(x) { return x.trim().toUpperCase(); }).filter(Boolean);
-      if (!seq.length) return;
-      var tail = lclicks.slice(-seq.length);
-      if (tail.length === seq.length && tail.every(function(v, i) { return v === seq[i]; })) {
-        localStorage.setItem('kitsu_set_' + s.set_num, '1');
-        paint();
-        if (window.showSetUnlockModal) {
-          window.showSetUnlockModal(s.set_num, s.name || ('Set ' + s.set_num), s.unlock_message || 'You found the secret! This set is now unlocked.');
-        }
-      }
+    var live = SETS.some(function(s) {
+      return (s.unlock_mode || '') === 'letter_sequence' && !isUnlocked(s.set_num) && isSetAvailable(s.set_num);
+    });
+    if (!live) return;
+    window.kitsuAttempt({ kind: 'letters', events: lclicks }).then(function(d) {
+      if (!d.unlocked.length) return;
+      localStorage.removeItem('kitsu_letter_clicks');
+      paint();
+      var won = d.unlocked[0];
+      if (window.showSetUnlockModal) window.showSetUnlockModal(won.set_num, won.name, won.message);
     });
   }
 
@@ -660,8 +662,8 @@ async function buildUnlockedEmotesHtml(env, request, DEFAULT_LOCK_HINT) {
       // Generic extra-reveal append. Any set whose extra_sequence has been
       // matched in the char-circle gets its extra_reveal appended below the
       // primary extra_hint via an em-dash divider.
-      if (es && (es.extra_reveal||'').trim() && localStorage.getItem('kitsu_set_' + es.set_num + '_extra_revealed') === '1') {
-        extraBody += '\\n\\n— — —\\n\\n' + es.extra_reveal;
+      if (es && REVEALS[es.set_num]) {
+        extraBody += '\\n\\n— — —\\n\\n' + REVEALS[es.set_num];
       }
       showHintModal('SUB-RIDDLE — ' + (es ? (es.name || en) : en), extraBody);
       return;
