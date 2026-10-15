@@ -14,11 +14,6 @@ import { clientIp }                              from './lib/auth.js';
 import { readProgress, progressCookie, clearProgressCookie, evaluateAttempt,
          publicState, rateLimited }               from './lib/kitsu.js';
 
-// Module-level latch — coupon seeding only needs to happen once per database,
-// not once per request. Without this we ate a D1 SELECT COUNT(*) on every
-// inbound request (including static assets) just to confirm the table was
-// already populated. Set to true after a successful non-empty check.
-let _couponsSeeded = false;
 let _emoteSetsApiSchemaReady = false;
 
 function jsonResp(data, status = 200) {
@@ -36,29 +31,6 @@ export default {
       // stylesheet responses are cacheable + don't touch coupons.
       if (path.startsWith('/img/')) return handleImage(request, env);
       if (path === '/styles.css')   return handleStylesheet();
-
-      // Seed initial coupon codes — once per isolate. The latch avoids the
-      // recurring COUNT(*) on every non-static request.
-      if (!_couponsSeeded) {
-        try {
-          const existing = await env.DB.prepare('SELECT COUNT(*) as count FROM coupons').first();
-          if (existing && existing.count === 0) {
-            const initCodes = [
-              ['2026BD2MAY',       '50 Diamonds + 3 Draw Tickets', null],
-              ['BD2RADIOFINALE',   'Stamina x20 + Diamonds x30',   null],
-              ['Waiting4legend',   '30 Diamonds',                  null],
-              ['BD2025SUMMER',     '50 Diamonds',                  null],
-              ['SQUARE1000DEKO',   '30 Diamonds',                  null],
-              ['BD2RADIOABYSS',    '30 Diamonds',                  null],
-            ];
-            for (const [code, rewards, expiry] of initCodes) {
-              await env.DB.prepare('INSERT OR IGNORE INTO coupons (code,rewards,expiry,active) VALUES (?,?,?,1)')
-                .bind(code, rewards, expiry).run();
-            }
-          }
-          _couponsSeeded = true;
-        } catch(e) { /* ignore seed errors — retry on next isolate */ }
-      }
 
       // Secret code check (public, no auth). A correct code marks the
       // visitor's signed progress cookie, which unlocks the Emotes page.
