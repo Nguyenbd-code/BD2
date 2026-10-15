@@ -5,17 +5,19 @@ import { rateLimited } from '../lib/kitsu.js';
 const API_ENDPOINT = 'https://loj2urwaua.execute-api.ap-northeast-1.amazonaws.com/prod/coupon';
 const APP_ID = 'bd2-live';
 
+// Turns the coupon API's error codes into short, player-friendly results.
+// Anything unrecognized is reported as "already claimed or expired", which
+// is almost always the reason a listed code stops working.
 function mapError(err) {
   switch (err) {
     case 'ValidationFailed':
-    case 'InvalidCode':        return { status: 'InvalidCode',   message: 'Invalid code — please double-check the coupon code.' };
-    case 'ExpiredCode':        return { status: 'ExpiredCode',   message: 'This coupon code has expired.' };
-    case 'AlreadyUsed':        return { status: 'AlreadyUsed',   message: 'This coupon code has already been used.' };
-    case 'ExceededUses':       return { status: 'ExpiredCode',   message: 'This coupon has exceeded its number of uses.' };
-    case 'UnavailableCode':    return { status: 'InvalidCode',   message: 'Unable to use this coupon code.' };
-    case 'IncorrectUser':      return { status: 'IncorrectUser', message: 'Incorrect nickname — please double-check.' };
-    case 'ClaimRewardsFailed': return { status: 'Error',         message: 'Claim failed — please try again.' };
-    default:                   return { status: 'Error',         message: err ? ('Error: ' + err) : 'Unknown error.' };
+    case 'InvalidCode':        return { status: 'InvalidCode',   message: 'Invalid code. Please double-check it.' };
+    case 'AlreadyUsed':        return { status: 'AlreadyUsed',   message: 'You have already claimed this code.' };
+    case 'ExpiredCode':
+    case 'ExceededUses':       return { status: 'ExpiredCode',   message: 'This code has expired.' };
+    case 'IncorrectUser':      return { status: 'IncorrectUser', message: 'Nickname not found. Please double-check it.' };
+    case 'ClaimRewardsFailed': return { status: 'Error',         message: "Couldn't claim right now. Please try again." };
+    default:                   return { status: 'Unavailable',   message: 'This code is already claimed or expired.' };
   }
 }
 
@@ -59,36 +61,19 @@ export async function handleRedeem(request) {
     });
     text = await res.text();
   } catch (e) {
-    return json({ success: false, status: 'NetworkError', message: 'Network error: ' + e.message });
+    return json({ success: false, status: 'NetworkError', message: "Couldn't reach the game's server. Please try again later." });
   }
 
   let data = null;
   try { data = JSON.parse(text); } catch {}
 
   if (!data || typeof data !== 'object') {
-    return json({
-      success: false,
-      status: 'Error',
-      message: 'Unexpected response (not JSON)',
-      http: res.status,
-      raw: (text || '').substring(0, 400),
-    });
+    return json({ success: false, status: 'NetworkError', message: "Couldn't reach the game's server. Please try again later." });
   }
 
   if (data.success) {
-    return json({
-      success: true,
-      status: 'Success',
-      message: 'Redeemed successfully! Check your in-game mailbox.',
-      http: res.status,
-    });
+    return json({ success: true, status: 'Success', message: 'Redeemed! Check your in-game mailbox.' });
   }
 
-  const mapped = mapError(data.error);
-  return json({
-    success: false,
-    ...mapped,
-    http: res.status,
-    raw: (text || '').substring(0, 400),
-  });
+  return json({ success: false, ...mapError(data.error) });
 }
